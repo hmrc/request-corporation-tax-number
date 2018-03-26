@@ -1,3 +1,4 @@
 # microservice specific routes
 
-GET        /hello-world             @uk.gov.hmrc.requestcorporationtaxnumber.controllers.MicroserviceHelloWorld.hello
+POST /enrol                 @controllers.EnrolmentController.enrol
+POST /file-upload/callback  @controllers.EnrolmentController.fileUploadCallback

@@ -1,0 +1,126 @@
+@(viewmodel: model.templates.EnrolmentViewModel)
+
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <title>Apply for the National Minimum Wage social care compliance scheme</title>
+    <style>
+    table td, table th {
+        font-size:19px;
+    }
+</style>
+</head>
+<body>
+<main id="wrapper">
+    <div id="content">
+        <div>
+            <div class="logo">
+                <span class="organisation-logo organisation-logo-medium">HM Revenue &amp; Customs</span>
+            </div>
+        </div>
+
+        <article class="content__body full-width">
+            <span style="color: #6f777b; display: block;" class="heading-large">Internal HMRC Copy</span>
+            <h1 class="heading-large">Apply for the National Minimum Wage social care compliance scheme</h1>
+
+            <p id="timestamp">Submitted on @viewmodel.timestamp</p>
+
+            <h3 class="heading-medium" id="capacity-heading">Capacity Registered</h3>
+            <table>
+                <tbody>
+                <tr>
+                    <td>Capacity registered as</td>
+                    <td>@viewmodel.capacityRegistering</td>
+                </tr>
+                </tbody>
+            </table>
+
+            @if(viewmodel.agent.isDefined){
+                <h3 class="heading-medium" id="applicant-contact-details-heading">Agent contact details</h3>
+                <table id="applicant__contact-details">
+                    <tbody>
+                    <tr>
+                        <td>Name</td>
+                        <td>@viewmodel.agent.get.name</td>
+                    </tr>
+                    @if(viewmodel.agent.get.address.isDefined) {
+                    <tr>
+                        <td>Address</td>
+                        <td>@viewmodel.agent.get.address.get.line1
+                            <br>@viewmodel.agent.get.address.get.line2
+                            <br>@viewmodel.agent.get.address.get.line3
+                            <br>@viewmodel.agent.get.address.get.line4
+                            <br>@viewmodel.agent.get.address.get.line5
+                            <br>@viewmodel.agent.get.address.get.line6
+                        </td>
+                    </tr>
+                    }
+                    @if(viewmodel.agent.get.telephoneNumber.isDefined) {
+                    <tr>
+                        <td>Telephone number</td>
+                        <td>@viewmodel.agent.get.telephoneNumber.get</td>
+                    </tr>
+                    }
+                    @if(viewmodel.agent.get.emailAddress.isDefined) {
+                    <tr>
+                        <td>Email address</td>
+                        <td>@viewmodel.agent.get.emailAddress.get</td>
+                    </tr>
+                    }
+                    </tbody>
+                </table>
+            }
+
+            @if(viewmodel.employer.isDefined){
+            <h3 class="heading-medium" id="employee-details-heading">Employer contact details</h3>
+            <table id="employee__contact-details">
+                <tbody>
+                <tr>
+                    <td>Name</td>
+                    <td>@viewmodel.employer.get.name</td>
+                </tr>
+                @if(viewmodel.employer.get.address.isDefined) {
+                <tr>
+                    <td>Address</td>
+                    <td>@viewmodel.employer.get.address.get.line1
+                        <br>@viewmodel.employer.get.address.get.line2
+                        <br>@viewmodel.employer.get.address.get.line3
+                        <br>@viewmodel.employer.get.address.get.line4
+                        <br>@viewmodel.employer.get.address.get.line5
+                        <br>@viewmodel.employer.get.address.get.line6
+                    </td>
+                </tr>
+                }
+                @if(viewmodel.employer.get.telephoneNumber.isDefined) {
+                <tr>
+                    <td>Telephone number</td>
+                    <td>@viewmodel.employer.get.telephoneNumber.get</td>
+                </tr>
+                }
+                @if(viewmodel.employer.get.emailAddress.isDefined) {
+                <tr>
+                    <td>Email address</td>
+                    <td>@viewmodel.employer.get.emailAddress.get</td>
+                </tr>
+                }
+                @if(viewmodel.employer.get.taxpayerReference.isDefined) {
+                <tr>
+                    <td>Unique Tax Reference</td>
+                    <td>@viewmodel.employer.get.taxpayerReference.get</td>
+                </tr>
+                }
+                @if(viewmodel.employer.get.payeReference.isDefined) {
+                <tr>
+                    <td>PAYE Reference</td>
+                    <td>@viewmodel.employer.get.payeReference.get</td>
+                </tr>
+                }
+                </tbody>
+            </table>
+            }
+        </article>
+    </div>
+</main>
+</body>
+</html>
