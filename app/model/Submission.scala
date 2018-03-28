@@ -31,10 +31,8 @@ case class Submission(company: CompanyDetails) {
 
 object Submission {
 
-  //  implicit val reads : Reads[Submission] = (JsPath \ "company").read[CompanyDetails](Submission.apply _)
   implicit val reads : Reads[Submission] = (JsPath \ "company").read[CompanyDetails].map(Submission(_))
 
-  //implicit val writes : Writes[Submission] = (JsPath \ "company").write[CompanyDetails](unlift(Submission.unapply))
   implicit val writes : Writes[Submission] = (JsPath \ "company").write[CompanyDetails].contramap(unlift(Submission.unapply))
 
 }
