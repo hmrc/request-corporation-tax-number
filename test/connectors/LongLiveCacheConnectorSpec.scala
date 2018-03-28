@@ -17,7 +17,7 @@
 package connectors
 
 import config.MicroserviceAppConfig
-import model.{Employer, Enrolment}
+import model.{CompanyDetails, Submission}
 import org.mockito.Matchers
 import org.mockito.Matchers.any
 import org.mockito.Mockito.{times, verify, when, _}
@@ -62,13 +62,13 @@ class LongLiveCacheConnectorSpec extends PlaySpec with MockitoSugar with OneAppP
         data mustBe 10
       }
 
-      "provided with enrolment data" ignore {
+      "provided with submission data" ignore {
         val sut = createSUT
         when(sut.cacheRepository.repo.createOrUpdate(any(), any(), any())).thenReturn(databaseUpdate)
 
-        val data = Await.result(sut.createOrUpdate(id = "", data = enrolment, key = ""), atMost)
+        val data = Await.result(sut.createOrUpdate(id = "", data = submission, key = ""), atMost)
 
-        data mustBe enrolment
+        data mustBe submission
       }
 
     }
@@ -77,14 +77,14 @@ class LongLiveCacheConnectorSpec extends PlaySpec with MockitoSugar with OneAppP
 
       "id is present in the cache" in {
         val sut = createSUT
-        val eventualSomeCache = Some(Cache(Id(id), Some(Json.toJson(Map("SCC-iForm" -> "DATA")))))
+        val eventualSomeCache = Some(Cache(Id(id), Some(Json.toJson(Map("CTUTR-iForm" -> "DATA")))))
         when(sut.cacheRepository.repo.findById(any(), any())(any())).thenReturn(Future.successful(eventualSomeCache))
 
         val data = Await.result(sut.find[String](id), atMost)
 
         data mustBe Some("DATA")
 
-        verify(sut.cacheRepository.repo, times(1)).findById(Matchers.eq(id), any())(any())
+        verify(sut.cacheRepository.repo, times(1)).findById(Matchers.eq(Id(id)), any())(any())
       }
 
       "id is not present in the cache" in {
@@ -95,34 +95,34 @@ class LongLiveCacheConnectorSpec extends PlaySpec with MockitoSugar with OneAppP
 
         data mustBe None
 
-        verify(sut.cacheRepository.repo, times(1)).findById(Matchers.eq(id), any())(any())
+        verify(sut.cacheRepository.repo, times(1)).findById(Matchers.eq(Id(id)), any())(any())
       }
     }
 
-    "retrieve the enrolment from cache" when {
+    "retrieve the submission from cache" when {
 
       "id is present in the cache" ignore {
         val sut = createSUT
-        val eventualSomeCache = Some(Cache(Id(id), Some(Json.toJson(Map("SCC-iForm" -> enrolment)))))
+        val eventualSomeCache = Some(Cache(Id(id), Some(Json.toJson(Map("CTUTR-iForm" -> submission)))))
         when(sut.cacheRepository.repo.findById(any(), any())(any())).thenReturn(Future.successful(eventualSomeCache))
 
-        val data = Await.result(sut.find[String](id, "SCC-iForm"), atMost)
+        val data = Await.result(sut.find[String](id, "CTUTR-iForm"), atMost)
 
-        data mustBe Some(enrolment)
+        data mustBe Some(submission)
 
-        verify(sut.cacheRepository.repo, times(1)).findById(Matchers.eq(id), any())(any())
+        verify(sut.cacheRepository.repo, times(1)).findById(Matchers.eq(Id(id)), any())(any())
       }
 
       "id is present in the cache but with wrong type conversion" in {
         val sut = createSUT
-        val eventualSomeCache = Some(Cache(Id(id), Some(Json.toJson(Map("SCC-iForm" -> enrolment)))))
+        val eventualSomeCache = Some(Cache(Id(id), Some(Json.toJson(Map("CTUTR-iForm" -> submission)))))
         when(sut.cacheRepository.repo.findById(any(), any())(any())).thenReturn(Future.successful(eventualSomeCache))
 
-        val data = Await.result(sut.find[String](id, "SCC-iForm"), atMost)
+        val data = Await.result(sut.find[String](id, "CTUTR-iForm"), atMost)
 
         data mustBe None
 
-        verify(sut.cacheRepository.repo, times(1)).findById(Matchers.eq(id), any())(any())
+        verify(sut.cacheRepository.repo, times(1)).findById(Matchers.eq(Id(id)), any())(any())
       }
     }
 
@@ -167,17 +167,10 @@ class LongLiveCacheConnectorSpec extends PlaySpec with MockitoSugar with OneAppP
   private val id = "ABCD"
   private val atMost = 5 seconds
 
-  private val enrolment: Enrolment = Enrolment(
-    capacityRegistering = "Individual",
-    agent = None,
-    employer = Employer(
-      name = "Company",
-      ukAddress = None,
-      internationalAddress = None,
-      telephoneNumber = Some("0191 2223333"),
-      emailAddress = None,
-      taxpayerReference = None,
-      payeReference = None
+  private val submission: Submission = Submission(
+    company = CompanyDetails (
+      companyName = "Big company",
+      companyReference = "AB123123"
     )
   )
 
@@ -186,12 +179,12 @@ class LongLiveCacheConnectorSpec extends PlaySpec with MockitoSugar with OneAppP
   val config = app.injector.instanceOf[MicroserviceAppConfig]
   val mockRepository = mock[CacheRepository]
 
-  class MockEnrolmentCacheHelper extends EnrolmentCacheRepositoryHelper(config) {
+  class MockSubmissionCacheHelper extends SubmissionCacheRepositoryHelper(config) {
     override def expireAfter: Long = 1L
 
     override val repo: CacheRepository = mockRepository
   }
 
-  class SUT extends LongLiveCacheConnector(new MockEnrolmentCacheHelper)
+  class SUT extends LongLiveCacheConnector(new MockSubmissionCacheHelper)
 
 }

@@ -14,23 +14,12 @@
  * limitations under the License.
  */
 
-package model.domain
+package model
 
-import play.api.libs.json.{JsPath, Reads, Writes}
-import play.api.libs.functional.syntax._
+import play.api.libs.json.{Format, Json}
 
-case class EnrolmentResponse(id: String, filename : String)
+case class SubmissionDetails(pdfUploaded: Boolean, metadataUploaded: Boolean)
 
-object EnrolmentResponse {
-
-  implicit val writes : Writes[EnrolmentResponse] = (
-    (JsPath \ "id").write[String] and
-      (JsPath \ "filename").write[String]
-    )(unlift(EnrolmentResponse.unapply))
-
-  implicit val reads : Reads[EnrolmentResponse] = (
-    (JsPath \ "id").read[String] and
-    (JsPath \ "filename").read[String]
-  )(EnrolmentResponse.apply _)
-
+object SubmissionDetails {
+  implicit val formatSubmissionDetails: Format[SubmissionDetails] = Json.format[SubmissionDetails]
 }

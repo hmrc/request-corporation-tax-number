@@ -18,7 +18,6 @@ package config
 
 import com.google.inject.{Inject, Singleton}
 import play.api.{Configuration, Environment}
-import uk.gov.hmrc.play.bootstrap.config.AppName
 import uk.gov.hmrc.play.config.ServicesConfig
 
 
@@ -44,14 +43,14 @@ class MicroserviceAppConfig @Inject()(override val runModeConfiguration: Configu
     lazy val longLiveCacheExpiry: Long = loadMilliseconds("longLiveCache.expiryInMinutes", 1440L)
   }
 
-  object SCC1 {
+  object CTUTR {
 
-    lazy val businessArea : String = loadConfig(s"pdf.scc1.metadata.businessArea")
-    lazy val queue : String = loadConfig(s"pdf.scc1.metadata.queue")
-    lazy val formId : String = loadConfig(s"pdf.scc1.metadata.formId")
-    lazy val source : String = loadConfig(s"pdf.scc1.metadata.source")
-    lazy val target : String = loadConfig(s"pdf.scc1.metadata.target")
-    lazy val save : Boolean = loadBoolean(s"pdf.scc1.save")
+    lazy val businessArea : String = loadConfig(s"pdf.ctutr.metadata.businessArea")
+    lazy val queue : String = loadConfig(s"pdf.ctutr.metadata.queue")
+    lazy val formId : String = loadConfig(s"pdf.ctutr.metadata.formId")
+    lazy val source : String = loadConfig(s"pdf.ctutr.metadata.source")
+    lazy val target : String = loadConfig(s"pdf.ctutr.metadata.target")
+    lazy val save : Boolean = loadBoolean(s"pdf.ctutr.save")
 
   }
 

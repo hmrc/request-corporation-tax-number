@@ -16,12 +16,10 @@
 
 package templates
 
-import config.{MicroserviceAppConfig, SpecBase}
-import model.templates.SCC1Metadata
-import org.joda.time.LocalDateTime
+import config.SpecBase
+import model.templates.CTUTRMetadata
 import org.jsoup.Jsoup
 import org.jsoup.parser.Parser
-import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
 import play.twirl.api.Xml
 
 class pdfSubmissionMetadataSpec extends SpecBase {
@@ -251,10 +249,9 @@ class pdfSubmissionMetadataSpec extends SpecBase {
     }
   }
 
-  val pdfSubmission: SCC1Metadata = SCC1Metadata(
-    appConfig,
-    customerId = ""
+  val pdfSubmission: CTUTRMetadata = CTUTRMetadata(
+    appConfig
   )
 
-  private def createSUT(pdfSubmission: SCC1Metadata): Xml = templates.xml.pdfSubmissionMetadata(pdfSubmission)
+  private def createSUT(pdfSubmission: CTUTRMetadata): Xml = templates.xml.pdfSubmissionMetadata(pdfSubmission)
 }

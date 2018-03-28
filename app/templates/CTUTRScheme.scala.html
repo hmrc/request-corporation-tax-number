@@ -1,0 +1,62 @@
+@*
+ * Copyright 2018 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *@
+
+@(viewmodel: model.templates.SubmissionViewModel)
+
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <title>Request a corporation tax unique tax reference number</title>
+    <style>
+    table td, table th {
+        font-size:19px;
+    }
+</style>
+</head>
+<body>
+<main id="wrapper">
+    <div id="content">
+        <div>
+            <div class="logo">
+                <span class="organisation-logo organisation-logo-medium">HM Revenue &amp; Customs</span>
+            </div>
+        </div>
+
+        <article class="content__body full-width">
+            <span style="color: #6f777b; display: block;" class="heading-large">Internal HMRC Copy</span>
+            <h1 class="heading-large">Request a corporation tax unique tax reference number</h1>
+
+            <p id="timestamp">Submitted on @viewmodel.timeStamp</p>
+
+            <h3 class="heading-medium" id="companyDetails-heading">Company Details</h3>
+            <table id="companyDetails">
+                <tbody>
+                <tr>
+                    <td>Company name</td>
+                    <td>@viewmodel.company.companyName</td>
+                </tr>
+                <tr>
+                    <td>Company reference</td>
+                    <td>@viewmodel.company.companyReference</td>
+                </tr>
+                </tbody>
+            </table>
+        </article>
+    </div>
+</main>
+</body>
+</html>

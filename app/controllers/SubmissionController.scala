@@ -19,37 +19,37 @@ package controllers
 import javax.inject.Inject
 
 import com.google.inject.Singleton
-import model.{Enrolment, FileUploadCallback}
+import model.{Submission, FileUploadCallback}
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Action
-import services.EnrolmentService
+import services.SubmissionService
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 @Singleton
-class EnrolmentController @Inject()(
-                                   val enrolmentService: EnrolmentService
+class SubmissionController @Inject()(
+                                   val submissionService: SubmissionService
                                    ) extends BaseController {
 
-  def enrol() : Action[JsValue] = Action.async(parse.json) {
+  def submit() : Action[JsValue] = Action.async(parse.json) {
     implicit request =>
-      request.body.validate[Enrolment].fold(
+      request.body.validate[Submission].fold(
         errors => {
-          Logger.warn(s"[EnrolmentController][enrol] Bad Request] $errors")
+          Logger.warn(s"[SubmissionController][submit] Bad Request] $errors")
           Future.successful(BadRequest("invalid payload provided"))
         },
         e => {
-            Logger.info(s"[EnrolmentController][enrol] processing enrolment")
-            enrolmentService.enrol(e) map {
+            Logger.info(s"[SubmissionController][submit] processing submission")
+            submissionService.submit(e) map {
               response =>
-                Logger.info(s"[EnrolmentController][enrol] processed enrolment $response")
+                Logger.info(s"[SubmissionController][submit] processed submission $response")
                 Ok(Json.toJson(response))
             } recoverWith {
               case e : Exception =>
-                Logger.error(s"[EnrolmentController][enrol][exception returned when processing enrolment] ${e.getMessage}")
+                Logger.error(s"[SubmissionController][submit][exception returned when processing submission] ${e.getMessage}")
                 Future.successful(InternalServerError)
             }
           }
@@ -59,8 +59,8 @@ class EnrolmentController @Inject()(
   def fileUploadCallback(): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withJsonBody[FileUploadCallback] {
       fileUploadCallback =>
-        Logger.info(s"[EnrolmentController][fileUploadCallback] processing callback $fileUploadCallback")
-        enrolmentService.fileUploadCallback(fileUploadCallback) map {
+        Logger.info(s"[SubmissionController][fileUploadCallback] processing callback $fileUploadCallback")
+        submissionService.fileUploadCallback(fileUploadCallback) map {
           _ =>
             Ok
         } recoverWith {
