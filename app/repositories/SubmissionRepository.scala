@@ -20,7 +20,7 @@ import javax.inject.Inject
 
 import com.google.inject.Singleton
 import connectors.LongLiveCacheConnector
-import model.IFormDetails
+import model.{SubmissionDetails}
 import play.api.Logger
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -31,24 +31,24 @@ import scala.concurrent.Future
   */
 
 @Singleton
-class EnrolmentRepository @Inject()(
+class SubmissionRepository @Inject()(
                                    val longLiveCacheConnector: LongLiveCacheConnector
                                    ) {
 
-  private val IFormKey = "IForms"
+  private val defaultKey = "CTUTR"
 
-  def iFormDetails(id: String)(implicit hc: HeaderCarrier): Future[Option[IFormDetails]] = {
-    Logger.info(s"[EnrolmentRepository][iFormDetails][searching for iForm in mongo $id")
-    longLiveCacheConnector.find[IFormDetails](id, IFormKey)
+  def submissionDetails(id: String)(implicit hc: HeaderCarrier): Future[Option[SubmissionDetails]] = {
+    Logger.info(s"[SubmissionRepository][submissionDetails][searching for submission in mongo $id")
+    longLiveCacheConnector.find[SubmissionDetails](id, defaultKey)
   }
 
-  def updateIFormDetails(id: String, details: IFormDetails)(implicit hc: HeaderCarrier): Future[IFormDetails] = {
-    Logger.info(s"[EnrolmentRepository][updateIFormDetails][updating iForm in mongo $id")
-    longLiveCacheConnector.createOrUpdate[IFormDetails](id, details, IFormKey)
+  def updateSubmissionDetails(id: String, details: SubmissionDetails)(implicit hc: HeaderCarrier): Future[SubmissionDetails] = {
+    Logger.info(s"[SubmissionRepository][updateSubmissionDetails][updating submission in mongo $id")
+    longLiveCacheConnector.createOrUpdate[SubmissionDetails](id, details, defaultKey)
   }
 
-  def removeIFormDetails(id: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
-    Logger.info(s"[EnrolmentRepository][removeIFormDetails][removing iForm from mongo $id")
+  def removeSubmissionDetails(id: String)(implicit hc: HeaderCarrier): Future[Boolean] = {
+    Logger.info(s"[SubmissionRepository][removeSubmissionDetails][removing submission from mongo $id")
     longLiveCacheConnector.removeById(id)
   }
 

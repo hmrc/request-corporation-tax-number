@@ -16,10 +16,21 @@
 
 package model
 
-import play.api.libs.json.{Format, Json}
+import play.api.libs.json.{JsPath, Reads, Writes}
+import play.api.libs.functional.syntax._
 
-case class IFormDetails(pdfUploaded: Boolean, metadataUploaded: Boolean)
+case class CompanyDetails(companyName: String,
+                          companyReference: String)
 
-object IFormDetails {
-  implicit val formatIFormDetails: Format[IFormDetails] = Json.format[IFormDetails]
+object CompanyDetails {
+
+  implicit val reads : Reads[CompanyDetails] = (
+    (JsPath \ "companyName").read[String] and
+      (JsPath \ "companyReference").read[String]
+    )(CompanyDetails.apply _)
+
+  implicit val writes : Writes[CompanyDetails] = (
+    (JsPath \ "companyName").write[String] and
+      (JsPath \ "companyReference").write[String]
+    )(unlift(CompanyDetails.unapply))
 }

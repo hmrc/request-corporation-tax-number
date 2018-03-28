@@ -32,11 +32,11 @@ import scala.concurrent.Future
 import scala.concurrent.duration.{Duration, MINUTES}
 
 class LongLiveCacheConnector @Inject()(
-                                        val cacheRepository: EnrolmentCacheRepositoryHelper
+                                        val cacheRepository: SubmissionCacheRepositoryHelper
                                       ) extends MongoDbConnection with TimeToLive {
 
 
-  private val defaultKey = "SCC-iForm"
+  private val defaultKey = "CTUTR-iForm"
 
   def createOrUpdate[T](id: String, data: T, key: String = defaultKey)(implicit writes: Writes[T]): Future[T] = {
     cacheRepository.repo.createOrUpdate(id, key, Json.toJson(data)).map(_ => data)
@@ -71,8 +71,8 @@ class LongLiveCacheConnector @Inject()(
 }
 
 @Singleton
-class EnrolmentCacheRepositoryHelper @Inject()(appConfig: MicroserviceAppConfig) extends MongoDbConnection with TimeToLive {
+class SubmissionCacheRepositoryHelper @Inject()(appConfig: MicroserviceAppConfig) extends MongoDbConnection with TimeToLive {
   def expireAfter: Long = Duration(appConfig.Mongo.longLiveCacheExpiry, MINUTES).toSeconds
 
-  val repo : CacheRepository = CacheRepository("SCC", expireAfter, Cache.mongoFormats)
+  val repo : CacheRepository = CacheRepository("CTUTR", expireAfter, Cache.mongoFormats)
 }
