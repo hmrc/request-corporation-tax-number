@@ -39,14 +39,14 @@ class SubmissionServiceSpec extends SpecBase with MockitoSugar with BeforeAndAft
     reset(mockPdfService)
   }
 
-  "enrol" must {
+  "submit" must {
 
     "return an envelopeId" when {
 
       "given valid inputs" in {
 
         val pdfBytes = Files.readAllBytes(Paths.get("test/resources/sample.pdf"))
-        val iFormDetails = SubmissionDetails(pdfUploaded = false, metadataUploaded = false)
+        val submissionDetails = SubmissionDetails(pdfUploaded = false, metadataUploaded = false)
 
         val sut = createSut
 
@@ -57,7 +57,7 @@ class SubmissionServiceSpec extends SpecBase with MockitoSugar with BeforeAndAft
 
         when(sut.fileUploadService.uploadFile(any(), any(), any(), any())(any())).thenReturn(Future.successful(HttpResponse(200)))
 
-        when(sut.submissionRepository.updateSubmissionDetails(any(), any())(any())).thenReturn(Future.successful(iFormDetails))
+        when(sut.submissionRepository.updateSubmissionDetails(any(), any())(any())).thenReturn(Future.successful(submissionDetails))
 
         val result = Await.result(sut.submit(submission), 5.seconds)
 

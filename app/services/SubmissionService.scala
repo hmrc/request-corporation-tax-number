@@ -27,7 +27,7 @@ import org.joda.time.LocalDate
 import play.api.Logger
 import repositories.SubmissionRepository
 import templates.html.CTUTRScheme
-import templates.xml.pdfSubmissionMetadata
+import templates.xml.{pdfSubmissionMetadata, robotXml}
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.Future
@@ -69,11 +69,15 @@ class SubmissionService @Inject()(
             val filename = submissionFileName(envelopeId)
             val metadata = CTUTRMetadata(appConfig)
 
-            val enrolmentMetadata = pdfSubmissionMetadata(metadata).toString().getBytes
+            val submissionMetadata = pdfSubmissionMetadata(metadata).toString().getBytes
+            submissionRepository.updateSubmissionDetails(envelopeId, SubmissionDetails(pdfUploaded = false, metadataUploaded = false))
+
+            val robotSubmission = robotXml(metadata,viewModel).toString().getBytes
             submissionRepository.updateSubmissionDetails(envelopeId, SubmissionDetails(pdfUploaded = false, metadataUploaded = false))
 
             fileUploadService.uploadFile(pdf, envelopeId, filename, MimeContentType.ApplicationPdf)
-            fileUploadService.uploadFile(enrolmentMetadata, envelopeId, submissionMetaDataName(envelopeId), MimeContentType.ApplicationXml)
+            fileUploadService.uploadFile(submissionMetadata, envelopeId, submissionMetaDataName(envelopeId), MimeContentType.ApplicationXml)
+            fileUploadService.uploadFile(robotSubmission, envelopeId, submissionMetaDataName(envelopeId), MimeContentType.ApplicationXml)
 
             SubmissionResponse(envelopeId, filename)
         }
