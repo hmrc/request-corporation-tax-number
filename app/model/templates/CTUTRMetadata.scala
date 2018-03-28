@@ -29,7 +29,6 @@ case class CTUTRMetadata(appConfig : MicroserviceAppConfig,
   val fileFormat: String = "pdf"
   val mimeType: String = "application/pdf"
 
-  // sent to cas service which generates a 3-4-3 key in their service. encoded version of the pdf payload. Becomes the reconciliation id and the title
   val casKey : String = ""
   val submissionMark : String = ""
   val attachmentCount : Int = 0

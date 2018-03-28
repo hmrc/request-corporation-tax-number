@@ -62,7 +62,7 @@ class LongLiveCacheConnectorSpec extends PlaySpec with MockitoSugar with OneAppP
         data mustBe 10
       }
 
-      "provided with submission data" ignore {
+      "provided with submission data" in {
         val sut = createSUT
         when(sut.cacheRepository.repo.createOrUpdate(any(), any(), any())).thenReturn(databaseUpdate)
 
