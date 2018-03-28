@@ -54,7 +54,7 @@ class FileUploadConnector @Inject()(
 
   def routingRequest(envelopeId: String): JsValue = Json.obj(
     "envelopeId" -> envelopeId,
-    "application" -> "SCC",
+    "application" -> "CTUTR",
     "destination" ->"DMS")
 
   def createEnvelopeBody: JsValue = Json.obj("callbackUrl" -> callbackUrl)

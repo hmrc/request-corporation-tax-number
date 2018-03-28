@@ -1,0 +1,7 @@
+@(robotSubmission: model.templates.CTUTRMetadata, viewmodel: model.templates.SubmissionViewModel)<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<ctutr>
+    <submissionReference>@robotSubmission.submissionReference</submissionReference>
+    <dateCreated>@robotSubmission.xmlCreatedAt.toString("dd/MM/yyyy HH:mm:ss")</dateCreated>
+    <companyName>@viewmodel.company.companyName</companyName>
+    <companyReference>@viewmodel.company.companyReference</companyReference>
+</ctutr>

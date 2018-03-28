@@ -14,16 +14,13 @@
  * limitations under the License.
  */
 
-import sbt._
-import play.sbt.PlayImport._
 import play.core.PlayVersion
-import uk.gov.hmrc.SbtAutoBuildPlugin
-import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
-import uk.gov.hmrc.versioning.SbtGitVersioning
+import play.sbt.PlayImport._
+import sbt._
 
 object MicroServiceBuild extends Build with MicroService {
 
-  val appName = "pensions-scheme"
+  val appName = "request-corporation-tax-number"
 
   override lazy val appDependencies: Seq[ModuleID] = compile ++ test()
   private val scalaTestPlusPlayVersion = "2.0.1"
