@@ -135,9 +135,9 @@ class SubmissionControllerSpec extends UnitSpec
   val validDataset = Json.parse(
     """
       |{
-      |   "company": {
+      |   "companyDetails": {
       |     "companyName": "Big Company",
-      |     "companyReference": "AB123123"
+      |     "companyReferenceNumber": "AB123123"
       |   }
       |}
       |""".stripMargin)
@@ -146,7 +146,7 @@ class SubmissionControllerSpec extends UnitSpec
   val invalidDataset = Json.parse(
     """
       |{
-      |   "company": {
+      |   "companyDetails": {
       |     "company": "Bad Company",
       |     "reference": "XX123123"
       |   }
