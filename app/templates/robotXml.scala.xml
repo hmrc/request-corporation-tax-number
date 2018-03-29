@@ -3,5 +3,5 @@
     <submissionReference>@robotSubmission.submissionReference</submissionReference>
     <dateCreated>@robotSubmission.xmlCreatedAt.toString("dd/MM/yyyy HH:mm:ss")</dateCreated>
     <companyName>@viewmodel.company.companyName</companyName>
-    <companyReference>@viewmodel.company.companyReference</companyReference>
+    <companyReference>@viewmodel.company.companyReferenceNumber</companyReference>
 </ctutr>
