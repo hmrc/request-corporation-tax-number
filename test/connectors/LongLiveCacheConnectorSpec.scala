@@ -168,9 +168,9 @@ class LongLiveCacheConnectorSpec extends PlaySpec with MockitoSugar with OneAppP
   private val atMost = 5 seconds
 
   private val submission: Submission = Submission(
-    company = CompanyDetails (
+    companyDetails = CompanyDetails (
       companyName = "Big company",
-      companyReference = "AB123123"
+      companyReferenceNumber = "AB123123"
     )
   )
 

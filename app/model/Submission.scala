@@ -17,22 +17,16 @@
 package model
 
 import org.joda.time.{DateTimeZone, LocalDateTime}
-import play.api.libs.json.{JsPath, Reads, Writes}
-import play.api.libs.functional.syntax._
+import play.api.libs.json._
 
-case class Submission(company: CompanyDetails) {
+case class Submission(companyDetails: CompanyDetails) {
 
   val time : LocalDateTime = {
     val zone = DateTimeZone.forID("Europe/London")
     LocalDateTime.now(zone)
   }
-
 }
 
 object Submission {
-
-  implicit val reads : Reads[Submission] = (JsPath \ "company").read[CompanyDetails].map(Submission(_))
-
-  implicit val writes : Writes[Submission] = (JsPath \ "company").write[CompanyDetails].contramap(unlift(Submission.unapply))
-
+  implicit val formats: Format[Submission] = Json.format[Submission]
 }
