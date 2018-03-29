@@ -52,7 +52,7 @@ class CTUTRSchemeSpec extends UnitSpec with Matchers {
   private val submitValidViewModel: SubmissionViewModel = SubmissionViewModel(
     company = CompanyDetails(
       companyName = "Big company",
-      companyReference = "AB123123"
+      companyReferenceNumber = "AB123123"
     ),
     timeStamp = "Tuesday 31 October 2017 at 15:18:12"
   )

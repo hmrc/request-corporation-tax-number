@@ -32,16 +32,16 @@ class SubmissionViewModelSpec extends PlaySpec with MockitoSugar {
 
     "instantiate when provided an submission with valid data" in {
       val submission = mock[Submission]
-      when(submission.company).thenReturn(model.CompanyDetails(
+      when(submission.companyDetails).thenReturn(model.CompanyDetails(
         companyName = "Big Company",
-        companyReference = "AB123123"
+        companyReferenceNumber = "AB123123"
       ))
       when(submission.time).thenReturn(time)
 
       SubmissionViewModel.apply(submission) mustBe SubmissionViewModel(
         company = model.CompanyDetails(
           companyName = "Big Company",
-          companyReference = "AB123123"
+          companyReferenceNumber = "AB123123"
         ),
         timeStamp = "Tuesday 31 October 2017 at 15:18:12"
         )

@@ -142,7 +142,7 @@ class SubmissionServiceSpec extends SpecBase with MockitoSugar with BeforeAndAft
   private val submission: Submission = Submission(
     CompanyDetails (
       companyName = "Big company",
-      companyReference = "AB123123"
+      companyReferenceNumber = "AB123123"
     )
   )
 

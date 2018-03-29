@@ -25,7 +25,7 @@ object SubmissionViewModel {
   private def modelCompanyDetails(company: model.CompanyDetails) : CompanyDetails = {
     CompanyDetails (
       companyName = company.companyName,
-      companyReference = company.companyReference
+      companyReferenceNumber = company.companyReferenceNumber
     )
   }
 
@@ -34,7 +34,7 @@ object SubmissionViewModel {
     val timestamp = s"${submission.time.toString("EEEE dd MMMM yyyy")} at ${submission.time.toString("HH:mm:ss")}"
 
     SubmissionViewModel(
-      company = submission.company,
+      company = modelCompanyDetails(submission.companyDetails),
       timeStamp = timestamp
     )
   }

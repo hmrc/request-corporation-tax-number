@@ -16,21 +16,11 @@
 
 package model
 
-import play.api.libs.json.{JsPath, Reads, Writes}
-import play.api.libs.functional.syntax._
+import play.api.libs.json.{Format, Json}
 
 case class CompanyDetails(companyName: String,
-                          companyReference: String)
+                          companyReferenceNumber: String)
 
 object CompanyDetails {
-
-  implicit val reads : Reads[CompanyDetails] = (
-    (JsPath \ "companyName").read[String] and
-      (JsPath \ "companyReference").read[String]
-    )(CompanyDetails.apply _)
-
-  implicit val writes : Writes[CompanyDetails] = (
-    (JsPath \ "companyName").write[String] and
-      (JsPath \ "companyReference").write[String]
-    )(unlift(CompanyDetails.unapply))
+  implicit val format: Format[CompanyDetails] = Json.format[CompanyDetails]
 }

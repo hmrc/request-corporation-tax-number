@@ -34,26 +34,18 @@ class SubmissionController @Inject()(
                                    val submissionService: SubmissionService
                                    ) extends BaseController {
 
-  def submit() : Action[JsValue] = Action.async(parse.json) {
+  def submit() : Action[Submission] = Action.async(parse.json[Submission]) {
     implicit request =>
-      request.body.validate[Submission].fold(
-        errors => {
-          Logger.warn(s"[SubmissionController][submit] Bad Request] $errors")
-          Future.successful(BadRequest("invalid payload provided"))
-        },
-        e => {
-            Logger.info(s"[SubmissionController][submit] processing submission")
-            submissionService.submit(e) map {
-              response =>
-                Logger.info(s"[SubmissionController][submit] processed submission $response")
-                Ok(Json.toJson(response))
-            } recoverWith {
-              case e : Exception =>
-                Logger.error(s"[SubmissionController][submit][exception returned when processing submission] ${e.getMessage}")
-                Future.successful(InternalServerError)
-            }
-          }
-      )
+      Logger.info(s"[SubmissionController][submit] processing submission")
+      submissionService.submit(request.body) map {
+        response =>
+          Logger.info(s"[SubmissionController][submit] processed submission $response")
+          Ok(Json.toJson(response))
+      } recoverWith {
+        case e : Exception =>
+          Logger.error(s"[SubmissionController][submit][exception returned when processing submission] ${e.getMessage}")
+          Future.successful(InternalServerError)
+      }
   }
 
   def fileUploadCallback(): Action[JsValue] = Action.async(parse.json) { implicit request =>
