@@ -54,6 +54,7 @@ class SubmissionService @Inject()(
 
   protected def submissionFileName(envelopeId: String) = s"$envelopeId-SubmissionCTUTR-${LocalDate.now().toString("YYYYMMdd")}-iform.pdf"
   private def submissionMetaDataName(envelopeId: String) = s"$envelopeId-SubmissionCTUTR-${LocalDate.now().toString("YYYYMMdd")}-metadata.xml"
+  private def submissionRobotName(envelopeId: String) = s"$envelopeId-SubmissionCTUTR-${LocalDate.now().toString("YYYYMMdd")}-robot.xml"
 
   def submit(submission : Submission)(implicit hc : HeaderCarrier) : Future[SubmissionResponse] = {
     val viewModel = SubmissionViewModel.apply(submission)
@@ -77,7 +78,7 @@ class SubmissionService @Inject()(
 
             fileUploadService.uploadFile(pdf, envelopeId, filename, MimeContentType.ApplicationPdf)
             fileUploadService.uploadFile(submissionMetadata, envelopeId, submissionMetaDataName(envelopeId), MimeContentType.ApplicationXml)
-            fileUploadService.uploadFile(robotSubmission, envelopeId, submissionMetaDataName(envelopeId), MimeContentType.ApplicationXml)
+            fileUploadService.uploadFile(robotSubmission, envelopeId, submissionRobotName(envelopeId), MimeContentType.ApplicationXml)
 
             SubmissionResponse(envelopeId, filename)
         }
