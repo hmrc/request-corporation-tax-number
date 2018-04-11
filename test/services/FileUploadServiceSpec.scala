@@ -65,8 +65,8 @@ class FileUploadServiceSpec extends PlaySpec with MockitoSugar {
 
   private implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  private val fileName = "EnrolSocialCareCompliance.pdf"
-  private val fileId = "EnrolSocialCareCompliance"
+  private val fileName = "CTUTR.pdf"
+  private val fileId = "CTUTR"
   private val contentType = MimeContentType.ApplicationPdf
 
   def createSUT = new SUT
