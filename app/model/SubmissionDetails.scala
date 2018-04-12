@@ -18,7 +18,6 @@ package model
 
 import play.api.libs.json.{Format, Json}
 
-//TODO add in RobotXML details
 case class SubmissionDetails(pdfUploaded: Boolean, metadataUploaded: Boolean, robotXmlUploaded: Boolean)
 
 object SubmissionDetails {
