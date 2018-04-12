@@ -18,7 +18,8 @@ package model
 
 import play.api.libs.json.{Format, Json}
 
-case class SubmissionDetails(pdfUploaded: Boolean, metadataUploaded: Boolean)
+//TODO add in RobotXML details
+case class SubmissionDetails(pdfUploaded: Boolean, metadataUploaded: Boolean, robotXmlUploaded: Boolean)
 
 object SubmissionDetails {
   implicit val formatSubmissionDetails: Format[SubmissionDetails] = Json.format[SubmissionDetails]

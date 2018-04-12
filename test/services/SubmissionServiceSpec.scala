@@ -46,7 +46,7 @@ class SubmissionServiceSpec extends SpecBase with MockitoSugar with BeforeAndAft
       "given valid inputs" in {
 
         val pdfBytes = Files.readAllBytes(Paths.get("test/resources/sample.pdf"))
-        val submissionDetails = SubmissionDetails(pdfUploaded = false, metadataUploaded = false)
+        val submissionDetails = SubmissionDetails(pdfUploaded = false, metadataUploaded = false, robotXmlUploaded = false)
 
         val sut = createSut
 
@@ -75,7 +75,7 @@ class SubmissionServiceSpec extends SpecBase with MockitoSugar with BeforeAndAft
       "files are available" in {
         val sut = createSut
         when(sut.fileUploadService.closeEnvelope(any())(any())).thenReturn(Future.successful("123"))
-        when(sut.submissionRepository.submissionDetails(any())(any())).thenReturn(Future.successful(Some(SubmissionDetails(pdfUploaded = true, metadataUploaded = false))))
+        when(sut.submissionRepository.submissionDetails(any())(any())).thenReturn(Future.successful(Some(SubmissionDetails(pdfUploaded = true, metadataUploaded = false, robotXmlUploaded = false))))
         when(sut.submissionRepository.removeSubmissionDetails(any())(any())).thenReturn(Future.successful(true))
 
         val result = Await.result(sut.fileUploadCallback(FileUploadCallback("123","metadata","AVAILABLE",None)), 5.seconds)
@@ -91,7 +91,7 @@ class SubmissionServiceSpec extends SpecBase with MockitoSugar with BeforeAndAft
 
       "received multiple callback for PDF" in {
         val sut = createSut
-        when(sut.submissionRepository.submissionDetails(any())(any())).thenReturn(Future.successful(Some(SubmissionDetails(pdfUploaded = true, metadataUploaded = false))))
+        when(sut.submissionRepository.submissionDetails(any())(any())).thenReturn(Future.successful(Some(SubmissionDetails(pdfUploaded = true, metadataUploaded = false, robotXmlUploaded = false))))
 
         val result = Await.result(sut.fileUploadCallback(FileUploadCallback("123","SubmissionCTUTRiform","AVAILABLE",None)), 5.seconds)
 
@@ -99,9 +99,20 @@ class SubmissionServiceSpec extends SpecBase with MockitoSugar with BeforeAndAft
         verify(sut.fileUploadService, never()).closeEnvelope(Matchers.eq("123"))(any())
       }
 
+      "received multiple callback for Robot" in {
+        val sut = createSut
+        when(sut.submissionRepository.submissionDetails(any())(any())).thenReturn(Future.successful(Some(SubmissionDetails(pdfUploaded = false, metadataUploaded = false, robotXmlUploaded = true))))
+
+        val result = Await.result(sut.fileUploadCallback(FileUploadCallback("123","robot","AVAILABLE",None)), 5.seconds)
+
+        result mustBe Open
+        verify(sut.fileUploadService, never()).closeEnvelope(Matchers.eq("123"))(any())
+      }
+
+
       "received multiple callback for Metadata" in {
         val sut = createSut
-        when(sut.submissionRepository.submissionDetails(any())(any())).thenReturn(Future.successful(Some(SubmissionDetails(pdfUploaded = false, metadataUploaded = true))))
+        when(sut.submissionRepository.submissionDetails(any())(any())).thenReturn(Future.successful(Some(SubmissionDetails(pdfUploaded = false, metadataUploaded = true, robotXmlUploaded = false))))
 
         val result = Await.result(sut.fileUploadCallback(FileUploadCallback("123","metadata","AVAILABLE",None)), 5.seconds)
 
@@ -123,8 +134,8 @@ class SubmissionServiceSpec extends SpecBase with MockitoSugar with BeforeAndAft
 
       "first callback received with status available" in {
         val sut = createSut
-        when(sut.submissionRepository.updateSubmissionDetails(any(), any())(any())).thenReturn(Future.successful(SubmissionDetails(pdfUploaded = true, metadataUploaded = false)))
-        when(sut.submissionRepository.submissionDetails(any())(any())).thenReturn(Future.successful(Some(SubmissionDetails(pdfUploaded = false, metadataUploaded = false))))
+        when(sut.submissionRepository.updateSubmissionDetails(any(), any())(any())).thenReturn(Future.successful(SubmissionDetails(pdfUploaded = true, metadataUploaded = false, robotXmlUploaded = false)))
+        when(sut.submissionRepository.submissionDetails(any())(any())).thenReturn(Future.successful(Some(SubmissionDetails(pdfUploaded = false, metadataUploaded = false, robotXmlUploaded = false))))
 
         val result = Await.result(sut.fileUploadCallback(FileUploadCallback("123","SubmissionCTUTRiform","AVAILABLE",None)), 5.seconds)
 

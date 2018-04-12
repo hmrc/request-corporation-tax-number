@@ -37,7 +37,7 @@ class SubmissionRepositoriesSpec extends PlaySpec with MockitoSugar {
     "return submissionDetails" when {
       "cache returns data" in {
         val sut = createSUT
-        val submissionDetails = SubmissionDetails(pdfUploaded = false, metadataUploaded = false)
+        val submissionDetails = SubmissionDetails(pdfUploaded = false, metadataUploaded = false, robotXmlUploaded = false)
         when(sut.longLiveCacheConnector.find[SubmissionDetails](any(), any())(any())).thenReturn(Future.successful(Some(submissionDetails)))
 
         val result = Await.result(sut.submissionDetails("123"), 5.seconds)
@@ -62,7 +62,7 @@ class SubmissionRepositoriesSpec extends PlaySpec with MockitoSugar {
   "updateSubmissionDetails" should {
     "save the data in cache" in {
       val sut = createSUT
-      val submissionDetails = SubmissionDetails(pdfUploaded = false, metadataUploaded = false)
+      val submissionDetails = SubmissionDetails(pdfUploaded = false, metadataUploaded = false, robotXmlUploaded = false)
       when(sut.longLiveCacheConnector.createOrUpdate[SubmissionDetails](any(), any(), any())(any())).thenReturn(Future.successful(submissionDetails))
 
       val result = Await.result(sut.updateSubmissionDetails("123", submissionDetails), 5.seconds)
