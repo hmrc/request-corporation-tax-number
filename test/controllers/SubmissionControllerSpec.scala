@@ -71,7 +71,7 @@ class SubmissionControllerSpec extends UnitSpec
       "the submission service returns an error" in {
         val sut = createSUT
 
-        when(sut.submissionService.submit(any())(any())).thenReturn(Future.failed(new InternalServerException("failed to process enrolment")))
+        when(sut.submissionService.submit(any())(any())).thenReturn(Future.failed(new InternalServerException("failed to process submission")))
 
         val result = Helpers.call(sut.submit(), fakeRequestValidDataset)
         status(result) shouldBe INTERNAL_SERVER_ERROR

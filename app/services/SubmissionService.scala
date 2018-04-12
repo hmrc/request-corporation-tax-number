@@ -71,10 +71,8 @@ class SubmissionService @Inject()(
             val metadata = CTUTRMetadata(appConfig)
 
             val submissionMetadata = pdfSubmissionMetadata(metadata).toString().getBytes
-            submissionRepository.updateSubmissionDetails(envelopeId, SubmissionDetails(pdfUploaded = false, metadataUploaded = false))
-
             val robotSubmission = robotXml(metadata,viewModel).toString().getBytes
-            submissionRepository.updateSubmissionDetails(envelopeId, SubmissionDetails(pdfUploaded = false, metadataUploaded = false))
+            submissionRepository.updateSubmissionDetails(envelopeId, SubmissionDetails(pdfUploaded = false, metadataUploaded = false, robotXmlUploaded = false))
 
             fileUploadService.uploadFile(pdf, envelopeId, filename, MimeContentType.ApplicationPdf)
             fileUploadService.uploadFile(submissionMetadata, envelopeId, submissionMetaDataName(envelopeId), MimeContentType.ApplicationXml)
@@ -101,7 +99,7 @@ class SubmissionService @Inject()(
   private def callback(details: FileUploadCallback)(implicit hc: HeaderCarrier) = {
     submissionRepository.submissionDetails(details.envelopeId) map {
       case Some(submissionDetails) =>
-        if (!submissionDetails.pdfUploaded && !submissionDetails.metadataUploaded) {
+        if (!submissionDetails.pdfUploaded && !submissionDetails.metadataUploaded && !submissionDetails.robotXmlUploaded) {
           submissionRepository.updateSubmissionDetails(details.envelopeId, createSubmissionDetails(details))
           Logger.info(s"[SubmissionService][callback] Creating new iForm mongo record ${details.fileId} ${details.status}")
           Open
@@ -110,6 +108,9 @@ class SubmissionService @Inject()(
           Open
         } else if (submissionDetails.pdfUploaded && details.fileId.contains("iform")) {
           Logger.warn(s"[SubmissionService][callback] Received callback multiple times for PDF File ${details.fileId}")
+          Open
+        } else if (submissionDetails.robotXmlUploaded && details.fileId.contains("robot")) {
+          Logger.warn(s"[SubmissionService][callback] Received callback multiple times for Robot File ${details.fileId}")
           Open
         } else {
           Logger.info(s"[SubmissionService][callback][Closing envelope] ${details.fileId}")
@@ -125,10 +126,13 @@ class SubmissionService @Inject()(
   private def createSubmissionDetails(details: FileUploadCallback): SubmissionDetails = {
     if(details.fileId.contains("metadata")){
       Logger.info(s"[SubmissionService][createIFormDetails][meta data uploaded for submission]")
-      SubmissionDetails(pdfUploaded = false, metadataUploaded = true)
-    } else {
+      SubmissionDetails(pdfUploaded = false, metadataUploaded = true, robotXmlUploaded = false)
+    } else if (details.fileId.contains("iform")){
       Logger.info(s"[SubmissionService][createIFormDetails][pdf uploaded for submission]")
-      SubmissionDetails(pdfUploaded = true, metadataUploaded = false)
+      SubmissionDetails(pdfUploaded = true, metadataUploaded = false, robotXmlUploaded = false)
+    } else {
+      Logger.info(s"[SubmissionService][createRobotXMLDetails][pdf uploaded for submission]")
+      SubmissionDetails(pdfUploaded = false, metadataUploaded = false, robotXmlUploaded = true)
     }
   }
 
