@@ -37,12 +37,6 @@ class MicroserviceAppConfig @Inject()(override val runModeConfiguration: Configu
 
   lazy val pdfServiceUrl: String = baseUrl("pdf-generator-service")
 
-  object Mongo {
-    lazy val enabled: Boolean = loadBoolean(s"cache.isEnabled")
-    lazy val encryptionEnabled: Boolean = loadBoolean(s"mongo.encryption.enabled")
-    lazy val longLiveCacheExpiry: Long = loadMilliseconds("longLiveCache.expiryInMinutes", 1440L)
-  }
-
   object CTUTR {
 
     lazy val businessArea : String = loadConfig(s"pdf.ctutr.metadata.businessArea")

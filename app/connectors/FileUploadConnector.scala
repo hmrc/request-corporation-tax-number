@@ -25,6 +25,7 @@ import akka.util.ByteString
 import com.google.inject.Inject
 import com.kenshoo.play.metrics.Metrics
 import config.MicroserviceAppConfig
+import model.Envelope
 import model.domain.MimeContentType
 import play.Logger
 import play.api.http.Status._
@@ -123,6 +124,19 @@ class FileUploadConnector @Inject()(
         Logger.warn("[FileUploadConnector][closeEnvelope] call to close envelope failed")
         throw new RuntimeException("File upload envelope routing request failed")
     }
+  }
+
+  def envelopeSummary(envelopeId: String)(implicit hc: HeaderCarrier): Future[Envelope] = {
+    Logger.info("[FileUploadConnector][envelopeSummary] request envelope summary from file upload")
+
+    val envelope = httpClient.GET[Envelope](s"$fileUploadUrl/file-upload/envelopes/$envelopeId")
+
+    envelope.onFailure {
+      case e: Throwable =>
+        Logger.error("[FileUploadConnector][envelopeSummary] failed to get envelope summary from file upload", e)
+    }
+
+    envelope
   }
 
   private def envelopeId(response: HttpResponse): Option[String] = {

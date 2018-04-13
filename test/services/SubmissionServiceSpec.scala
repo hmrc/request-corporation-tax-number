@@ -24,19 +24,24 @@ import model.domain.SubmissionResponse
 import org.mockito.Matchers
 import org.mockito.Matchers.any
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
-import org.scalatest.{BeforeAndAfterEachTestData, TestData}
-import repositories.SubmissionRepository
+import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.mockito.MockitoSugar
 import uk.gov.hmrc.http.HttpResponse
+import play.api.test.Helpers._
 
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
-class SubmissionServiceSpec extends SpecBase with MockitoSugar with BeforeAndAfterEachTestData {
+import scala.concurrent.Future
 
-  override protected def beforeEach(testData: TestData): Unit = {
-    reset(mockFUploadService)
-    reset(mockSubmissionRepository)
-    reset(mockPdfService)
+class SubmissionServiceSpec extends SpecBase with MockitoSugar with ScalaFutures {
+
+  implicit val hc = uk.gov.hmrc.http.HeaderCarrier()
+
+  val mockFUploadService = mock[FileUploadService]
+  val mockPdfService = mock[PdfService]
+
+  object Service extends SubmissionService(mockFUploadService, mockPdfService, appConfig) {
+    override protected def submissionFileName(envelopeId: String): String = s"$envelopeId-SubmissionCTUTR-20171023-iform.pdf"
+    override protected def submissionMetaDataName(envelopeId: String) = s"$envelopeId-SubmissionCTUTR-20171023-metadata.xml"
+    override protected def submissionRobotName(envelopeId: String) = s"$envelopeId-SubmissionCTUTR-20171023-robot.xml"
   }
 
   "submit" must {
@@ -46,123 +51,56 @@ class SubmissionServiceSpec extends SpecBase with MockitoSugar with BeforeAndAft
       "given valid inputs" in {
 
         val pdfBytes = Files.readAllBytes(Paths.get("test/resources/sample.pdf"))
-        val submissionDetails = SubmissionDetails(pdfUploaded = false, metadataUploaded = false, robotXmlUploaded = false)
+        val submission: Submission = Submission(
+          CompanyDetails (
+            companyName = "Big company",
+            companyReferenceNumber = "AB123123"
+          )
+        )
 
-        val sut = createSut
-
-        when(sut.pdfService.generatePdf(any()))
+        when(mockPdfService.generatePdf(any()))
           .thenReturn(Future.successful(pdfBytes))
 
-        when(sut.fileUploadService.createEnvelope()).thenReturn(Future.successful("1"))
+        when(mockFUploadService.createEnvelope()).thenReturn(Future.successful("1"))
 
-        when(sut.fileUploadService.uploadFile(any(), any(), any(), any())(any())).thenReturn(Future.successful(HttpResponse(200)))
+        when(mockFUploadService.uploadFile(any(), any(), any(), any())(any())).thenReturn(Future.successful(HttpResponse(OK)))
 
-        when(sut.submissionRepository.updateSubmissionDetails(any(), any())(any())).thenReturn(Future.successful(submissionDetails))
-
-        val result = Await.result(sut.submit(submission), 5.seconds)
-
-        result mustBe SubmissionResponse("1", "1-SubmissionCTUTR-20171023-iform.pdf")
-
-        verify(sut.fileUploadService, times(1)).uploadFile(any(), any(), Matchers.contains(s"1-SubmissionCTUTR-20171023-iform.pdf"), any())(any())
+        whenReady(Service.submit(submission)) {
+          result =>
+            verify(mockFUploadService, times(1)).uploadFile(any(), any(), Matchers.contains(s"1-SubmissionCTUTR-20171023-iform.pdf"), any())(any())
+            verify(mockFUploadService, times(1)).uploadFile(any(), any(), Matchers.contains(s"1-SubmissionCTUTR-20171023-metadata.xml"), any())(any())
+            verify(mockFUploadService, times(1)).uploadFile(any(), any(), Matchers.contains(s"1-SubmissionCTUTR-20171023-robot.xml"), any())(any())
+            result mustEqual SubmissionResponse("1", "1-SubmissionCTUTR-20171023-iform.pdf")
+        }
       }
     }
   }
 
-  "SubmissionService" should {
+  "callback" must {
 
     "close the envelope" when {
 
-      "files are available" in {
-        val sut = createSut
-        when(sut.fileUploadService.closeEnvelope(any())(any())).thenReturn(Future.successful("123"))
-        when(sut.submissionRepository.submissionDetails(any())(any())).thenReturn(Future.successful(Some(SubmissionDetails(pdfUploaded = true, metadataUploaded = false, robotXmlUploaded = false))))
-        when(sut.submissionRepository.removeSubmissionDetails(any())(any())).thenReturn(Future.successful(true))
+      "envelope is open and all files are present and have passed file upload" in {
+        when(mockFUploadService.envelopeSummary("123")).thenReturn(Future.successful(Envelope("123","callback","OPEN",Seq(File("pdf","open")))))
 
-        val result = Await.result(sut.fileUploadCallback(FileUploadCallback("123","metadata","AVAILABLE",None)), 5.seconds)
-
-        result mustBe Closed
-        verify(sut.fileUploadService, times(1)).closeEnvelope(Matchers.eq("123"))(any())
-        verify(sut.submissionRepository, times(1)).removeSubmissionDetails(Matchers.eq("123"))(any())
       }
 
     }
 
-    "not close the envelope" when {
+    "return an envelopeId" when {
 
-      "received multiple callback for PDF" in {
-        val sut = createSut
-        when(sut.submissionRepository.submissionDetails(any())(any())).thenReturn(Future.successful(Some(SubmissionDetails(pdfUploaded = true, metadataUploaded = false, robotXmlUploaded = false))))
+      "envelope not open" in {
 
-        val result = Await.result(sut.fileUploadCallback(FileUploadCallback("123","SubmissionCTUTRiform","AVAILABLE",None)), 5.seconds)
-
-        result mustBe Open
-        verify(sut.fileUploadService, never()).closeEnvelope(Matchers.eq("123"))(any())
       }
 
-      "received multiple callback for Robot" in {
-        val sut = createSut
-        when(sut.submissionRepository.submissionDetails(any())(any())).thenReturn(Future.successful(Some(SubmissionDetails(pdfUploaded = false, metadataUploaded = false, robotXmlUploaded = true))))
+      "incorrect number of files" in {
 
-        val result = Await.result(sut.fileUploadCallback(FileUploadCallback("123","robot","AVAILABLE",None)), 5.seconds)
-
-        result mustBe Open
-        verify(sut.fileUploadService, never()).closeEnvelope(Matchers.eq("123"))(any())
       }
 
+      "all files are not flagged as AVAILABLE" in {
 
-      "received multiple callback for Metadata" in {
-        val sut = createSut
-        when(sut.submissionRepository.submissionDetails(any())(any())).thenReturn(Future.successful(Some(SubmissionDetails(pdfUploaded = false, metadataUploaded = true, robotXmlUploaded = false))))
-
-        val result = Await.result(sut.fileUploadCallback(FileUploadCallback("123","metadata","AVAILABLE",None)), 5.seconds)
-
-        result mustBe Open
-        verify(sut.fileUploadService, never()).closeEnvelope(Matchers.eq("123"))(any())
       }
 
-      "received status other than Available or Error" in {
-        val sut = createSut
-
-        val result = Await.result(sut.fileUploadCallback(FileUploadCallback("123","SubmissionCTUTRiform","INFECTED",None)), 5.seconds)
-
-        result mustBe Open
-        verify(sut.fileUploadService, never()).closeEnvelope(Matchers.eq("123"))(any())
-      }
-    }
-
-    "update the CTUTR details" when {
-
-      "first callback received with status available" in {
-        val sut = createSut
-        when(sut.submissionRepository.updateSubmissionDetails(any(), any())(any())).thenReturn(Future.successful(SubmissionDetails(pdfUploaded = true, metadataUploaded = false, robotXmlUploaded = false)))
-        when(sut.submissionRepository.submissionDetails(any())(any())).thenReturn(Future.successful(Some(SubmissionDetails(pdfUploaded = false, metadataUploaded = false, robotXmlUploaded = false))))
-
-        val result = Await.result(sut.fileUploadCallback(FileUploadCallback("123","SubmissionCTUTRiform","AVAILABLE",None)), 5.seconds)
-
-        result mustBe Open
-        verify(sut.fileUploadService, never()).closeEnvelope(Matchers.eq("123"))(any())
-        verify(sut.submissionRepository, times(1)).updateSubmissionDetails(Matchers.eq("123"), any())(any())
-      }
     }
   }
-
-  implicit val hc = uk.gov.hmrc.http.HeaderCarrier()
-
-  def createSut = new SUT
-
-  private val submission: Submission = Submission(
-    CompanyDetails (
-      companyName = "Big company",
-      companyReferenceNumber = "AB123123"
-    )
-  )
-
-  val mockFUploadService = mock[FileUploadService]
-  val mockSubmissionRepository = mock[SubmissionRepository]
-  val mockPdfService = mock[PdfService]
-
-  class SUT extends SubmissionService(mockFUploadService, mockPdfService, mockSubmissionRepository, appConfig) {
-    override protected def submissionFileName(envelopeId: String): String = s"$envelopeId-SubmissionCTUTR-20171023-iform.pdf"
-  }
-
 }

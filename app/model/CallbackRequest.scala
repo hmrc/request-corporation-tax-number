@@ -21,7 +21,7 @@ import play.api.libs.json.{Format, Json}
 /**
   * TODO implement toMap method when auditing to splunk
   */
-case class FileUploadCallback(envelopeId: String, fileId: String, status: String, reason: Option[String]) {
+case class CallbackRequest(envelopeId: String, fileId: String, status: String, reason: Option[String]) {
 //  def toMap: Map[String, String] = Map(
 //    "envelopId" -> envelopeId,
 //    "status" -> status,
@@ -30,8 +30,8 @@ case class FileUploadCallback(envelopeId: String, fileId: String, status: String
 //  )
 }
 
-object FileUploadCallback {
-  implicit val formatFileUpload: Format[FileUploadCallback] = Json.format[FileUploadCallback]
+object CallbackRequest {
+  implicit val formatFileUpload: Format[CallbackRequest] = Json.format[CallbackRequest]
 }
 
 

@@ -17,6 +17,7 @@
 package services
 
 import connectors.FileUploadConnector
+import model.{Envelope, File}
 import model.domain.MimeContentType
 import org.mockito.Matchers.any
 import org.mockito.{Matchers, Mockito}
@@ -60,6 +61,15 @@ class FileUploadServiceSpec extends PlaySpec with MockitoSugar {
       val result = Await.result(sut.closeEnvelope("123"), 5.seconds)
 
       result mustBe "123"
+    }
+
+    "able to get the envelope" in {
+      val sut = createSUT
+      when(sut.fileUploadConnector.envelopeSummary("123")).thenReturn(Future.successful(Envelope("123","callback","OPEN",Seq(File("pdf","open")))))
+
+      val result = Await.result(sut.envelopeSummary("123"), 5.seconds)
+
+      result mustBe Envelope("123","callback","OPEN",Seq(File("pdf","open")))
     }
   }
 

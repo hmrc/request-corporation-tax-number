@@ -19,9 +19,9 @@ package controllers
 import javax.inject.Inject
 
 import com.google.inject.Singleton
-import model.{Submission, FileUploadCallback}
+import model.{CallbackRequest, Submission}
 import play.api.Logger
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.Json
 import play.api.mvc.Action
 import services.SubmissionService
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
@@ -48,19 +48,13 @@ class SubmissionController @Inject()(
       }
   }
 
-  def fileUploadCallback(): Action[JsValue] = Action.async(parse.json) { implicit request =>
-    withJsonBody[FileUploadCallback] {
-      fileUploadCallback =>
-        Logger.info(s"[SubmissionController][fileUploadCallback] processing callback $fileUploadCallback")
-        submissionService.fileUploadCallback(fileUploadCallback) map {
+  def fileUploadCallback(): Action[CallbackRequest] =
+    Action.async(parse.json[CallbackRequest]) {
+      implicit request =>
+        Logger.info(s"[SubmissionController][fileUploadCallback] processing callback ${request.body}")
+        submissionService.callback(request.body.envelopeId).map {
           _ =>
             Ok
-        } recoverWith {
-          case e : Exception =>
-            Logger.error(s"[SubmissionController][fileUploadCallback] failed to process callback $fileUploadCallback", e)
-            Future.successful(InternalServerError)
         }
     }
-  }
-
 }

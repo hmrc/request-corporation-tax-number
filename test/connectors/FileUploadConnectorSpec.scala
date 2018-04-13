@@ -19,14 +19,14 @@ package connectors
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import com.kenshoo.play.metrics.Metrics
-import config.{MicroserviceAppConfig, SpecBase}
+import config.SpecBase
+import model.{Envelope, File}
 import model.domain.MimeContentType
 import org.mockito.Matchers
 import org.mockito.Matchers._
 import org.mockito.Mockito._
-import org.scalatest.{BeforeAndAfterEachTestData, TestData}
 import org.scalatest.mock.MockitoSugar
-import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
+import org.scalatest.{BeforeAndAfterEachTestData, TestData}
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.{WSClient, WSRequest, WSResponse}
 import play.api.mvc.MultipartFormData
@@ -203,6 +203,24 @@ class FileUploadConnectorSpec extends SpecBase
     }
   }
 
+  "envelopeSummary" must {
+    "return an envelope" in {
+      val sut = createSut
+
+      Await.result(sut.envelopeSummary(envelopeId), 5.seconds) mustBe Envelope(envelopeId,"http://callback","OPEN",Seq(File(fileName,"AVAILABLE")))
+    }
+    "throw error on failed GET" in {
+      val sut = createSut
+
+      when(sut.httpClient.GET[Envelope](any())(any(), any(), any()))
+        .thenReturn(Future.failed(new RuntimeException("call failed")))
+
+      val ex = the[RuntimeException] thrownBy Await.result(sut.envelopeSummary(envelopeId), 5 seconds)
+
+      ex.getMessage mustBe "[FileUploadConnector][envelopeSummary] failed to get envelope summary from file upload"
+    }
+  }
+
   private def createMockResponse(status: Int, body: String): WSResponse = {
     val wsResponseMock = mock[WSResponse]
     when(wsResponseMock.status).thenReturn(status)
@@ -235,6 +253,9 @@ class FileUploadConnectorSpec extends SpecBase
     when(mockHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
       .thenReturn(Future.successful(HttpResponse(201, None,
         Map("Location" -> Seq(s"/file-routing/requests/$envelopeId")))))
+
+    when(mockHttp.GET[Envelope](any())(any(), any(), any()))
+      .thenReturn(Future.successful(Envelope(envelopeId,"http://callback","OPEN",Seq(File(fileName,"AVAILABLE")))))
 
     override val fileUploadUrl: String = "file-upload"
 
