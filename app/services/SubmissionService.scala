@@ -96,30 +96,32 @@ class SubmissionService @Inject()(
     }
   }
 
-  private def callback(details: FileUploadCallback)(implicit hc: HeaderCarrier) = {
-    submissionRepository.submissionDetails(details.envelopeId) map {
+  private def callback(details: FileUploadCallback)(implicit hc: HeaderCarrier): Future[EnvelopeStatus] = {
+    submissionRepository.submissionDetails(details.envelopeId) flatMap {
       case Some(submissionDetails) =>
         if (!submissionDetails.pdfUploaded && !submissionDetails.metadataUploaded && !submissionDetails.robotXmlUploaded) {
           submissionRepository.updateSubmissionDetails(details.envelopeId, createSubmissionDetails(details))
           Logger.info(s"[SubmissionService][callback] Creating new iForm mongo record ${details.fileId} ${details.status}")
-          Open
+          Future.successful(Open)
         } else if (submissionDetails.metadataUploaded && details.fileId.contains("metadata")) {
           Logger.warn(s"[SubmissionService][callback] Received callback multiple times for Metadata File ${details.fileId}")
-          Open
+          Future.successful(Open)
         } else if (submissionDetails.pdfUploaded && details.fileId.contains("iform")) {
           Logger.warn(s"[SubmissionService][callback] Received callback multiple times for PDF File ${details.fileId}")
-          Open
+          Future.successful(Open)
         } else if (submissionDetails.robotXmlUploaded && details.fileId.contains("robot")) {
           Logger.warn(s"[SubmissionService][callback] Received callback multiple times for Robot File ${details.fileId}")
-          Open
+          Future.successful(Open)
         } else {
           Logger.info(s"[SubmissionService][callback][Closing envelope] ${details.fileId}")
           fileUploadService.closeEnvelope(details.envelopeId)
           submissionRepository.removeSubmissionDetails(details.envelopeId)
-          Closed
+          Future.successful(Closed)
         }
       case None =>
-        throw new RuntimeException(s"Data not found for envelope-id ${details.envelopeId}")
+        val e = new RuntimeException(s"Data not found for envelope-id ${details.envelopeId}")
+        Logger.error(s"[SubmissionService][callback] No envelop found for envelope-id ${details.envelopeId}", e)
+        Future.failed(e)
     }
   }
 

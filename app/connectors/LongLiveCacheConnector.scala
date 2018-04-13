@@ -35,14 +35,11 @@ class LongLiveCacheConnector @Inject()(
                                         val cacheRepository: SubmissionCacheRepositoryHelper
                                       ) extends MongoDbConnection with TimeToLive {
 
-
-  private val defaultKey = "CTUTR-iForm"
-
-  def createOrUpdate[T](id: String, data: T, key: String = defaultKey)(implicit writes: Writes[T]): Future[T] = {
+  def createOrUpdate[T](id: String, data: T, key: String)(implicit writes: Writes[T]): Future[T] = {
     cacheRepository.repo.createOrUpdate(id, key, Json.toJson(data)).map(_ => data)
   }
 
-  def find[T](id: String, key: String = defaultKey)(implicit reads: Reads[T]): Future[Option[T]] = {
+  def find[T](id: String, key: String)(implicit reads: Reads[T]): Future[Option[T]] = {
     cacheRepository.repo.findById(id) map {
       case Some(cache) => cache.data flatMap {
         json =>

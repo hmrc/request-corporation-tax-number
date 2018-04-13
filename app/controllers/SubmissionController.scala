@@ -56,7 +56,8 @@ class SubmissionController @Inject()(
           _ =>
             Ok
         } recoverWith {
-          case _ : Exception =>
+          case e : Exception =>
+            Logger.error(s"[SubmissionController][fileUploadCallback] failed to process callback $fileUploadCallback", e)
             Future.successful(InternalServerError)
         }
     }

@@ -21,7 +21,7 @@ import model.{CompanyDetails, Submission}
 import org.mockito.Matchers
 import org.mockito.Matchers.any
 import org.mockito.Mockito.{times, verify, when, _}
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterEachTestData, TestData}
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
 import play.api.libs.json.Json
@@ -80,7 +80,7 @@ class LongLiveCacheConnectorSpec extends PlaySpec with MockitoSugar with OneAppP
         val eventualSomeCache = Some(Cache(Id(id), Some(Json.toJson(Map("CTUTR-iForm" -> "DATA")))))
         when(sut.cacheRepository.repo.findById(any(), any())(any())).thenReturn(Future.successful(eventualSomeCache))
 
-        val data = Await.result(sut.find[String](id), atMost)
+        val data = Await.result(sut.find[String](id, "CTUTR-iForm"), atMost)
 
         data mustBe Some("DATA")
 
@@ -91,7 +91,7 @@ class LongLiveCacheConnectorSpec extends PlaySpec with MockitoSugar with OneAppP
         val sut = createSUT
         when(sut.cacheRepository.repo.findById(any(), any())(any())).thenReturn(Future.successful(None))
 
-        val data = Await.result(sut.find[String](id), atMost)
+        val data = Await.result(sut.find[String](id, "CTUTR-iForm"), atMost)
 
         data mustBe None
 
