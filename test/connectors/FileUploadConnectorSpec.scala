@@ -213,11 +213,11 @@ class FileUploadConnectorSpec extends SpecBase
       val sut = createSut
 
       when(sut.httpClient.GET[Envelope](any())(any(), any(), any()))
-        .thenReturn(Future.failed(new RuntimeException("call failed")))
+        .thenReturn(Future.failed(new RuntimeException("Call failed")))
 
       val ex = the[RuntimeException] thrownBy Await.result(sut.envelopeSummary(envelopeId), 5 seconds)
 
-      ex.getMessage mustBe "[FileUploadConnector][envelopeSummary] failed to get envelope summary from file upload"
+      ex.getMessage mustBe "Call failed"
     }
   }
 

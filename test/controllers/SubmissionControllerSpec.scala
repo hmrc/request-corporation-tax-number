@@ -18,7 +18,7 @@ package controllers
 
 import model.domain.SubmissionResponse
 import org.mockito.Matchers.any
-import org.mockito.Mockito.{times, verify, when}
+import org.mockito.Mockito.when
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.http.Status
@@ -30,8 +30,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, InternalServerException}
 import uk.gov.hmrc.play.test.UnitSpec
 import util.MaterializerSupport
 
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 
 class SubmissionControllerSpec extends UnitSpec
   with OneAppPerSuite
@@ -78,28 +77,29 @@ class SubmissionControllerSpec extends UnitSpec
     }
   }
 
-  "company fileUploadCallback" must {
+  "fileUploadCallback" must {
 
     "return a 200 response status" when {
 
       "envelope id is provided in callback" in {
         val sut = createSUT
-        val json =
-          """{
-            |  "envelopeId": "0b215ey97-11d4-4006-91db-c067e74fc653",
+        val envelope = Json.parse(
+          """
+            |{
+            |  "envelopeId": "env123",
             |  "fileId": "file-id-1",
-            |  "status": "OPEN",
-            |}""".stripMargin
+            |  "status": "OPEN"
+            |}
+            |""".stripMargin)
 
-        when(sut.submissionService.callback("0b215ey97-11d4-4006-91db-c067e74fc653")(any())).thenReturn(Future.successful("0b215ey97-11d4-4006-91db-c067e74fc653"))
-
-        val jsValue = Json.parse(json)
         val fakeRequest = FakeRequest(method = "POST", uri = "",
-          headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = jsValue)
+          headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = envelope)
 
-        val result = Await.result(sut.fileUploadCallback()(fakeRequest), 5.seconds)
+        when(sut.submissionService.callback(any())(any())).thenReturn(Future.successful("env123"))
 
-        verify(sut.submissionService, times(1)).callback("0b215ey97-11d4-4006-91db-c067e74fc653")(any())
+        val result = Helpers.call(sut.fileUploadCallback(),fakeRequest)
+
+        status(result) shouldBe 200
       }
 
     }
