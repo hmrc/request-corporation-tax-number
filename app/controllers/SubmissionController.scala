@@ -52,9 +52,14 @@ class SubmissionController @Inject()(
     Action.async(parse.json[CallbackRequest]) {
       implicit request =>
         Logger.info(s"[SubmissionController][fileUploadCallback] processing callback ${request.body}")
-        submissionService.callback(request.body.envelopeId).map {
-          _ =>
-            Ok
+        if (request.body.status == "AVAILABLE") {
+          submissionService.callback(request.body.envelopeId).map {
+            _ =>
+              Ok
+          }
+        } else {
+          Logger.info(s"[SubmissionController][fileUploadCallback] callback for ${request.body.fileId} had status: ${request.body.status}")
+          Future.successful(Ok)
         }
     }
 }

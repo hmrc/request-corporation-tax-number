@@ -21,7 +21,7 @@ import play.api.libs.json.{Format, Json}
 /**
   * TODO implement toMap method when auditing to splunk
   */
-case class CallbackRequest(envelopeId: String, fileId: String, status: String, reason: Option[String]) {
+case class CallbackRequest(envelopeId: String, fileId: String, status: String, reason: Option[String] = None) {
 //  def toMap: Map[String, String] = Map(
 //    "envelopId" -> envelopeId,
 //    "status" -> status,
