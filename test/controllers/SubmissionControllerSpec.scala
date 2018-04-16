@@ -16,9 +16,10 @@
 
 package controllers
 
+import model.CallbackRequest
 import model.domain.SubmissionResponse
-import org.mockito.Matchers.any
-import org.mockito.Mockito.when
+import org.mockito.Matchers.{eq => eqTo, _}
+import org.mockito.Mockito._
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.http.Status
@@ -73,7 +74,6 @@ class SubmissionControllerSpec extends UnitSpec
         val result = Helpers.call(sut.submit(), fakeRequestValidDataset)
         status(result) shouldBe INTERNAL_SERVER_ERROR
       }
-
     }
   }
 
@@ -81,29 +81,34 @@ class SubmissionControllerSpec extends UnitSpec
 
     "return a 200 response status" when {
 
-      "envelope id is provided in callback" in {
+      "when available callback response" in {
         val sut = createSUT
-        val envelope = Json.parse(
-          """
-            |{
-            |  "envelopeId": "env123",
-            |  "fileId": "file-id-1",
-            |  "status": "OPEN"
-            |}
-            |""".stripMargin)
+        val callback = Json.toJson(CallbackRequest("env123", "file-id-1", "AVAILABLE"))
 
         val fakeRequest = FakeRequest(method = "POST", uri = "",
-          headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = envelope)
+          headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = callback)
 
         when(sut.submissionService.callback(any())(any())).thenReturn(Future.successful("env123"))
 
         val result = Helpers.call(sut.fileUploadCallback(),fakeRequest)
 
-        status(result) shouldBe 200
+        status(result) shouldBe OK
+        verify(sut.submissionService, times(1)).callback(eqTo("env123"))(any())
       }
 
-    }
+      "when closed callback response" in {
+        val sut = createSUT
+        val callback = Json.toJson(CallbackRequest("env123", "file-id-1", "CLOSED"))
 
+        val fakeRequest = FakeRequest(method = "POST", uri = "",
+          headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = callback)
+
+        val result = Helpers.call(sut.fileUploadCallback(),fakeRequest)
+
+        status(result) shouldBe OK
+        verify(sut.submissionService, times(0)).callback("env123")
+      }
+    }
   }
 
   val validDataset = Json.parse(
