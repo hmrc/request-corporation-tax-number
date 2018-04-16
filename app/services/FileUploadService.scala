@@ -20,6 +20,7 @@ import javax.inject.Inject
 
 import com.google.inject.Singleton
 import connectors.FileUploadConnector
+import model.Envelope
 import model.domain.MimeContentType
 import play.api.Logger
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
@@ -46,6 +47,9 @@ class FileUploadService @Inject()(
     fileUploadConnector.closeEnvelope(envelopeId)
   }
 
-  private def removeExtension(fileName: String): String = fileName.split("\\.").head
+  def envelopeSummary(envelopeId: String)(implicit hc: HeaderCarrier): Future[Envelope] = {
+    fileUploadConnector.envelopeSummary(envelopeId)
+  }
 
+  private def removeExtension(fileName: String): String = fileName.split("\\.").head
 }

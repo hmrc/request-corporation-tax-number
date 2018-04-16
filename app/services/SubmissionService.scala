@@ -20,12 +20,11 @@ import javax.inject.Inject
 
 import com.google.inject.Singleton
 import config.MicroserviceAppConfig
+import model.Submission
 import model.domain.{MimeContentType, SubmissionResponse}
 import model.templates.{CTUTRMetadata, SubmissionViewModel}
-import model.{FileUploadCallback, Submission, SubmissionDetails}
 import org.joda.time.LocalDate
 import play.api.Logger
-import repositories.SubmissionRepository
 import templates.html.CTUTRScheme
 import templates.xml.{pdfSubmissionMetadata, robotXml}
 import uk.gov.hmrc.http.HeaderCarrier
@@ -40,7 +39,6 @@ case object Open extends EnvelopeStatus
 class SubmissionService @Inject()(
                                 val fileUploadService: FileUploadService,
                                 val pdfService: PdfService,
-                                val submissionRepository: SubmissionRepository,
                                 appConfig : MicroserviceAppConfig
                                 ){
 
@@ -53,10 +51,10 @@ class SubmissionService @Inject()(
   private val FileUploadFailureAudit = "FileUploadFailure"
 
   protected def submissionFileName(envelopeId: String) = s"$envelopeId-SubmissionCTUTR-${LocalDate.now().toString("YYYYMMdd")}-iform.pdf"
-  private def submissionMetaDataName(envelopeId: String) = s"$envelopeId-SubmissionCTUTR-${LocalDate.now().toString("YYYYMMdd")}-metadata.xml"
-  private def submissionRobotName(envelopeId: String) = s"$envelopeId-SubmissionCTUTR-${LocalDate.now().toString("YYYYMMdd")}-robot.xml"
+  protected def submissionMetaDataName(envelopeId: String) = s"$envelopeId-SubmissionCTUTR-${LocalDate.now().toString("YYYYMMdd")}-metadata.xml"
+  protected def submissionRobotName(envelopeId: String) = s"$envelopeId-SubmissionCTUTR-${LocalDate.now().toString("YYYYMMdd")}-robot.xml"
 
-  def submit(submission : Submission)(implicit hc : HeaderCarrier) : Future[SubmissionResponse] = {
+  def submit(submission: Submission)(implicit hc : HeaderCarrier) : Future[SubmissionResponse] = {
     val viewModel = SubmissionViewModel.apply(submission)
     val pdfTemplate = CTUTRScheme(viewModel).toString
 
@@ -72,7 +70,6 @@ class SubmissionService @Inject()(
 
             val submissionMetadata = pdfSubmissionMetadata(metadata).toString().getBytes
             val robotSubmission = robotXml(metadata,viewModel).toString().getBytes
-            submissionRepository.updateSubmissionDetails(envelopeId, SubmissionDetails(pdfUploaded = false, metadataUploaded = false, robotXmlUploaded = false))
 
             fileUploadService.uploadFile(pdf, envelopeId, filename, MimeContentType.ApplicationPdf)
             fileUploadService.uploadFile(submissionMetadata, envelopeId, submissionMetaDataName(envelopeId), MimeContentType.ApplicationXml)
@@ -83,59 +80,20 @@ class SubmissionService @Inject()(
     }
   }
 
-  def fileUploadCallback(details: FileUploadCallback)(implicit hc: HeaderCarrier): Future[EnvelopeStatus] = {
-    if (details.status == FileUploadSuccessStatus) {
-      Logger.info(s"[SubmissionService][fileUploadCallback] [FileUploadSuccess]")
-      callback(details)
-    } else if(details.status == FileUploadErrorStatus) {
-      Logger.info(s"[SubmissionService][fileUploadCallback] [FileUploadError]")
-      Future.successful(Open)
-    } else {
-      Logger.info(s"[SubmissionService][fileUploadCallback] [Status undetermined]")
-      Future.successful(Open)
-    }
+  def callback(envelopeId: String)(implicit hc: HeaderCarrier): Future[String] = {
+      fileUploadService.envelopeSummary(envelopeId).flatMap {
+        envelope =>
+          if (envelope.status == "OPEN") {
+            if (envelope.files.forall(file => file.status == "AVAILABLE") && envelope.files.length == 3) {
+              fileUploadService.closeEnvelope(envelopeId)
+            } else {
+              Logger.info("[SubmissionService][callback] incomplete wait for files")
+              Future.successful(envelopeId)
+            }
+          } else {
+            Logger.error("[SubmissionService][callback] envelope is not open")
+            Future.successful(envelopeId)
+          }
+      }
   }
-
-  private def callback(details: FileUploadCallback)(implicit hc: HeaderCarrier): Future[EnvelopeStatus] = {
-    submissionRepository.submissionDetails(details.envelopeId) flatMap {
-      case Some(submissionDetails) =>
-        if (!submissionDetails.pdfUploaded && !submissionDetails.metadataUploaded && !submissionDetails.robotXmlUploaded) {
-          submissionRepository.updateSubmissionDetails(details.envelopeId, createSubmissionDetails(details))
-          Logger.info(s"[SubmissionService][callback] Creating new iForm mongo record ${details.fileId} ${details.status}")
-          Future.successful(Open)
-        } else if (submissionDetails.metadataUploaded && details.fileId.contains("metadata")) {
-          Logger.warn(s"[SubmissionService][callback] Received callback multiple times for Metadata File ${details.fileId}")
-          Future.successful(Open)
-        } else if (submissionDetails.pdfUploaded && details.fileId.contains("iform")) {
-          Logger.warn(s"[SubmissionService][callback] Received callback multiple times for PDF File ${details.fileId}")
-          Future.successful(Open)
-        } else if (submissionDetails.robotXmlUploaded && details.fileId.contains("robot")) {
-          Logger.warn(s"[SubmissionService][callback] Received callback multiple times for Robot File ${details.fileId}")
-          Future.successful(Open)
-        } else {
-          Logger.info(s"[SubmissionService][callback][Closing envelope] ${details.fileId}")
-          fileUploadService.closeEnvelope(details.envelopeId)
-          submissionRepository.removeSubmissionDetails(details.envelopeId)
-          Future.successful(Closed)
-        }
-      case None =>
-        val e = new RuntimeException(s"Data not found for envelope-id ${details.envelopeId}")
-        Logger.error(s"[SubmissionService][callback] No envelop found for envelope-id ${details.envelopeId}", e)
-        Future.failed(e)
-    }
-  }
-
-  private def createSubmissionDetails(details: FileUploadCallback): SubmissionDetails = {
-    if(details.fileId.contains("metadata")){
-      Logger.info(s"[SubmissionService][createIFormDetails][meta data uploaded for submission]")
-      SubmissionDetails(pdfUploaded = false, metadataUploaded = true, robotXmlUploaded = false)
-    } else if (details.fileId.contains("iform")){
-      Logger.info(s"[SubmissionService][createIFormDetails][pdf uploaded for submission]")
-      SubmissionDetails(pdfUploaded = true, metadataUploaded = false, robotXmlUploaded = false)
-    } else {
-      Logger.info(s"[SubmissionService][createRobotXMLDetails][pdf uploaded for submission]")
-      SubmissionDetails(pdfUploaded = false, metadataUploaded = false, robotXmlUploaded = true)
-    }
-  }
-
 }

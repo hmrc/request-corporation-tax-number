@@ -16,24 +16,21 @@
 
 package controllers
 
-import model.FileUploadCallback
 import model.domain.SubmissionResponse
-import org.mockito.Matchers
 import org.mockito.Matchers.any
-import org.mockito.Mockito.{times, verify, when}
-import org.scalatest.mock.MockitoSugar
+import org.mockito.Mockito.when
+import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.OneAppPerSuite
 import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.test.Helpers.{contentAsJson, _}
 import play.api.test.{FakeHeaders, FakeRequest, Helpers}
-import services.{SubmissionService, Open}
+import services.SubmissionService
 import uk.gov.hmrc.http.{HeaderCarrier, InternalServerException}
 import uk.gov.hmrc.play.test.UnitSpec
 import util.MaterializerSupport
 
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 
 class SubmissionControllerSpec extends UnitSpec
   with OneAppPerSuite
@@ -80,54 +77,31 @@ class SubmissionControllerSpec extends UnitSpec
     }
   }
 
-  "company fileUploadCallback" must {
+  "fileUploadCallback" must {
 
     "return a 200 response status" when {
 
       "envelope id is provided in callback" in {
         val sut = createSUT
-        val json =
-          """{
-            |  "envelopeId": "0b215ey97-11d4-4006-91db-c067e74fc653",
+        val envelope = Json.parse(
+          """
+            |{
+            |  "envelopeId": "env123",
             |  "fileId": "file-id-1",
-            |  "status": "ERROR",
-            |  "reason": "VirusDetected"
-            |}""".stripMargin
+            |  "status": "OPEN"
+            |}
+            |""".stripMargin)
 
-        when(sut.submissionService.fileUploadCallback(any())(any())).thenReturn(Future.successful(Open))
-
-        val jsValue = Json.parse(json)
         val fakeRequest = FakeRequest(method = "POST", uri = "",
-          headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = jsValue)
+          headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = envelope)
 
-        val result = Await.result(sut.fileUploadCallback()(fakeRequest), 5.seconds)
+        when(sut.submissionService.callback(any())(any())).thenReturn(Future.successful("env123"))
 
-        result.header.status shouldBe 200
-        verify(sut.submissionService, times(1)).fileUploadCallback(Matchers.eq(jsValue.as[FileUploadCallback]))(any())
+        val result = Helpers.call(sut.fileUploadCallback(),fakeRequest)
+
+        status(result) shouldBe 200
       }
 
-    }
-
-    "return InternalServerError when a callback is for a submission that does not exist in mongo" ignore {
-      val sut = createSUT
-      val json =
-        """{
-          |  "envelopeId": "0b215ey97-11d4-4006-91db-c067e74fc653",
-          |  "fileId": "file-id-1",
-          |  "status": "ERROR",
-          |  "reason": "VirusDetected"
-          |}""".stripMargin
-
-      when(sut.submissionService.submissionRepository.submissionDetails(any())(any())).thenReturn(Future.successful(None))
-
-      val jsValue = Json.parse(json)
-      val fakeRequest = FakeRequest(method = "POST", uri = "",
-        headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = jsValue)
-
-      val result = Await.result(sut.fileUploadCallback()(fakeRequest), 5.seconds)
-
-      result.header.status shouldBe 500
-      verify(sut.submissionService, times(1)).fileUploadCallback(Matchers.eq(jsValue.as[FileUploadCallback]))(any())
     }
 
   }
