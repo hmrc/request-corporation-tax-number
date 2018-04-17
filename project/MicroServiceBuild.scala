@@ -30,8 +30,7 @@ object MicroServiceBuild extends Build with MicroService {
     ws,
     "uk.gov.hmrc" %% "bootstrap-play-25" % "1.4.0",
     "uk.gov.hmrc" %% "domain" % "4.1.0",
-    "uk.gov.hmrc" %% "json-encryption" % "3.2.0",
-    "uk.gov.hmrc" %% "mongo-caching" % "5.0.0" exclude("uk.gov.hmrc","time_2.11")
+    "uk.gov.hmrc" %% "json-encryption" % "3.2.0"
   )
 
   def test(scope: String = "test,it") = Seq(
