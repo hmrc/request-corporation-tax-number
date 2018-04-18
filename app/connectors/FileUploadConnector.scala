@@ -107,23 +107,25 @@ class FileUploadConnector @Inject()(
   }
 
   def closeEnvelope(envId: String)(implicit hc: HeaderCarrier): Future[String] = {
-    httpClient.POST[JsValue, HttpResponse](s"$fileUploadUrl/file-routing/requests", routingRequest(envId)).map { response =>
+    val post = httpClient.POST[JsValue, HttpResponse](s"$fileUploadUrl/file-routing/requests", routingRequest(envId)).map { response =>
       if (response.status == CREATED) {
         envelopeId(response)
           .getOrElse {
             Logger.warn("[FileUploadConnector][closeEnvelope] No envelope id returned by file upload service")
             throw new RuntimeException("No envelope id returned by file upload service")
           }
-      }
-      else {
+      } else {
         Logger.warn(s"[FileUploadConnector][closeEnvelope] failed to close envelope with status [${response.status}]")
         throw new RuntimeException("File upload envelope routing request failed")
       }
-    }.recover {
-      case _: Exception =>
-        Logger.warn("[FileUploadConnector][closeEnvelope] call to close envelope failed")
-        throw new RuntimeException("File upload envelope routing request failed")
     }
+
+    post.onFailure {
+      case e: Throwable =>
+        Logger.error("[FileUploadConnector][closeEnvelope] call to close envelope failed", e)
+    }
+
+    post
   }
 
   def envelopeSummary(envelopeId: String)(implicit hc: HeaderCarrier): Future[Envelope] = {
