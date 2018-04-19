@@ -69,6 +69,7 @@ class FileUploadConnectorSpec extends SpecBase
 
       verify(sut.httpClient, times(1)).POST(any(), Matchers.eq(envelopeBody), any())(any(), any(), any(), any())
     }
+
     "throw a runtime exception" when {
       "the success response does not contain a location header" in {
         val sut = createSut
@@ -172,11 +173,11 @@ class FileUploadConnectorSpec extends SpecBase
         val sut = createSut
 
         when(sut.httpClient.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(201)))
+          .thenReturn(Future.failed(new RuntimeException("call failed")))
 
         val ex = the[RuntimeException] thrownBy Await.result(sut.closeEnvelope(envelopeId), 5 seconds)
 
-        ex.getMessage mustBe "File upload envelope routing request failed"
+        ex.getMessage mustBe "call failed"
       }
       "the call to the file upload service routing request endpoint fails" in {
         val sut = createSut
@@ -186,7 +187,7 @@ class FileUploadConnectorSpec extends SpecBase
 
         val ex = the[RuntimeException] thrownBy Await.result(sut.closeEnvelope(envelopeId), 5 seconds)
 
-        ex.getMessage mustBe "File upload envelope routing request failed"
+        ex.getMessage mustBe "call failed"
 
       }
       "the call to the file upload service returns a failure response" in {
