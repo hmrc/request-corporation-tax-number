@@ -66,7 +66,7 @@ class SubmissionService @Inject()(
             Logger.info(s"[SubmissionService][submit] submission created $envelopeId")
 
             val filename = submissionFileName(envelopeId)
-            val metadata = CTUTRMetadata(appConfig)
+            val metadata = CTUTRMetadata(appConfig, submission.companyDetails.companyReferenceNumber)
 
             val submissionMetadata = pdfSubmissionMetadata(metadata).toString().getBytes
             val robotSubmission = robotXml(metadata,viewModel).toString().getBytes
