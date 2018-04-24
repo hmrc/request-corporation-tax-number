@@ -52,7 +52,7 @@ class SubmissionService @Inject()(
 
   protected def submissionFileName(envelopeId: String) = s"$envelopeId-SubmissionCTUTR-${LocalDate.now().toString("YYYYMMdd")}-iform.pdf"
   protected def submissionMetaDataName(envelopeId: String) = s"$envelopeId-SubmissionCTUTR-${LocalDate.now().toString("YYYYMMdd")}-metadata.xml"
-  protected def submissionRobotName(envelopeId: String) = s"$envelopeId-SubmissionCTUTR-${LocalDate.now().toString("YYYYMMdd")}-robot.xml"
+  protected def submissionRobotName(envelopeId: String) = s"$envelopeId-SubmissionCTUTR-${LocalDate.now().toString("YYYYMMdd")}-robotic.xml"
 
   def submit(submission: Submission)(implicit hc : HeaderCarrier) : Future[SubmissionResponse] = {
     val viewModel = SubmissionViewModel.apply(submission)
