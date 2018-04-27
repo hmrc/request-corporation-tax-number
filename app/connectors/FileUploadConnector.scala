@@ -122,7 +122,11 @@ class FileUploadConnector @Inject()(
 
     post.onFailure {
       case e: Throwable =>
-        Logger.error("[FileUploadConnector][closeEnvelope] call to close envelope failed", e)
+        if(e.getMessage.contains("Routing request already received for envelope")){
+          Logger.warn("[FileUploadConnector][closeEnvelope] call to close envelope that has already been closed")
+        }else{
+          Logger.error("[FileUploadConnector][closeEnvelope] call to close envelope failed", e)
+        }
     }
 
     post
