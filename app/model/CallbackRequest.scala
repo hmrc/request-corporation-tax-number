@@ -18,17 +18,7 @@ package model
 
 import play.api.libs.json.{Format, Json}
 
-/**
-  * TODO implement toMap method when auditing to splunk
-  */
-case class CallbackRequest(envelopeId: String, fileId: String, status: String, reason: Option[String] = None) {
-//  def toMap: Map[String, String] = Map(
-//    "envelopId" -> envelopeId,
-//    "status" -> status,
-//    "reason" -> reason.getOrElse(""),
-//    "file-Id" -> fileId
-//  )
-}
+case class CallbackRequest(envelopeId: String, fileId: String, status: String, reason: Option[String] = None)
 
 object CallbackRequest {
   implicit val formatFileUpload: Format[CallbackRequest] = Json.format[CallbackRequest]
