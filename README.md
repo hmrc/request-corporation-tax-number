@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/hmrc/request-corporation-tax-number.svg)](https://travis-ci.org/hmrc/request-corporation-tax-number) [ ![Download](https://api.bintray.com/packages/hmrc/releases/request-corporation-tax-number/images/download.svg) ](https://bintray.com/hmrc/releases/request-corporation-tax-number/_latestVersion)
 
-This is a placeholder README.md for a new repository
+Backend service for request-corporation-tax-number-frontend (CTUTR)
 
 ### License
 
