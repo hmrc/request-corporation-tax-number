@@ -16,7 +16,7 @@
 
 package audit
 
-import com.google.inject.Inject
+import com.google.inject.{ImplementedBy, Inject}
 import config.MicroserviceAppConfig
 import play.api.Logger
 import play.api.libs.json.{JsString, Json, Writes}
@@ -27,11 +27,22 @@ import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.language.implicitConversions
 
-class AuditService @Inject() (
-                               config: MicroserviceAppConfig,
-                               connector: AuditConnector
-                             ) {
+@ImplementedBy(classOf[AuditServiceImpl])
+trait AuditService {
+
+  def sendEvent[T <: AuditEvent](event: T)(implicit
+                                           rh: RequestHeader,
+                                           write: Writes[T],
+                                           ec: ExecutionContext): Future[AuditResult]
+
+}
+
+class AuditServiceImpl @Inject()(
+                                  config: MicroserviceAppConfig,
+                                  connector: AuditConnector
+                                ) extends AuditService {
 
   private implicit def toHc(request: RequestHeader): AuditHeaderCarrier =
     auditHeaderCarrier(HeaderCarrierConverter.fromHeadersAndSession(request.headers, Some(request.session)))
@@ -53,13 +64,13 @@ class AuditService @Inject() (
     Logger.debug(s"[AuditService][sendEvent] sending ${event.auditType}")
 
     val result: Future[AuditResult] = connector.sendExtendedEvent(ExtendedDataEvent(
-      auditSource = config.appName,
-      auditType   = event.auditType,
-      tags        = rh.toAuditTags(
+      auditSource = "request-corporation-tax-number",
+      auditType = event.auditType,
+      tags = rh.toAuditTags(
         transactionName = event.auditType,
-        path            = rh.path
+        path = rh.path
       ),
-      detail      = details
+      detail = details
     ))
 
     result.onSuccess {
@@ -74,4 +85,5 @@ class AuditService @Inject() (
 
     result
   }
+
 }

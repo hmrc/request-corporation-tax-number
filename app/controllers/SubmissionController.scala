@@ -16,8 +16,8 @@
 
 package controllers
 
+import audit.{AuditService, CTUTRSubmission}
 import javax.inject.Inject
-
 import com.google.inject.Singleton
 import model.{CallbackRequest, Submission}
 import play.api.Logger
@@ -31,11 +31,18 @@ import scala.concurrent.Future
 
 @Singleton
 class SubmissionController @Inject()(
-                                   val submissionService: SubmissionService
+                                   val submissionService: SubmissionService,
+                                   auditService: AuditService
                                    ) extends BaseController {
 
   def submit() : Action[Submission] = Action.async(parse.json[Submission]) {
     implicit request =>
+      auditService.sendEvent(
+        CTUTRSubmission(
+          request.body.companyDetails.companyReferenceNumber,
+          request.body.companyDetails.companyName
+        )
+      )
       Logger.info(s"[SubmissionController][submit] processing submission")
       submissionService.submit(request.body) map {
         response =>
