@@ -31,6 +31,7 @@ class MicroserviceAppConfig @Inject()(override val runModeConfiguration: Configu
 
   private def loadMilliseconds(key : String, default : Long) = runModeConfiguration.getMilliseconds(key).getOrElse(default)
 
+  lazy val appName: String = runModeConfiguration.underlying.getString("appName")
   lazy val fileUploadUrl: String = baseUrl("file-upload")
   lazy val fileUploadFrontendUrl: String = baseUrl("file-upload-frontend")
   lazy val fileUploadCallbackUrl: String = loadConfig(s"microservice.services.file-upload.callbackUrl")

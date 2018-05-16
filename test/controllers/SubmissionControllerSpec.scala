@@ -16,6 +16,7 @@
 
 package controllers
 
+import audit.AuditService
 import model.CallbackRequest
 import model.domain.SubmissionResponse
 import org.mockito.Matchers.{eq => eqTo, _}
@@ -138,7 +139,9 @@ class SubmissionControllerSpec extends UnitSpec
 
   val mockSubmissionService = mock[SubmissionService]
 
-  private class SUT extends SubmissionController(mockSubmissionService)
+  val mockAuditService = mock[AuditService]
+
+  private class SUT extends SubmissionController(mockSubmissionService, mockAuditService)
 
   private def createSUT = new SUT
 

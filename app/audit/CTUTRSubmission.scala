@@ -14,14 +14,17 @@
  * limitations under the License.
  */
 
-package model
+package audit
 
 import play.api.libs.json.{Format, Json}
 
-case class CallbackRequest(envelopeId: String, fileId: String, status: String, reason: Option[String] = None)
-
-object CallbackRequest {
-  implicit val formatFileUpload: Format[CallbackRequest] = Json.format[CallbackRequest]
+case class CTUTRSubmission(
+                          companyRegistrationNumber: String,
+                          companyName: String
+                          ) extends AuditEvent {
+  override def auditType: String = "CTUTRSubmission"
 }
 
-
+object CTUTRSubmission {
+  implicit val formatsSubmission: Format[CTUTRSubmission] = Json.format[CTUTRSubmission]
+}
