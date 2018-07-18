@@ -34,6 +34,7 @@ import play.api.libs.ws.WSClient
 import play.api.mvc.MultipartFormData.{DataPart, FilePart}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import utils.HttpResponseHelper
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -44,7 +45,7 @@ class FileUploadConnector @Inject()(
                                      val httpClient: HttpClient,
                                      val wsClient: WSClient,
                                      val metrics: Metrics
-                                   ) {
+                                   ) extends HttpResponseHelper {
 
   private implicit val system = ActorSystem()
   private implicit val materializer = ActorMaterializer()
@@ -64,24 +65,28 @@ class FileUploadConnector @Inject()(
 
   def createEnvelope(implicit hc: HeaderCarrier): Future[String] = {
 
-    httpClient.POST[JsValue, HttpResponse](s"$fileUploadUrl/file-upload/envelopes", createEnvelopeBody).map { response =>
+    val result = httpClient.POST[JsValue, HttpResponse](s"$fileUploadUrl/file-upload/envelopes", createEnvelopeBody).flatMap { response =>
 
-      if (response.status == CREATED) {
-
-        envelopeId(response)
-          .getOrElse {
-            Logger.warn("[FileUploadConnector][createEnvelope] No envelope id returned by file upload service")
-            throw new RuntimeException("No envelope id returned by file upload service")
+      response.status match {
+        case CREATED =>
+          envelopeId(response).map(Future.successful).getOrElse {
+            val e = new RuntimeException("No envelope id returned by file upload service")
+            Logger.error("[FileUploadConnector][createEnvelope] No envelope id returned by file upload service", e)
+            Future.failed(e)
           }
-      } else {
-        Logger.warn(s"[FileUploadConnector][createEnvelope] - failed to create envelope with status [${response.status}]")
-        throw new RuntimeException("File upload envelope creation failed")
+        case _ =>
+          val e = new RuntimeException(s"File upload envelope creation failed with status [${response.status}]")
+          Logger.error(s"[FileUploadConnector][createEnvelope] - failed to create envelope with status [${response.status}]", e)
+          Future.failed(e)
       }
-    }.recover {
-      case _: Exception =>
-        Logger.warn("[FileUploadConnector][createEnvelope] - call to create envelope failed")
-        throw new RuntimeException("File upload envelope creation failed")
     }
+
+    result.onFailure {
+      case e =>
+        Logger.error("[FileUploadConnector][createEnvelope] - call to create envelope failed", e)
+    }
+
+    result
   }
 
   def uploadFile(byteArray: Array[Byte], fileName: String, contentType: MimeContentType, envelopeId: String, fileId: String)
@@ -108,30 +113,35 @@ class FileUploadConnector @Inject()(
   }
 
   def closeEnvelope(envId: String)(implicit hc: HeaderCarrier): Future[String] = {
-    httpClient.POST[JsValue, HttpResponse](s"$fileUploadUrl/file-routing/requests", routingRequest(envId)).map { response =>
+
+    val result = httpClient.POST[JsValue, HttpResponse](s"$fileUploadUrl/file-routing/requests", routingRequest(envId)).flatMap { response =>
       response.status match {
         case CREATED =>
-          envelopeId(response).getOrElse {
-            Logger.error("[FileUploadConnector][closeEnvelope] No envelope id returned by file upload service")
-            throw new RuntimeException("No envelope id returned by file upload service")
+          envelopeId(response).map(Future.successful).getOrElse {
+            val e = new RuntimeException("No envelope id returned by file upload service")
+            Logger.error("[FileUploadConnector][closeEnvelope] No envelope id returned by file upload service", e)
+            Future.failed(e)
           }
         case BAD_REQUEST =>
           if (response.body.contains("Routing request already received for envelope")) {
             Logger.warn(s"[FileUploadConnector][closeEnvelope] Routing request already received for envelope")
-            "Already Closed"
+            Future.successful("Already Closed")
           } else {
             Logger.error(s"[FileUploadConnector][closeEnvelope] failed with bad request")
-            throw new RuntimeException
+            Future.failed(new RuntimeException("Thomas smells"))
           }
         case _ =>
           Logger.error(s"[FileUploadConnector][closeEnvelope] failed to close envelope with status [${response.status}]")
-          throw new RuntimeException(s"File upload envelope routing request failed with status [${response.status}]")
+          Future.failed(new RuntimeException(s"File upload envelope routing request failed with status [${response.status}]"))
       }
-    }.recoverWith {
+    }
+
+    result.onFailure {
       case e =>
         Logger.error("[FileUploadConnector][closeEnvelope] call to close envelope failed", e)
-        throw new NullPointerException("File upload envelope routing request failed")
     }
+
+    result
   }
 
   def envelopeSummary(envelopeId: String)(implicit hc: HeaderCarrier): Future[Envelope] = {
