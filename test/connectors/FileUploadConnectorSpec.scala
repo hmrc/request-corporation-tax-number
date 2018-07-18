@@ -20,13 +20,14 @@ import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import com.kenshoo.play.metrics.Metrics
 import config.SpecBase
-import model.{Envelope, File}
 import model.domain.MimeContentType
+import model.{Envelope, File}
 import org.mockito.Matchers
 import org.mockito.Matchers._
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{BeforeAndAfterEachTestData, TestData}
+import play.api.http.Status._
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.{WSClient, WSRequest, WSResponse}
 import play.api.mvc.MultipartFormData
@@ -168,38 +169,46 @@ class FileUploadConnectorSpec extends SpecBase
 
       verify(sut.httpClient, times(1)).POST(Matchers.eq("file-upload/file-routing/requests"), any(), any())(any(), any(), any(), any())
     }
+
+    "call file upload service and return already closed when routing request already sent" in {
+      val sut = createSut
+      val mockHTTPResponse = mock[HttpResponse]
+
+      when(mockHTTPResponse.status).thenReturn(BAD_REQUEST)
+      when(mockHTTPResponse.body).thenReturn("""{"error":{"msg":"Routing request already received for envelope: envelopeId"}}""")
+
+      when(sut.httpClient.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
+        .thenReturn(Future.successful(mockHTTPResponse))
+
+      Await.result(sut.closeEnvelope(envelopeId), 5 seconds) mustBe "Already Closed"
+    }
+
     "throw a runtime exception" when {
-      "the success response does not contain a location header" in {
+      "the call to the file upload service routing request endpoint fails due to incorrect status" in {
         val sut = createSut
+        val mockHTTPResponse = mock[HttpResponse]
+
+        when(mockHTTPResponse.status).thenReturn(BAD_REQUEST)
+        when(mockHTTPResponse.body).thenReturn("""{"error":{"msg":"Bad request"}}""")
 
         when(sut.httpClient.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
-          .thenReturn(Future.failed(new RuntimeException("call failed")))
+          .thenReturn(Future.successful(mockHTTPResponse))
 
-        val ex = the[RuntimeException] thrownBy Await.result(sut.closeEnvelope(envelopeId), 5 seconds)
+        val ex = the[NullPointerException] thrownBy Await.result(sut.closeEnvelope(envelopeId), 5 seconds)
 
-        ex.getMessage mustBe "call failed"
+        ex.getMessage mustBe "File upload envelope routing request failed"
       }
+
+
       "the call to the file upload service routing request endpoint fails" in {
         val sut = createSut
 
         when(sut.httpClient.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
-          .thenReturn(Future.failed(new RuntimeException("call failed")))
-
-        val ex = the[RuntimeException] thrownBy Await.result(sut.closeEnvelope(envelopeId), 5 seconds)
-
-        ex.getMessage mustBe "call failed"
-
-      }
-      "the call to the file upload service returns a failure response" in {
-        val sut = createSut
-
-        when(sut.httpClient.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(400)))
+          .thenReturn(Future.failed(new RuntimeException))
 
         val ex = the[RuntimeException] thrownBy Await.result(sut.closeEnvelope(envelopeId), 5 seconds)
 
         ex.getMessage mustBe "File upload envelope routing request failed"
-
       }
     }
   }

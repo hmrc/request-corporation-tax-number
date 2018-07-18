@@ -40,23 +40,25 @@ import scala.concurrent.Future
 
 @Singleton
 class FileUploadConnector @Inject()(
-                                     appConfig : MicroserviceAppConfig,
-                                     val httpClient : HttpClient,
-                                     val wsClient : WSClient,
-                                     val metrics : Metrics
-                                   ){
+                                     appConfig: MicroserviceAppConfig,
+                                     val httpClient: HttpClient,
+                                     val wsClient: WSClient,
+                                     val metrics: Metrics
+                                   ) {
 
   private implicit val system = ActorSystem()
   private implicit val materializer = ActorMaterializer()
 
   def callbackUrl: String = appConfig.fileUploadCallbackUrl
+
   def fileUploadUrl: String = appConfig.fileUploadUrl
+
   def fileUploadFrontEndUrl: String = appConfig.fileUploadFrontendUrl
 
   def routingRequest(envelopeId: String): JsValue = Json.obj(
     "envelopeId" -> envelopeId,
     "application" -> "CTUTR",
-    "destination" ->"DMS")
+    "destination" -> "DMS")
 
   def createEnvelopeBody: JsValue = Json.obj("callbackUrl" -> callbackUrl)
 
@@ -86,7 +88,6 @@ class FileUploadConnector @Inject()(
                 (implicit hc: HeaderCarrier): Future[HttpResponse] = {
 
 
-
     val multipartFormData = Source(FilePart("attachment", fileName, Some(contentType.description),
       Source(ByteString(byteArray) :: Nil)) :: DataPart("", "") :: Nil)
 
@@ -107,29 +108,30 @@ class FileUploadConnector @Inject()(
   }
 
   def closeEnvelope(envId: String)(implicit hc: HeaderCarrier): Future[String] = {
-    val post = httpClient.POST[JsValue, HttpResponse](s"$fileUploadUrl/file-routing/requests", routingRequest(envId)).map { response =>
-      if (response.status == CREATED) {
-        envelopeId(response)
-          .getOrElse {
-            Logger.warn("[FileUploadConnector][closeEnvelope] No envelope id returned by file upload service")
+    httpClient.POST[JsValue, HttpResponse](s"$fileUploadUrl/file-routing/requests", routingRequest(envId)).map { response =>
+      response.status match {
+        case CREATED =>
+          envelopeId(response).getOrElse {
+            Logger.error("[FileUploadConnector][closeEnvelope] No envelope id returned by file upload service")
             throw new RuntimeException("No envelope id returned by file upload service")
           }
-      } else {
-        Logger.warn(s"[FileUploadConnector][closeEnvelope] failed to close envelope with status [${response.status}]")
-        throw new RuntimeException("File upload envelope routing request failed")
+        case BAD_REQUEST =>
+          if (response.body.contains("Routing request already received for envelope")) {
+            Logger.warn(s"[FileUploadConnector][closeEnvelope] Routing request already received for envelope")
+            "Already Closed"
+          } else {
+            Logger.error(s"[FileUploadConnector][closeEnvelope] failed with bad request")
+            throw new RuntimeException
+          }
+        case _ =>
+          Logger.error(s"[FileUploadConnector][closeEnvelope] failed to close envelope with status [${response.status}]")
+          throw new RuntimeException(s"File upload envelope routing request failed with status [${response.status}]")
       }
+    }.recoverWith {
+      case e =>
+        Logger.error("[FileUploadConnector][closeEnvelope] call to close envelope failed", e)
+        throw new NullPointerException("File upload envelope routing request failed")
     }
-
-    post.onFailure {
-      case e: Throwable =>
-        if(e.getMessage.contains("Routing request already received for envelope")){
-          Logger.warn("[FileUploadConnector][closeEnvelope] call to close envelope that has already been closed")
-        }else{
-          Logger.error("[FileUploadConnector][closeEnvelope] call to close envelope failed", e)
-        }
-    }
-
-    post
   }
 
   def envelopeSummary(envelopeId: String)(implicit hc: HeaderCarrier): Future[Envelope] = {
