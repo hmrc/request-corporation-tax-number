@@ -26,6 +26,7 @@ object MicroServiceBuild extends Build with MicroService {
   private val scalaTestPlusPlayVersion = "2.0.1"
   private val mockitoAllVersion = "1.10.19"
   private val wireMockVersion = "2.15.0"
+  private val scalacheckVersion = "1.13.4"
 
   val compile = Seq(
     ws,
@@ -42,6 +43,7 @@ object MicroServiceBuild extends Build with MicroService {
     "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
     "org.scalatestplus.play" %% "scalatestplus-play" % scalaTestPlusPlayVersion % scope,
     "org.mockito" % "mockito-all" % mockitoAllVersion % scope,
+    "org.scalacheck" %% "scalacheck" % scalacheckVersion % scope,
     "com.github.tomakehurst" % "wiremock" % wireMockVersion % scope
   )
 }

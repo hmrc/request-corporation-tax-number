@@ -18,7 +18,9 @@ package connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock._
 import config.SpecBase
-import org.scalatest.concurrent.ScalaFutures
+import org.scalacheck.{Gen, Shrink}
+import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
+import org.scalatest.prop.PropertyChecks
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.http.Status
@@ -26,39 +28,47 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import uk.gov.hmrc.http.HeaderCarrier
 import util.WireMockHelper
 
-import scala.concurrent.Await
-import scala.concurrent.duration._
+class FileUploadConnectorSpec extends SpecBase with WireMockHelper with GuiceOneAppPerSuite with ScalaFutures with PropertyChecks with IntegrationPatience {
 
-class FileUploadConnectorSpec extends SpecBase with WireMockHelper with GuiceOneAppPerSuite with ScalaFutures {
-
-  private val envelopeId = "0b215e97-11d4-4006-91db-c067e74fc653"
+  implicit def dontShrink[A]: Shrink[A] = Shrink.shrinkAny
 
   override implicit lazy val app: Application =
     new GuiceApplicationBuilder()
-    .configure(
-      "microservice.services.file-upload.port" -> server.port
-    )
-    .build()
+      .configure(
+        "microservice.services.file-upload.port" -> server.port
+      )
+      .build()
 
   implicit val hc = HeaderCarrier()
 
   private lazy val connector: FileUploadConnector =
     app.injector.instanceOf[FileUploadConnector]
 
+  private val statuses: Gen[Int] =
+    Gen.chooseNum(
+      200, 599,
+      400, 499, 500
+    )
+
 
   "createEnvelope" must {
     "return an envelope id" in {
-      server.stubFor(
-        post(urlEqualTo("/file-upload/envelopes"))
-          .willReturn(
-            aResponse()
-              .withHeader("Location", s"file-upload/envelope/$envelopeId")
-              .withStatus(Status.CREATED)
+      forAll(Gen.uuid.map(_.toString)) {
+        (envId) =>
+          server.stubFor(
+            post(urlEqualTo("/file-upload/envelopes"))
+              .willReturn(
+                aResponse()
+                  .withHeader("Location", s"file-upload/envelope/$envId")
+                  .withStatus(Status.CREATED)
+              )
           )
-      )
 
-      val result = Await.result(connector.createEnvelope, 5 seconds)
-         result mustBe envelopeId
+          whenReady(connector.createEnvelope) {
+            result =>
+              result mustBe envId
+          }
+      }
     }
 
     "return exceptions" when {
@@ -71,100 +81,45 @@ class FileUploadConnectorSpec extends SpecBase with WireMockHelper with GuiceOne
             )
         )
 
-        val ex = the[RuntimeException] thrownBy Await.result(connector.createEnvelope, 5 seconds)
-        ex.getMessage mustBe "No envelope id returned by file upload service"
+        whenReady(connector.createEnvelope.failed) {
+          exception =>
+            exception.getMessage mustBe "No envelope id returned by file upload service"
+        }
       }
 
       "status not created(201)" in {
-        server.stubFor(
-          post(urlEqualTo("/file-upload/envelopes"))
-            .willReturn(
-              aResponse()
-                .withStatus(Status.BAD_REQUEST)
+        forAll(statuses) {
+          (returnStatus) =>
+            server.stubFor(
+              post(urlEqualTo("/file-upload/envelopes"))
+                .willReturn(
+                  status(returnStatus)
+                )
             )
-        )
 
-        val ex = the[RuntimeException] thrownBy Await.result(connector.createEnvelope, 5 seconds)
-        ex.getMessage mustBe s"File upload envelope creation failed with status [${Status.BAD_REQUEST}]"
+            whenever(returnStatus != 201) {
+              whenReady(connector.createEnvelope.failed) {
+                exception =>
+                  exception.getMessage mustBe s"failed to create envelope with status [$returnStatus]"
+              }
+            }
+        }
       }
     }
-
-
-/*    "call the file upload service create envelope endpoint" in {
-
-      val body = Json.stringify(
-        Json.obj(
-          "callbackUrl" -> s"${connector.callbackUrl}"
-        )
-      )
-
-      server.stubFor(
-        post(urlEqualTo("/file-upload/file-upload/envelopes"))
-            .withHeader(
-              "Content-Type", containing(
-                "application/json"
-              )
-            )
-            .withRequestBody(
-              equalToJson(body)
-            )
-          .willReturn(
-            badRequest()
-          )
-      )
-    }*/
   }
 
-  //
-//    "call the file upload service create envelope endpoint" in {
-//      val sut = createSut
-//
-//      Await.result(sut.createEnvelope, 5.seconds)
-//      val envelopeBody = Json.parse(
-//        s"""
-//           |{
-//           |"callbackUrl": "${sut.callbackUrl}"
-//           |}
-//     """.stripMargin)
-//
-//      verify(sut.httpClient, times(1)).POST(any(), Matchers.eq(envelopeBody), any())(any(), any(), any(), any())
-//    }
-//
-//    "throw a runtime exception" when {
-//      "the success response does not contain a location header" in {
-//        val sut = createSut
-//
-//        when(sut.httpClient.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
-//          .thenReturn(Future.successful(HttpResponse(201)))
-//
-//        val ex = the[RuntimeException] thrownBy Await.result(sut.createEnvelope, 5 seconds)
-//
-//        ex.getMessage mustBe "File upload envelope creation failed"
-//      }
-//      "the call to the file upload service create envelope endpoint fails" in {
-//        val sut = createSut
-//
-//        when(sut.httpClient.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
-//          .thenReturn(Future.failed(new RuntimeException("call failed")))
-//
-//        val ex = the[RuntimeException] thrownBy Await.result(sut.createEnvelope, 5 seconds)
-//
-//        ex.getMessage mustBe "File upload envelope creation failed"
-//
-//      }
-//      "the call to the file upload service returns a failure response" in {
-//        val sut = createSut
-//
-//        when(sut.httpClient.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
-//          .thenReturn(Future.successful(HttpResponse(400)))
-//
-//        val ex = the[RuntimeException] thrownBy Await.result(sut.createEnvelope, 5 seconds)
-//
-//        ex.getMessage mustBe "File upload envelope creation failed"
-//
-//      }
-//    }
-//  }
+  "uploadFile" must {
+    "return Success" when {
+      "File upload service successfully uploads the file" in {
+
+      }
+    }
+  }
+
+
+
+}
+
 //
 //  "uploadFile" must {
 //
@@ -333,4 +288,3 @@ class FileUploadConnectorSpec extends SpecBase with WireMockHelper with GuiceOne
 //    override val callbackUrl: String = "http://callback"
 //
 //  }
-}
