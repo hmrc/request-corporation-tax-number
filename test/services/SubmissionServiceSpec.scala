@@ -39,13 +39,7 @@ class SubmissionServiceSpec extends SpecBase with MockitoSugar with ScalaFutures
   val mockFUploadService = mock[FileUploadService]
   val mockPdfService = mock[PdfService]
 
-  object Service extends SubmissionService(mockFUploadService, mockPdfService, appConfig) {
-    // $COVERAGE-OFF$
-    override protected def submissionFileName(envelopeId: String): String = s"$envelopeId-SubmissionCTUTR-20171023-iform.pdf"
-    override protected def submissionMetaDataName(envelopeId: String) = s"$envelopeId-SubmissionCTUTR-20171023-metadata.xml"
-    override protected def submissionRobotName(envelopeId: String) = s"$envelopeId-SubmissionCTUTR-20171023-robot.xml"
-    // $COVERAGE-ON$
-  }
+  object Service extends SubmissionService(mockFUploadService, mockPdfService, appConfig)
 
   "submit" must {
 
@@ -84,7 +78,9 @@ class SubmissionServiceSpec extends SpecBase with MockitoSugar with ScalaFutures
     "close the envelope" when {
 
       "envelope is open and all files are present and have passed file upload" in {
-        when(mockFUploadService.envelopeSummary("123")).thenReturn(Future.successful(Envelope("123","callback","OPEN", Seq(File("pdf","AVAILABLE"), File("metadata","AVAILABLE"), File("robot","AVAILABLE")))))
+        when(mockFUploadService.envelopeSummary("123")).thenReturn(Future.successful(
+          Envelope("123",Some("callback"),"OPEN", Some(Seq(File("pdf","AVAILABLE"), File("metadata","AVAILABLE"), File("robot","AVAILABLE"))))
+        ))
         when(mockFUploadService.closeEnvelope("123")).thenReturn(Future.successful("123"))
 
         Await.result(Service.callback("123"), 5.seconds) mustBe "123"
@@ -95,15 +91,18 @@ class SubmissionServiceSpec extends SpecBase with MockitoSugar with ScalaFutures
     "return an envelopeId due to file upload failure" when {
 
       "envelope not open" in {
-        when(mockFUploadService.envelopeSummary("123")).thenReturn(Future.successful(Envelope("123","callback","CLOSED",Seq(File("pdf","AVAILABLE"), File("metadata","AVAILABLE"), File("robot","AVAILABLE")))))
+        when(mockFUploadService.envelopeSummary("123")).thenReturn(Future.successful(
+          Envelope("123",Some("callback"),"CLOSED",Some(Seq(File("pdf","AVAILABLE"), File("metadata","AVAILABLE"), File("robot","AVAILABLE"))))
+        ))
 
         Await.result(Service.callback("123"), 5.seconds) mustBe "123"
 
       }
 
       "incorrect number of files" in {
-        when(mockFUploadService.envelopeSummary("123")).thenReturn(Future.successful(Envelope("123","callback","OPEN",Seq(File("pdf","ERROR")))))
-
+        when(mockFUploadService.envelopeSummary("123")).thenReturn(Future.successful(
+          Envelope("123",Some("callback"),"OPEN",Some(Seq(File("pdf","ERROR"))))
+        ))
 
         Await.result(Service.callback("123"), 5.seconds) mustBe "123"
 
@@ -111,8 +110,9 @@ class SubmissionServiceSpec extends SpecBase with MockitoSugar with ScalaFutures
 
       "all files are not flagged as AVAILABLE" in {
 
-        when(mockFUploadService.envelopeSummary("123")).thenReturn(Future.successful(Envelope("123","callback","OPEN",Seq(File("pdf","ERROR"), File("metadata","ERROR"), File("robot","ERROR")))))
-
+        when(mockFUploadService.envelopeSummary("123")).thenReturn(Future.successful(
+          Envelope("123",Some("callback"),"OPEN",Some(Seq(File("pdf","ERROR"), File("metadata","ERROR"), File("robot","ERROR"))))
+        ))
 
         Await.result(Service.callback("123"), 5.seconds) mustBe "123"
 
