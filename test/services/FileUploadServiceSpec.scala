@@ -16,6 +16,7 @@
 
 package services
 
+import akka.actor.ActorSystem
 import connectors.FileUploadConnector
 import model.{Envelope, File}
 import model.domain.MimeContentType
@@ -74,6 +75,7 @@ class FileUploadServiceSpec extends PlaySpec with MockitoSugar {
   }
 
   private implicit val hc: HeaderCarrier = HeaderCarrier()
+  private implicit val as: ActorSystem = ActorSystem()
 
   private val fileName = "CTUTR.pdf"
   private val fileId = "CTUTR"

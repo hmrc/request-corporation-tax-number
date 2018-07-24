@@ -18,6 +18,7 @@ package services
 
 import javax.inject.Inject
 
+import akka.actor.ActorSystem
 import com.google.inject.Singleton
 import connectors.FileUploadConnector
 import model.Envelope
@@ -30,7 +31,7 @@ import scala.concurrent.Future
 @Singleton
 class FileUploadService @Inject()(
                                  val fileUploadConnector: FileUploadConnector
-                                 ) {
+                                 )(implicit as: ActorSystem) {
 
   def createEnvelope()(implicit hc: HeaderCarrier): Future[String] = {
     Logger.info(s"[FileUploadService][createEnvelope][creating envelope")
