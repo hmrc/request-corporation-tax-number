@@ -19,7 +19,7 @@ package connectors
 import javax.inject.Singleton
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
+import akka.pattern.Patterns.after
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import com.google.inject.Inject
@@ -29,7 +29,7 @@ import model.Envelope
 import model.domain.MimeContentType
 import play.Logger
 import play.api.http.Status._
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json._
 import play.api.libs.ws.WSClient
 import play.api.mvc.MultipartFormData.{DataPart, FilePart}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
@@ -38,6 +38,7 @@ import utils.HttpResponseHelper
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 @Singleton
 class FileUploadConnector @Inject()(
@@ -45,10 +46,7 @@ class FileUploadConnector @Inject()(
                                      val httpClient: HttpClient,
                                      val wsClient: WSClient,
                                      val metrics: Metrics
-                                   ) extends HttpResponseHelper {
-
-  private implicit val system = ActorSystem()
-  private implicit val materializer = ActorMaterializer()
+                                   )(implicit as: ActorSystem) extends HttpResponseHelper {
 
   def callbackUrl: String = appConfig.fileUploadCallbackUrl
 
@@ -116,7 +114,7 @@ class FileUploadConnector @Inject()(
       response.status match {
         case CREATED =>
           envelopeId(response).map(Future.successful).getOrElse {
-            Future.failed(new RuntimeException("No envelope id returned"))
+            Future.failed(new RuntimeException("No routing id returned"))
           }
         case BAD_REQUEST =>
           if (response.body.contains("Routing request already received for envelope")) {
@@ -138,17 +136,40 @@ class FileUploadConnector @Inject()(
     result
   }
 
-  def envelopeSummary(envelopeId: String)(implicit hc: HeaderCarrier): Future[Envelope] = {
-    Logger.info("[FileUploadConnector][envelopeSummary] request envelope summary from file upload")
-
-    val envelope = httpClient.GET[Envelope](s"$fileUploadUrl/file-upload/envelopes/$envelopeId")
-
-    envelope.onFailure {
-      case e =>
-        Logger.error("[FileUploadConnector][envelopeSummary] failed to get envelope summary from file upload", e)
+  def parseEnvelope(body: String): Future[Envelope] = {
+    val envelope: JsResult[Envelope] = Json.parse(body).validate[Envelope]
+    envelope match {
+      case s: JsSuccess[Envelope] => Future.successful(s.get)
+      case _ => Future.failed(new RuntimeException("Failed to parse envelope"))
     }
+  }
 
-    envelope
+  def retry(envelopeId: String, cur: Int, attempt: Int, factor: Float = 2f)(implicit hc: HeaderCarrier): Future[Envelope] = {
+    attempt match {
+      case attempt: Int if attempt < 5 =>
+        val nextTry: Int = Math.ceil(cur * factor).toInt
+        val nextAttempt = attempt + 1
+
+        after(nextTry.milliseconds, as.scheduler, global, Future.successful(1)).flatMap { _ =>
+          envelopeSummary(envelopeId, nextTry, nextAttempt)(as, hc)
+        }
+      case _ =>
+        Future.failed(new RuntimeException(s"[FileUploadConnector][retry] envelope[$envelopeId] summary failed at attempt: $attempt"))
+    }
+  }
+
+  def envelopeSummary(envelopeId: String, nextTry: Int = 10, attempt: Int = 1)(implicit as: ActorSystem, hc: HeaderCarrier): Future[Envelope] = {
+    httpClient.GET(s"$fileUploadUrl/file-upload/envelopes/$envelopeId").flatMap {
+      response =>
+        response.status match {
+          case OK =>
+            parseEnvelope(response.body)
+          case NOT_FOUND =>
+            retry(envelopeId, nextTry, attempt)
+          case _ =>
+            Future.failed(new RuntimeException(s"[FileUploadConnector][envelopeSummary]Failed with status [${response.status}]"))
+        }
+    }
   }
 
   private def envelopeId(response: HttpResponse): Option[String] = {

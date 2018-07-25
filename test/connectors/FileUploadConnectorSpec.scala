@@ -16,9 +16,11 @@
 
 package connectors
 
+import akka.actor.ActorSystem
 import com.github.tomakehurst.wiremock.client.WireMock._
 import config.SpecBase
 import model.domain.MimeContentType
+import model.{Envelope, File}
 import org.scalacheck.{Gen, Shrink}
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.prop.PropertyChecks
@@ -26,6 +28,7 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.http.Status
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.{JsArray, Json}
 import uk.gov.hmrc.http.HeaderCarrier
 import util.WireMockHelper
 
@@ -33,10 +36,13 @@ class FileUploadConnectorSpec extends SpecBase with WireMockHelper with GuiceOne
 
   implicit def dontShrink[A]: Shrink[A] = Shrink.shrinkAny
 
+  private val as = ActorSystem()
+
   override implicit lazy val app: Application =
     new GuiceApplicationBuilder()
       .configure(
-        "microservice.services.file-upload.port" -> server.port
+        "microservice.services.file-upload.port" -> server.port,
+        "microservice.services.file-upload-frontend.port" -> server.port
       )
       .build()
 
@@ -52,6 +58,17 @@ class FileUploadConnectorSpec extends SpecBase with WireMockHelper with GuiceOne
     )
 
   private val uuid: Gen[String] = Gen.uuid.map(_.toString)
+
+  private val envelopeStatuses: Gen[String] = Gen.oneOf("OPEN", "CLOSED", "SEALED", "DELETED")
+
+  private val fileStatuses: Gen[String] = Gen.oneOf("AVAILABLE", "QUARANTINED", "CLEANED", "INFECTED")
+  private val file = for {
+    name <- uuid
+    status <- fileStatuses
+  } yield {
+    File(name, status)
+  }
+  private val files: Gen[Seq[File]] = Gen.listOf(file)
 
 
   "createEnvelope" must {
@@ -252,68 +269,161 @@ class FileUploadConnectorSpec extends SpecBase with WireMockHelper with GuiceOne
   }
 
 
+  "envelopeSummary and retry" when {
+    "OK Response" must {
+      "return an envelope with no files" in {
+        forAll(uuid, envelopeStatuses) {
+          (envId, envelopeStatus) =>
+            server.stubFor(
+              get(urlEqualTo(s"/file-upload/envelopes/$envId"))
+                .willReturn(
+                  aResponse()
+                    .withStatus(Status.OK)
+                    .withBody(
+                      s"""{"id": "$envId", "status": "$envelopeStatus"}"""
+                    )
+                )
+            )
+
+            whenReady(connector.envelopeSummary(envId)(as, hc)) {
+              result =>
+                result mustBe Envelope(envId, None, envelopeStatus, None)
+            }
+        }
+      }
+
+      "return an envelope with some files" in {
+        forAll(uuid, envelopeStatuses, files) {
+          (envId, envelopeStatus, files) =>
+            server.stubFor(
+              get(urlEqualTo(s"/file-upload/envelopes/$envId"))
+                .willReturn(
+                  aResponse()
+                    .withStatus(Status.OK)
+                    .withBody(
+                      Json.obj(
+                        "id" -> envId,
+                        "status" -> envelopeStatus,
+                        "files" -> JsArray(
+                          files.map(file =>
+                            Json.obj(
+                              "name" -> file.name,
+                              "status" -> file.status)
+                          )
+                        )
+                      ).toString()
+                    )
+                )
+            )
+
+            whenever(files.nonEmpty) {
+              whenReady(connector.envelopeSummary(envId)(as, hc)) {
+                result =>
+                  result mustBe Envelope(envId, None, envelopeStatus, Some(files))
+              }
+            }
+        }
+      }
+    }
+
+    "NOT_FOUND(404) response" must {
+      "return envelope on retry" in {
+        forAll(uuid, envelopeStatuses) {
+          (envId, envelopeStatus) =>
+            server.stubFor(
+              get(urlEqualTo(s"/file-upload/envelopes/$envId"))
+                .willReturn(
+                  aResponse()
+                    .withStatus(Status.OK)
+                    .withBody(
+                      Json.obj(
+                        "id" -> envId,
+                        "status" -> envelopeStatus
+                      ).toString()
+                    )
+                )
+            )
+
+            whenReady(connector.retry(envId, 10, 2)) {
+              result =>
+                result mustBe Envelope(envId, None, envelopeStatus, None)
+            }
+        }
+      }
+
+      "return exception on 5th attempt" in {
+        forAll(uuid) {
+          (envId) =>
+            server.stubFor(
+              get(urlEqualTo(s"/file-upload/envelopes/$envId"))
+                .willReturn(
+                  aResponse()
+                    .withStatus(Status.NOT_FOUND)
+                )
+            )
+
+            whenReady(connector.retry(envId, 10, 1).failed) {
+              exception =>
+                exception.getMessage mustBe s"[FileUploadConnector][retry] envelope[$envId] summary failed at attempt: 5"
+            }
+        }
+      }
+    }
+
+
+    "File upload status not OK(200) or NOT_FOUND(404)" must {
+      "Return Exception" in {
+        forAll(statuses, uuid) {
+          (returnStatus, envId) =>
+            server.stubFor(
+              get(urlEqualTo(s"/file-upload/envelopes/$envId"))
+                .willReturn(
+                  status(returnStatus)
+                )
+            )
+
+            whenever(returnStatus != Status.OK && returnStatus != Status.NOT_FOUND) {
+              whenReady(connector.envelopeSummary(envId)(as, hc).failed) {
+                exception =>
+                  exception.getMessage mustBe s"[FileUploadConnector][envelopeSummary]Failed with status [$returnStatus]"
+              }
+            }
+        }
+      }
+    }
+  }
+
+  "parseEnvelope" must {
+    "return an envelope on success" in {
+      forAll(uuid, envelopeStatuses, files) {
+        (envId, envelopeStatus, files) =>
+          val body = Json.obj(
+            "id" -> envId,
+            "status" -> envelopeStatus,
+            "files" -> JsArray(
+              files.map(file =>
+                Json.obj(
+                  "name" -> file.name,
+                  "status" -> file.status)
+              )
+            )
+          ).toString()
+
+          whenReady(connector.parseEnvelope(body)) {
+            result =>
+              result mustBe Envelope(envId, None, envelopeStatus, Some(files))
+          }
+
+      }
+    }
+
+    "throw exception on failure to parse" in {
+      val invalidBody = """{"invalid":"json"}"""
+      whenReady(connector.parseEnvelope(invalidBody).failed) {
+        exception =>
+          exception.getMessage mustBe s"Failed to parse envelope"
+      }
+    }
+  }
+
 }
-
-
-
-//  "envelopeSummary" must {
-//    "return an envelope" in {
-//      val sut = createSut
-//
-//      Await.result(sut.envelopeSummary(envelopeId), 5.seconds) mustBe Envelope(envelopeId,"http://callback","OPEN",Seq(File(fileName,"AVAILABLE")))
-//    }
-//    "throw error on failed GET" in {
-//      val sut = createSut
-//
-//      when(sut.httpClient.GET[Envelope](any())(any(), any(), any()))
-//        .thenReturn(Future.failed(new RuntimeException("Call failed")))
-//
-//      val ex = the[RuntimeException] thrownBy Await.result(sut.envelopeSummary(envelopeId), 5 seconds)
-//
-//      ex.getMessage mustBe "Call failed"
-//    }
-//  }
-//
-//  private def createMockResponse(status: Int, body: String): WSResponse = {
-//    val wsResponseMock = mock[WSResponse]
-//    when(wsResponseMock.status).thenReturn(status)
-//    when(wsResponseMock.body).thenReturn(body)
-//    wsResponseMock
-//  }
-//
-//  def createSut = new SUT
-//
-//  private val envelopeId: String = "0b215e97-11d4-4006-91db-c067e74fc653"
-//  private val fileId = "fileId"
-//  private val fileName = "fileName.pdf"
-//  private val contentType = MimeContentType.ApplicationPdf
-//
-//  val mockHttp = mock[HttpClient]
-//  val mockClient = mock[WSClient]
-//  val metrics = mock[Metrics]
-//
-//  class SUT extends FileUploadConnector(
-//    appConfig,
-//    mockHttp,
-//    mockClient,
-//    metrics
-//  ) {
-//
-//    when(mockHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
-//      .thenReturn(Future.successful(HttpResponse(201, None,
-//        Map("Location" -> Seq(s"localhost:8898/file-upload/envelopes/$envelopeId")))))
-//
-//    when(mockHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
-//      .thenReturn(Future.successful(HttpResponse(201, None,
-//        Map("Location" -> Seq(s"/file-routing/requests/$envelopeId")))))
-//
-//    when(mockHttp.GET[Envelope](any())(any(), any(), any()))
-//      .thenReturn(Future.successful(Envelope(envelopeId,"http://callback","OPEN",Seq(File(fileName,"AVAILABLE")))))
-//
-//    override val fileUploadUrl: String = "file-upload"
-//
-//    override val fileUploadFrontEndUrl: String = "file-upload-frontend"
-//
-//    override val callbackUrl: String = "http://callback"
-//
-//  }
