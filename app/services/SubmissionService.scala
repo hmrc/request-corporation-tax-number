@@ -20,9 +20,9 @@ import javax.inject.Inject
 
 import com.google.inject.Singleton
 import config.MicroserviceAppConfig
-import model.Submission
 import model.domain.{MimeContentType, SubmissionResponse}
 import model.templates.{CTUTRMetadata, SubmissionViewModel}
+import model.{Envelope, Submission}
 import org.joda.time.LocalDate
 import play.api.Logger
 import templates.html.CTUTRScheme
@@ -40,60 +40,85 @@ class SubmissionService @Inject()(
                                 val fileUploadService: FileUploadService,
                                 val pdfService: PdfService,
                                 appConfig : MicroserviceAppConfig
-                                ){
+                                ) {
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  private val FileUploadSuccessStatus = "AVAILABLE"
-  private val FileUploadErrorStatus = "ERROR"
+  protected def fileName(envelopeId: String, fileType: String) = s"$envelopeId-SubmissionCTUTR-${LocalDate.now().toString("YYYYMMdd")}-$fileType"
 
-  private val FileUploadSuccessAudit = "FileUploadSuccess"
-  private val FileUploadFailureAudit = "FileUploadFailure"
+  def submit(submission: Submission)(implicit hc: HeaderCarrier): Future[SubmissionResponse] = {
 
-  protected def submissionFileName(envelopeId: String) = s"$envelopeId-SubmissionCTUTR-${LocalDate.now().toString("YYYYMMdd")}-iform.pdf"
-  protected def submissionMetaDataName(envelopeId: String) = s"$envelopeId-SubmissionCTUTR-${LocalDate.now().toString("YYYYMMdd")}-metadata.xml"
-  protected def submissionRobotName(envelopeId: String) = s"$envelopeId-SubmissionCTUTR-${LocalDate.now().toString("YYYYMMdd")}-robotic.xml"
+    for {
+      pdf: Array[Byte] <- createPdf(submission)
+      envelopeId: String <- fileUploadService.createEnvelope()
+      envelope: Envelope <- fileUploadService.envelopeSummary(envelopeId)
+    } yield {
+      Logger.info(s"[SubmissionService][submit] submission created $envelopeId")
 
-  def submit(submission: Submission)(implicit hc : HeaderCarrier) : Future[SubmissionResponse] = {
+      envelope.status match {
+        case "OPEN" =>
+          fileUploadService.uploadFile(
+            pdf,
+            envelopeId,
+            fileName(envelopeId, "iform.pdf"),
+            MimeContentType.ApplicationPdf
+          )
+
+          fileUploadService.uploadFile(
+            createMetadata(submission),
+            envelopeId,
+            fileName(envelopeId, "metadata.xml"),
+            MimeContentType.ApplicationXml
+          )
+
+          fileUploadService.uploadFile(
+            createRobotXml(submission),
+            envelopeId,
+            fileName(envelopeId, "robotic.xml"),
+            MimeContentType.ApplicationXml
+          )
+        case _ =>
+          Future.failed(new RuntimeException("Submission Failed"))
+      }
+
+      SubmissionResponse(envelopeId, fileName(envelopeId, "iform.pdf"))
+    }
+  }
+
+  def createMetadata(submission: Submission): Array[Byte] = {
+    val metadata = CTUTRMetadata(appConfig, submission.companyDetails.companyReferenceNumber)
+    pdfSubmissionMetadata(metadata).toString().getBytes
+  }
+
+  def createRobotXml(submission: Submission): Array[Byte] = {
+    val viewModel = SubmissionViewModel.apply(submission)
+    val metadata = CTUTRMetadata(appConfig, submission.companyDetails.companyReferenceNumber)
+    robotXml(metadata, viewModel).toString().getBytes
+  }
+
+  def createPdf(submission: Submission): Future[Array[Byte]] = {
     val viewModel = SubmissionViewModel.apply(submission)
     val pdfTemplate = CTUTRScheme(viewModel).toString
+    pdfService.generatePdf(pdfTemplate)
+  }
 
-    pdfService.generatePdf(pdfTemplate) flatMap {
-      pdf =>
-        Logger.info(s"[SubmissionService][submit][PDF generated], attempting to create envelope")
-        fileUploadService.createEnvelope() map {
-          envelopeId =>
-            Logger.info(s"[SubmissionService][submit] submission created $envelopeId")
-
-            val filename = submissionFileName(envelopeId)
-            val metadata = CTUTRMetadata(appConfig, submission.companyDetails.companyReferenceNumber)
-
-            val submissionMetadata = pdfSubmissionMetadata(metadata).toString().getBytes
-            val robotSubmission = robotXml(metadata,viewModel).toString().getBytes
-
-            fileUploadService.uploadFile(pdf, envelopeId, filename, MimeContentType.ApplicationPdf)
-            fileUploadService.uploadFile(submissionMetadata, envelopeId, submissionMetaDataName(envelopeId), MimeContentType.ApplicationXml)
-            fileUploadService.uploadFile(robotSubmission, envelopeId, submissionRobotName(envelopeId), MimeContentType.ApplicationXml)
-
-            SubmissionResponse(envelopeId, filename)
+  def callback(envelopeId: String)(implicit hc: HeaderCarrier): Future[String] = {
+    fileUploadService.envelopeSummary(envelopeId).flatMap {
+      envelope =>
+        envelope.status match {
+          case "OPEN" =>
+            envelope.files match {
+              case Some(files) if files.count(file => file.status == "AVAILABLE") == 3 =>
+                fileUploadService.closeEnvelope(envelopeId)
+              case _=>
+                Logger.info("[SubmissionService][callback] incomplete wait for files")
+                Future.successful(envelopeId)
+            }
+          case _ =>
+            Logger.error(s"[SubmissionService][callback] envelope: $envelopeId not open instead status: ${envelope.status}")
+            Future.successful(envelopeId)
         }
     }
   }
 
-  def callback(envelopeId: String)(implicit hc: HeaderCarrier): Future[String] = {
-      fileUploadService.envelopeSummary(envelopeId).flatMap {
-        envelope =>
-          if (envelope.status == "OPEN") {
-            if (envelope.files.forall(file => file.status == "AVAILABLE") && envelope.files.length == 3) {
-              fileUploadService.closeEnvelope(envelopeId)
-            } else {
-              Logger.info("[SubmissionService][callback] incomplete wait for files")
-              Future.successful(envelopeId)
-            }
-          } else {
-            Logger.error("[SubmissionService][callback] envelope is not open")
-            Future.successful(envelopeId)
-          }
-      }
-  }
 }
