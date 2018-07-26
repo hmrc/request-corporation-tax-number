@@ -48,11 +48,12 @@ class FileUploadConnector @Inject()(
                                      val metrics: Metrics
                                    )(implicit as: ActorSystem) extends HttpResponseHelper {
 
-  def callbackUrl: String = appConfig.fileUploadCallbackUrl
+  private val callbackUrl: String = appConfig.fileUploadCallbackUrl
+  private val fileUploadUrl: String = appConfig.fileUploadUrl
+  private val fileUploadFrontEndUrl: String = appConfig.fileUploadFrontendUrl
 
-  def fileUploadUrl: String = appConfig.fileUploadUrl
-
-  def fileUploadFrontEndUrl: String = appConfig.fileUploadFrontendUrl
+  private val firstRetryMilliseconds : Int = appConfig.firstRetryMilliseconds
+  private val maxAttemptNumber: Int = appConfig.maxAttemptNumber
 
   def routingRequest(envelopeId: String): JsValue = Json.obj(
     "envelopeId" -> envelopeId,
@@ -146,7 +147,7 @@ class FileUploadConnector @Inject()(
 
   def retry(envelopeId: String, cur: Int, attempt: Int, factor: Float = 2f)(implicit hc: HeaderCarrier): Future[Envelope] = {
     attempt match {
-      case attempt: Int if attempt < 5 =>
+      case attempt: Int if attempt < maxAttemptNumber =>
         val nextTry: Int = Math.ceil(cur * factor).toInt
         val nextAttempt = attempt + 1
 
@@ -158,7 +159,7 @@ class FileUploadConnector @Inject()(
     }
   }
 
-  def envelopeSummary(envelopeId: String, nextTry: Int = 10, attempt: Int = 1)(implicit as: ActorSystem, hc: HeaderCarrier): Future[Envelope] = {
+  def envelopeSummary(envelopeId: String, nextTry: Int = firstRetryMilliseconds, attempt: Int = 1)(implicit as: ActorSystem, hc: HeaderCarrier): Future[Envelope] = {
     httpClient.GET(s"$fileUploadUrl/file-upload/envelopes/$envelopeId").flatMap {
       response =>
         response.status match {

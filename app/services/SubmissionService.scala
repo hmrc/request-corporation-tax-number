@@ -83,6 +83,8 @@ class SubmissionService @Inject()(
 
       SubmissionResponse(envelopeId, fileName(envelopeId, "iform.pdf"))
     }
+  }.recoverWith {
+    case exception => Future.failed(new RuntimeException(s"Submit Failed: $exception"))
   }
 
   def createMetadata(submission: Submission): Array[Byte] = {

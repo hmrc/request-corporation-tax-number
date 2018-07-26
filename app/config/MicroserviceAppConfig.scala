@@ -38,6 +38,9 @@ class MicroserviceAppConfig @Inject()(override val runModeConfiguration: Configu
 
   lazy val pdfServiceUrl: String = baseUrl("pdf-generator-service")
 
+  lazy val maxAttemptNumber: Int = 5
+  lazy val firstRetryMilliseconds: Int = 20
+
   object CTUTR {
 
     lazy val businessArea : String = loadConfig(s"pdf.ctutr.metadata.businessArea")
