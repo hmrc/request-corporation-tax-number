@@ -16,6 +16,7 @@
 
 package services
 
+import akka.actor.ActorSystem
 import connectors.FileUploadConnector
 import model.{Envelope, File}
 import model.domain.MimeContentType
@@ -65,15 +66,16 @@ class FileUploadServiceSpec extends PlaySpec with MockitoSugar {
 
     "able to get the envelope" in {
       val sut = createSUT
-      when(sut.fileUploadConnector.envelopeSummary("123")).thenReturn(Future.successful(Envelope("123","callback","OPEN",Seq(File("pdf","open")))))
+      when(sut.fileUploadConnector.envelopeSummary("123")).thenReturn(Future.successful(Envelope("123",Some("callback"),"OPEN",Some(Seq(File("pdf","open"))))))
 
       val result = Await.result(sut.envelopeSummary("123"), 5.seconds)
 
-      result mustBe Envelope("123","callback","OPEN",Seq(File("pdf","open")))
+      result mustBe Envelope("123",Some("callback"),"OPEN",Some(Seq(File("pdf","open"))))
     }
   }
 
   private implicit val hc: HeaderCarrier = HeaderCarrier()
+  private implicit val as: ActorSystem = ActorSystem()
 
   private val fileName = "CTUTR.pdf"
   private val fileId = "CTUTR"

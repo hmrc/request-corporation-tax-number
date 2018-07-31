@@ -17,10 +17,12 @@
 package config
 
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
+import play.api.inject.Injector
 
 trait SpecBase extends PlaySpec with OneAppPerSuite {
 
-  def injector = app.injector
+  def injector: Injector = app.injector
 
   def appConfig : MicroserviceAppConfig = injector.instanceOf[MicroserviceAppConfig]
+
 }

@@ -16,253 +16,414 @@
 
 package connectors
 
-import akka.stream.scaladsl.Source
-import akka.util.ByteString
-import com.kenshoo.play.metrics.Metrics
+import akka.actor.ActorSystem
+import com.github.tomakehurst.wiremock.client.WireMock._
 import config.SpecBase
-import model.{Envelope, File}
 import model.domain.MimeContentType
-import org.mockito.Matchers
-import org.mockito.Matchers._
-import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
-import org.scalatest.{BeforeAndAfterEachTestData, TestData}
-import play.api.libs.json.{JsValue, Json}
-import play.api.libs.ws.{WSClient, WSRequest, WSResponse}
-import play.api.mvc.MultipartFormData
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import model.{Envelope, File}
+import org.scalacheck.{Gen, Shrink}
+import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
+import org.scalatest.prop.PropertyChecks
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.Application
+import play.api.http.Status
+import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.{JsArray, Json}
+import uk.gov.hmrc.http.HeaderCarrier
+import util.WireMockHelper
 
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
-import scala.language.postfixOps
+class FileUploadConnectorSpec extends SpecBase with WireMockHelper with GuiceOneAppPerSuite with ScalaFutures with PropertyChecks with IntegrationPatience {
 
-class FileUploadConnectorSpec extends SpecBase
-  with MockitoSugar
-  with BeforeAndAfterEachTestData {
+  implicit def dontShrink[A]: Shrink[A] = Shrink.shrinkAny
 
-  override protected def beforeEach(testData: TestData): Unit = {
-    reset(mockHttp)
-    reset(mockClient)
-    reset(metrics)
-  }
+  private val as = ActorSystem()
+
+  override implicit lazy val app: Application =
+    new GuiceApplicationBuilder()
+      .configure(
+        "microservice.services.file-upload.port" -> server.port,
+        "microservice.services.file-upload-frontend.port" -> server.port
+      )
+      .build()
 
   implicit val hc = HeaderCarrier()
 
+  private lazy val connector: FileUploadConnector =
+    app.injector.instanceOf[FileUploadConnector]
+
+  private val statuses: Gen[Int] =
+    Gen.chooseNum(
+      200, 599,
+       400, 499, 500
+    )
+
+  private val uuid: Gen[String] = Gen.uuid.map(_.toString)
+
+  private val envelopeStatuses: Gen[String] = Gen.oneOf("OPEN", "CLOSED", "SEALED", "DELETED")
+
+  private val fileStatuses: Gen[String] = Gen.oneOf("AVAILABLE", "QUARANTINED", "CLEANED", "INFECTED")
+  private val file = for {
+    name <- uuid
+    status <- fileStatuses
+  } yield {
+    File(name, status)
+  }
+  private val files: Gen[Seq[File]] = Gen.listOf(file)
+
+
   "createEnvelope" must {
     "return an envelope id" in {
-      val sut = createSut
+      forAll(uuid) {
+        envId =>
+          server.stubFor(
+            post(urlEqualTo("/file-upload/envelopes"))
+              .willReturn(
+                aResponse()
+                  .withHeader("Location", s"file-upload/envelope/$envId")
+                  .withStatus(Status.CREATED)
+              )
+          )
 
-      Await.result(sut.createEnvelope, 5 seconds) mustBe "0b215e97-11d4-4006-91db-c067e74fc653"
+          whenReady(connector.createEnvelope) {
+            result =>
+              result mustBe envId
+          }
+      }
     }
 
-    "call the file upload service create envelope endpoint" in {
-      val sut = createSut
+    "return exceptions" when {
+      "no location header provided" in {
+        server.stubFor(
+          post(urlEqualTo("/file-upload/envelopes"))
+            .willReturn(
+              aResponse()
+                .withStatus(Status.CREATED)
+            )
+        )
 
-      Await.result(sut.createEnvelope, 5.seconds)
-      val envelopeBody = Json.parse(
-        s"""
-           |{
-           |"callbackUrl": "${sut.callbackUrl}"
-           |}
-     """.stripMargin)
-
-      verify(sut.httpClient, times(1)).POST(any(), Matchers.eq(envelopeBody), any())(any(), any(), any(), any())
-    }
-
-    "throw a runtime exception" when {
-      "the success response does not contain a location header" in {
-        val sut = createSut
-
-        when(sut.httpClient.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(201)))
-
-        val ex = the[RuntimeException] thrownBy Await.result(sut.createEnvelope, 5 seconds)
-
-        ex.getMessage mustBe "File upload envelope creation failed"
+        whenReady(connector.createEnvelope.failed) {
+          exception =>
+            exception.getMessage mustBe "No envelope id returned by file upload service"
+        }
       }
-      "the call to the file upload service create envelope endpoint fails" in {
-        val sut = createSut
 
-        when(sut.httpClient.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
-          .thenReturn(Future.failed(new RuntimeException("call failed")))
+      "status not created(201)" in {
+        forAll(statuses) {
+          returnStatus =>
+            server.stubFor(
+              post(urlEqualTo("/file-upload/envelopes"))
+                .willReturn(
+                  status(returnStatus)
+                )
+            )
 
-        val ex = the[RuntimeException] thrownBy Await.result(sut.createEnvelope, 5 seconds)
-
-        ex.getMessage mustBe "File upload envelope creation failed"
-
-      }
-      "the call to the file upload service returns a failure response" in {
-        val sut = createSut
-
-        when(sut.httpClient.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(400)))
-
-        val ex = the[RuntimeException] thrownBy Await.result(sut.createEnvelope, 5 seconds)
-
-        ex.getMessage mustBe "File upload envelope creation failed"
-
+            whenever(returnStatus != 201) {
+              whenReady(connector.createEnvelope.failed) {
+                exception =>
+                  exception mustBe a[RuntimeException]
+              }
+            }
+        }
       }
     }
   }
 
   "uploadFile" must {
-
     "return Success" when {
-      "File upload service successfully upload the file" in {
-        val sut = createSut
-        val mockWSResponse = createMockResponse(200, "")
-        val mockWSRequest = mock[WSRequest]
+      "File upload service successfully uploads the file" in {
+        forAll(uuid, uuid) {
+          (envId, fileId) =>
+            server.stubFor(
+              post(urlEqualTo(s"/file-upload/upload/envelopes/$envId/files/$fileId"))
+                .willReturn(
+                  status(Status.OK)
+                )
+            )
 
-        when(mockWSRequest.post(anyObject[Source[MultipartFormData.Part[Source[ByteString, _]], _]]()))
-          .thenReturn(Future.successful(mockWSResponse))
-        when(sut.wsClient.url(any())).thenReturn(mockWSRequest)
-        when(mockWSRequest.withHeaders(any())).thenReturn(mockWSRequest)
-
-        val result = Await.result(sut.uploadFile(new Array[Byte](1), fileName, contentType, envelopeId, fileId), 5 seconds)
-
-        result.status mustBe 200
-        verify(sut.wsClient, times(1)).url(Matchers.eq(s"file-upload-frontend/file-upload/upload/envelopes/$envelopeId/files/$fileId"))
-      }
-    }
-    "throw runtime exception" when {
-      "file upload service return status other than 200" in {
-        val sut = createSut
-        val mockWSResponse = createMockResponse(400, "")
-        val mockWSRequest = mock[WSRequest]
-
-        when(mockWSRequest.post(anyObject[Source[MultipartFormData.Part[Source[ByteString, _]], _]]()))
-          .thenReturn(Future.successful(mockWSResponse))
-        when(sut.wsClient.url(any())).thenReturn(mockWSRequest)
-        when(mockWSRequest.withHeaders(any())).thenReturn(mockWSRequest)
-
-        the[RuntimeException] thrownBy Await.result(sut.uploadFile(new Array[Byte](1), fileName, contentType, envelopeId, fileId), 5 seconds)
-      }
-
-      "any error occurred" in {
-        val sut = createSut
-        val mockWSRequest = mock[WSRequest]
-
-        when(mockWSRequest.post(anyObject[Source[MultipartFormData.Part[Source[ByteString, _]], _]]()))
-          .thenReturn(Future.failed(new RuntimeException("Error")))
-        when(sut.wsClient.url(any())).thenReturn(mockWSRequest)
-        when(mockWSRequest.withHeaders(any())).thenReturn(mockWSRequest)
-
-        the[RuntimeException] thrownBy Await.result(sut.uploadFile(new Array[Byte](1), fileName, contentType, envelopeId, fileId), 5 seconds)
+            whenReady(connector.uploadFile(new Array[Byte](1), "fileName.pdf", MimeContentType.ApplicationPdf, envId, fileId)) {
+              result =>
+                result.status mustBe Status.OK
+            }
+        }
       }
     }
 
+    "return Exception" when {
+      "File upload status not OK(200)" in {
+        forAll(statuses, uuid, uuid) {
+          (returnStatus, envId, fileId) =>
+            server.stubFor(
+              post(urlEqualTo(s"/file-upload/upload/envelopes/$envId/files/$fileId"))
+                .willReturn(
+                  status(returnStatus)
+                )
+            )
+
+            whenever(returnStatus != 200) {
+              whenReady(connector.uploadFile(new Array[Byte](1), "fileName.pdf", MimeContentType.ApplicationPdf, envId, fileId).failed) {
+                exception =>
+                  exception mustBe a[RuntimeException]
+              }
+            }
+        }
+      }
+    }
   }
+
 
   "closeEnvelope" must {
-    "return an envelope id" in {
-      val sut = createSut
+    "return a routed Id" in {
+      forAll(uuid, uuid) {
+        (envId, routingId) =>
+          server.stubFor(
+            post(urlEqualTo("/file-routing/requests"))
+              .willReturn(
+                aResponse()
+                  .withHeader("Location", s"/file-routing/requests/$routingId")
+                  .withStatus(Status.CREATED)
+              )
+          )
 
-      Await.result(sut.closeEnvelope(envelopeId), 5 seconds) mustBe envelopeId
-    }
-
-    "call the file upload service routing request endpoint" in {
-      val sut = createSut
-
-      Await.result(sut.closeEnvelope(envelopeId), 5.seconds)
-
-      verify(sut.httpClient, times(1)).POST(Matchers.eq("file-upload/file-routing/requests"), any(), any())(any(), any(), any(), any())
-    }
-    "throw a runtime exception" when {
-      "the success response does not contain a location header" in {
-        val sut = createSut
-
-        when(sut.httpClient.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
-          .thenReturn(Future.failed(new RuntimeException("call failed")))
-
-        val ex = the[RuntimeException] thrownBy Await.result(sut.closeEnvelope(envelopeId), 5 seconds)
-
-        ex.getMessage mustBe "call failed"
-      }
-      "the call to the file upload service routing request endpoint fails" in {
-        val sut = createSut
-
-        when(sut.httpClient.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
-          .thenReturn(Future.failed(new RuntimeException("call failed")))
-
-        val ex = the[RuntimeException] thrownBy Await.result(sut.closeEnvelope(envelopeId), 5 seconds)
-
-        ex.getMessage mustBe "call failed"
-
-      }
-      "the call to the file upload service returns a failure response" in {
-        val sut = createSut
-
-        when(sut.httpClient.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
-          .thenReturn(Future.successful(HttpResponse(400)))
-
-        val ex = the[RuntimeException] thrownBy Await.result(sut.closeEnvelope(envelopeId), 5 seconds)
-
-        ex.getMessage mustBe "File upload envelope routing request failed"
-
+          whenReady(connector.closeEnvelope(envId)) {
+            result =>
+              result mustBe routingId
+          }
       }
     }
-  }
 
-  "envelopeSummary" must {
-    "return an envelope" in {
-      val sut = createSut
+    "return already closed message if routing request already received" in {
+      forAll(uuid) {
+        envId =>
+          server.stubFor(
+            post(urlEqualTo("/file-routing/requests"))
+              .willReturn(
+                aResponse()
+                  .withStatus(Status.BAD_REQUEST)
+                  .withBody("""{"error":{"msg":"Routing request already received for envelope: 9cd81d3c-75bf-4069-9f0c-ec2b3c3fe1cf"}}""")
+              )
+          )
 
-      Await.result(sut.envelopeSummary(envelopeId), 5.seconds) mustBe Envelope(envelopeId,"http://callback","OPEN",Seq(File(fileName,"AVAILABLE")))
+          whenReady(connector.closeEnvelope(envId)) {
+            result =>
+              result mustBe "Already Closed"
+          }
+      }
     }
-    "throw error on failed GET" in {
-      val sut = createSut
 
-      when(sut.httpClient.GET[Envelope](any())(any(), any(), any()))
-        .thenReturn(Future.failed(new RuntimeException("Call failed")))
+    "return exceptions" when {
+      "no location header provided" in {
+        forAll(uuid, uuid) {
+          (envId, routingId) =>
+            server.stubFor(
+              post(urlEqualTo("/file-routing/requests"))
+                .willReturn(
+                  aResponse()
+                    .withStatus(Status.CREATED)
+                )
+            )
 
-      val ex = the[RuntimeException] thrownBy Await.result(sut.envelopeSummary(envelopeId), 5 seconds)
+            whenReady(connector.closeEnvelope(envId).failed) {
+              exception =>
+                exception.getMessage mustBe "No routing id returned"
+            }
+        }
+      }
 
-      ex.getMessage mustBe "Call failed"
+      "File upload status not CREATED(201) OR BAD_REQUEST(400)" in {
+        forAll(statuses, uuid) {
+          (returnStatus, envId) =>
+            server.stubFor(
+              post(urlEqualTo("/file-routing/requests"))
+                .willReturn(
+                  status(returnStatus)
+                )
+            )
+
+            whenever(returnStatus != 201 && returnStatus != 400) {
+              whenReady(connector.closeEnvelope(envId).failed) {
+                exception =>
+                  exception mustBe a[RuntimeException]
+              }
+            }
+        }
+      }
+
+      "File upload status BAD_REQUEST(400) and not already received routing request" in {
+        forAll(uuid) {
+          envId =>
+            server.stubFor(
+              post(urlEqualTo("/file-routing/requests"))
+                .willReturn(
+                  status(Status.BAD_REQUEST)
+                )
+            )
+
+            whenReady(connector.closeEnvelope(envId).failed) {
+              exception =>
+                exception.getMessage mustBe "failed with status 400 bad request"
+            }
+
+        }
+      }
     }
   }
 
-  private def createMockResponse(status: Int, body: String): WSResponse = {
-    val wsResponseMock = mock[WSResponse]
-    when(wsResponseMock.status).thenReturn(status)
-    when(wsResponseMock.body).thenReturn(body)
-    wsResponseMock
+
+  "envelopeSummary and retry" when {
+    "OK Response" must {
+      "return an envelope with no files" in {
+        forAll(uuid, envelopeStatuses) {
+          (envId, envelopeStatus) =>
+            server.stubFor(
+              get(urlEqualTo(s"/file-upload/envelopes/$envId"))
+                .willReturn(
+                  aResponse()
+                    .withStatus(Status.OK)
+                    .withBody(
+                      s"""{"id": "$envId", "status": "$envelopeStatus"}"""
+                    )
+                )
+            )
+
+            whenReady(connector.envelopeSummary(envId)(as, hc)) {
+              result =>
+                result mustBe Envelope(envId, None, envelopeStatus, None)
+            }
+        }
+      }
+
+      "return an envelope with some files" in {
+        forAll(uuid, envelopeStatuses, files) {
+          (envId, envelopeStatus, files) =>
+            server.stubFor(
+              get(urlEqualTo(s"/file-upload/envelopes/$envId"))
+                .willReturn(
+                  aResponse()
+                    .withStatus(Status.OK)
+                    .withBody(
+                      Json.obj(
+                        "id" -> envId,
+                        "status" -> envelopeStatus,
+                        "files" -> JsArray(
+                          files.map(file =>
+                            Json.obj(
+                              "name" -> file.name,
+                              "status" -> file.status)
+                          )
+                        )
+                      ).toString()
+                    )
+                )
+            )
+
+            whenever(files.nonEmpty) {
+              whenReady(connector.envelopeSummary(envId)(as, hc)) {
+                result =>
+                  result mustBe Envelope(envId, None, envelopeStatus, Some(files))
+              }
+            }
+        }
+      }
+    }
+
+    "NOT_FOUND(404) response" must {
+      "return envelope on retry" in {
+        forAll(uuid, envelopeStatuses) {
+          (envId, envelopeStatus) =>
+            server.stubFor(
+              get(urlEqualTo(s"/file-upload/envelopes/$envId"))
+                .willReturn(
+                  aResponse()
+                    .withStatus(Status.OK)
+                    .withBody(
+                      Json.obj(
+                        "id" -> envId,
+                        "status" -> envelopeStatus
+                      ).toString()
+                    )
+                )
+            )
+
+            whenReady(connector.retry(envId, 10, 2)) {
+              result =>
+                result mustBe Envelope(envId, None, envelopeStatus, None)
+            }
+        }
+      }
+
+      "return exception on 5th attempt" in {
+        forAll(uuid) {
+          (envId) =>
+            server.stubFor(
+              get(urlEqualTo(s"/file-upload/envelopes/$envId"))
+                .willReturn(
+                  aResponse()
+                    .withStatus(Status.NOT_FOUND)
+                )
+            )
+
+            whenReady(connector.retry(envId, 10, 1).failed) {
+              exception =>
+                exception.getMessage mustBe s"[FileUploadConnector][retry] envelope[$envId] summary failed at attempt: 5"
+            }
+        }
+      }
+    }
+
+
+    "File upload status not OK(200) or NOT_FOUND(404)" must {
+      "Return Exception" in {
+        forAll(statuses, uuid) {
+          (returnStatus, envId) =>
+            server.stubFor(
+              get(urlEqualTo(s"/file-upload/envelopes/$envId"))
+                .willReturn(
+                  status(returnStatus)
+                )
+            )
+
+            whenever(returnStatus != Status.OK && returnStatus != Status.NOT_FOUND) {
+              whenReady(connector.envelopeSummary(envId)(as, hc).failed) {
+                exception =>
+                  exception mustBe a[RuntimeException]
+              }
+            }
+        }
+      }
+    }
   }
 
-  def createSut = new SUT
+  "parseEnvelope" must {
+    "return an envelope on success" in {
+      forAll(uuid, envelopeStatuses, files) {
+        (envId, envelopeStatus, files) =>
+          val body = Json.obj(
+            "id" -> envId,
+            "status" -> envelopeStatus,
+            "files" -> JsArray(
+              files.map(file =>
+                Json.obj(
+                  "name" -> file.name,
+                  "status" -> file.status)
+              )
+            )
+          ).toString()
 
-  private val envelopeId: String = "0b215e97-11d4-4006-91db-c067e74fc653"
-  private val fileId = "fileId"
-  private val fileName = "fileName.pdf"
-  private val contentType = MimeContentType.ApplicationPdf
+          whenReady(connector.parseEnvelope(body)) {
+            result =>
+              result mustBe Envelope(envId, None, envelopeStatus, Some(files))
+          }
 
-  val mockHttp = mock[HttpClient]
-  val mockClient = mock[WSClient]
-  val metrics = mock[Metrics]
+      }
+    }
 
-  class SUT extends FileUploadConnector(
-    appConfig,
-    mockHttp,
-    mockClient,
-    metrics
-  ) {
-
-    when(mockHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
-      .thenReturn(Future.successful(HttpResponse(201, None,
-        Map("Location" -> Seq(s"localhost:8898/file-upload/envelopes/$envelopeId")))))
-
-    when(mockHttp.POST[JsValue, HttpResponse](any(), any(), any())(any(), any(), any(), any()))
-      .thenReturn(Future.successful(HttpResponse(201, None,
-        Map("Location" -> Seq(s"/file-routing/requests/$envelopeId")))))
-
-    when(mockHttp.GET[Envelope](any())(any(), any(), any()))
-      .thenReturn(Future.successful(Envelope(envelopeId,"http://callback","OPEN",Seq(File(fileName,"AVAILABLE")))))
-
-    override val fileUploadUrl: String = "file-upload"
-
-    override val fileUploadFrontEndUrl: String = "file-upload-frontend"
-
-    override val callbackUrl: String = "http://callback"
-    
+    "throw exception on failure to parse" in {
+      val invalidBody = """{"invalid":"json"}"""
+      whenReady(connector.parseEnvelope(invalidBody).failed) {
+        exception =>
+          exception.getMessage mustBe s"Failed to parse envelope"
+      }
+    }
   }
+
 }

@@ -18,7 +18,7 @@ package model
 
 import play.api.libs.json.{Format, Json}
 
-case class Envelope(id: String, callbackUrl: String, status: String, files: Seq[File])
+case class Envelope(id: String, callbackUrl: Option[String], status: String, files: Option[Seq[File]])
 
 object Envelope {
 
