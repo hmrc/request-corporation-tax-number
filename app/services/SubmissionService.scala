@@ -48,7 +48,7 @@ class SubmissionService @Inject()(
 
   def submit(submission: Submission)(implicit hc: HeaderCarrier): Future[SubmissionResponse] = {
 
-    for {
+    val handleUpload: Future[SubmissionResponse] = for {
       pdf: Array[Byte] <- createPdf(submission)
       envelopeId: String <- fileUploadService.createEnvelope()
       envelope: Envelope <- fileUploadService.envelopeSummary(envelopeId)
@@ -78,13 +78,17 @@ class SubmissionService @Inject()(
             MimeContentType.ApplicationXml
           )
         case _ =>
-          Future.failed(new RuntimeException("Submission Failed"))
+          Logger.error(s"[SubmissionService][submit] Envelope status not OPEN for envelopeId: $envelopeId")
+          Future.failed(throw new RuntimeException())
       }
 
       SubmissionResponse(envelopeId, fileName(envelopeId, "iform.pdf"))
     }
-  }.recoverWith {
-    case exception => Future.failed(new RuntimeException(s"Submit Failed: $exception"))
+
+    handleUpload.recoverWith {
+      case exception =>
+        Future.failed(new RuntimeException("Submit Failed", exception))
+    }
   }
 
   def createMetadata(submission: Submission): Array[Byte] = {

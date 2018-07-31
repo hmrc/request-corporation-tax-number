@@ -58,13 +58,14 @@ class FileUploadConnector @Inject()(
   def routingRequest(envelopeId: String): JsValue = Json.obj(
     "envelopeId" -> envelopeId,
     "application" -> "CTUTR",
-    "destination" -> "DMS")
+    "destination" -> "DMS"
+  )
 
   def createEnvelopeBody: JsValue = Json.obj("callbackUrl" -> callbackUrl)
 
   def createEnvelope(implicit hc: HeaderCarrier): Future[String] = {
 
-    val result = httpClient.POST[JsValue, HttpResponse](s"$fileUploadUrl/file-upload/envelopes", createEnvelopeBody).flatMap { response =>
+    val result: Future[String] = httpClient.POST[JsValue, HttpResponse](s"$fileUploadUrl/file-upload/envelopes", createEnvelopeBody).flatMap { response =>
 
       response.status match {
         case CREATED =>
@@ -159,7 +160,8 @@ class FileUploadConnector @Inject()(
     }
   }
 
-  def envelopeSummary(envelopeId: String, nextTry: Int = firstRetryMilliseconds, attempt: Int = 1)(implicit as: ActorSystem, hc: HeaderCarrier): Future[Envelope] = {
+  def envelopeSummary(envelopeId: String, nextTry: Int = firstRetryMilliseconds, attempt: Int = 1)
+                     (implicit as: ActorSystem, hc: HeaderCarrier): Future[Envelope] = {
     httpClient.GET(s"$fileUploadUrl/file-upload/envelopes/$envelopeId").flatMap {
       response =>
         response.status match {
@@ -174,9 +176,9 @@ class FileUploadConnector @Inject()(
   }
 
   private def envelopeId(response: HttpResponse): Option[String] = {
-    response.header("Location").map(path =>
-      path.split("/")
-        .reverse
-        .head)
+    response.header("Location").map(
+      path =>
+        path.split("/").reverse.head
+    )
   }
 }
