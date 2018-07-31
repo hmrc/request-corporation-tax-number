@@ -54,7 +54,7 @@ class FileUploadConnectorSpec extends SpecBase with WireMockHelper with GuiceOne
   private val statuses: Gen[Int] =
     Gen.chooseNum(
       200, 599,
-      400, 499, 500
+       400, 499, 500
     )
 
   private val uuid: Gen[String] = Gen.uuid.map(_.toString)
@@ -74,7 +74,7 @@ class FileUploadConnectorSpec extends SpecBase with WireMockHelper with GuiceOne
   "createEnvelope" must {
     "return an envelope id" in {
       forAll(uuid) {
-        (envId) =>
+        envId =>
           server.stubFor(
             post(urlEqualTo("/file-upload/envelopes"))
               .willReturn(
@@ -109,7 +109,7 @@ class FileUploadConnectorSpec extends SpecBase with WireMockHelper with GuiceOne
 
       "status not created(201)" in {
         forAll(statuses) {
-          (returnStatus) =>
+          returnStatus =>
             server.stubFor(
               post(urlEqualTo("/file-upload/envelopes"))
                 .willReturn(
@@ -120,7 +120,7 @@ class FileUploadConnectorSpec extends SpecBase with WireMockHelper with GuiceOne
             whenever(returnStatus != 201) {
               whenReady(connector.createEnvelope.failed) {
                 exception =>
-                  exception.getMessage mustBe s"failed to create envelope with status [$returnStatus]"
+                  exception mustBe a[RuntimeException]
               }
             }
         }
@@ -162,7 +162,7 @@ class FileUploadConnectorSpec extends SpecBase with WireMockHelper with GuiceOne
             whenever(returnStatus != 200) {
               whenReady(connector.uploadFile(new Array[Byte](1), "fileName.pdf", MimeContentType.ApplicationPdf, envId, fileId).failed) {
                 exception =>
-                  exception.getMessage mustBe s"failed with status [$returnStatus]"
+                  exception mustBe a[RuntimeException]
               }
             }
         }
@@ -193,7 +193,7 @@ class FileUploadConnectorSpec extends SpecBase with WireMockHelper with GuiceOne
 
     "return already closed message if routing request already received" in {
       forAll(uuid) {
-        (envId) =>
+        envId =>
           server.stubFor(
             post(urlEqualTo("/file-routing/requests"))
               .willReturn(
@@ -242,7 +242,7 @@ class FileUploadConnectorSpec extends SpecBase with WireMockHelper with GuiceOne
             whenever(returnStatus != 201 && returnStatus != 400) {
               whenReady(connector.closeEnvelope(envId).failed) {
                 exception =>
-                  exception.getMessage mustBe s"failed to close envelope with status [$returnStatus]"
+                  exception mustBe a[RuntimeException]
               }
             }
         }
@@ -250,7 +250,7 @@ class FileUploadConnectorSpec extends SpecBase with WireMockHelper with GuiceOne
 
       "File upload status BAD_REQUEST(400) and not already received routing request" in {
         forAll(uuid) {
-          (envId) =>
+          envId =>
             server.stubFor(
               post(urlEqualTo("/file-routing/requests"))
                 .willReturn(
@@ -385,7 +385,7 @@ class FileUploadConnectorSpec extends SpecBase with WireMockHelper with GuiceOne
             whenever(returnStatus != Status.OK && returnStatus != Status.NOT_FOUND) {
               whenReady(connector.envelopeSummary(envId)(as, hc).failed) {
                 exception =>
-                  exception.getMessage mustBe s"[FileUploadConnector][envelopeSummary]Failed with status [$returnStatus]"
+                  exception mustBe a[RuntimeException]
               }
             }
         }
