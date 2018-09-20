@@ -30,16 +30,16 @@ object MicroServiceBuild extends Build with MicroService {
 
   val compile = Seq(
     ws,
-    "uk.gov.hmrc" %% "bootstrap-play-25" % "1.6.0",
-    "uk.gov.hmrc" %% "domain" % "4.1.0",
-    "uk.gov.hmrc" %% "json-encryption" % "3.2.0"
+    "uk.gov.hmrc" %% "bootstrap-play-25" % "3.7.0",
+    "uk.gov.hmrc" %% "domain" % "5.2.0",
+    "uk.gov.hmrc" %% "json-encryption" % "3.3.0"
   )
 
   def test(scope: String = "test,it") = Seq(
-    "uk.gov.hmrc" %% "hmrctest" % "3.0.0" % scope,
-    "org.scalatest" %% "scalatest" % "2.2.6" % scope,
+    "uk.gov.hmrc" %% "hmrctest" % "3.1.0" % scope,
+    "org.scalatest" %% "scalatest" % "3.0.0" % scope,
     "org.pegdown" % "pegdown" % "1.6.0" % scope,
-    "org.jsoup" % "jsoup" % "1.7.3" % "test,it",
+    "org.jsoup" % "jsoup" % "1.11.3" % "test,it",
     "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
     "org.scalatestplus.play" %% "scalatestplus-play" % scalaTestPlusPlayVersion % scope,
     "org.mockito" % "mockito-all" % mockitoAllVersion % scope,
