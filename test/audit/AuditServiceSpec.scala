@@ -62,11 +62,7 @@ class AuditServiceSpec extends WordSpec with MustMatchers with MockitoSugar with
           eventCaptor.getValue.detail mustBe Json.obj(
             "data" -> CTUTRSubmission(
               "foo", "bar"
-            ),
-            "ipAddress" -> "-",
-            "Authorization" -> "-",
-            "token" -> "-",
-            "deviceID" -> "-"
+            )
           )
           eventCaptor.getValue.tags must contain(
             "transactionName" -> "CTUTRSubmission"
