@@ -21,7 +21,7 @@ import com.kenshoo.play.metrics.Metrics
 import config.SpecBase
 import org.mockito.Matchers._
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito._
 import org.scalatest.{BeforeAndAfterEachTestData, TestData}
 import play.api.libs.ws.{WSClient, WSRequest, WSResponse}
 import uk.gov.hmrc.http.HttpException
