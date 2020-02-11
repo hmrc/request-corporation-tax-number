@@ -17,17 +17,34 @@
 package util
 
 import com.github.tomakehurst.wiremock.WireMockServer
+import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
+import org.scalatest.concurrent.Eventually
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite, TestSuite}
+import org.scalatestplus.play.PlaySpec
+import org.scalatestplus.play.guice.{GuiceOneAppPerSuite, GuiceOneServerPerSuite}
+import play.api.Application
+import play.api.inject.guice.GuiceApplicationBuilder
 
-trait WireMockHelper extends BeforeAndAfterAll with BeforeAndAfterEach {
-  this: Suite =>
+trait WireMockHelper extends BeforeAndAfterAll with BeforeAndAfterEach with GuiceOneServerPerSuite with Eventually {
+  this: PlaySpec =>
 
-  protected val server: WireMockServer = new WireMockServer(wireMockConfig().dynamicPort())
+  val testPort: Int = 11111
+
+  override implicit lazy val app: Application =
+    new GuiceApplicationBuilder()
+      .configure(
+        "microservice.services.file-upload.port" -> testPort,
+        "microservice.services.file-upload-frontend.port" -> testPort
+      )
+      .build()
+
+  lazy val server: WireMockServer = new WireMockServer(wireMockConfig().port(testPort))
 
   override def beforeAll(): Unit = {
-    server.start()
     super.beforeAll()
+    server.start()
+    WireMock.configureFor("localhost", testPort)
   }
 
   override def beforeEach(): Unit = {

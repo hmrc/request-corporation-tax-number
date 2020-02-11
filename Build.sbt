@@ -9,33 +9,35 @@ import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
 
 val appName = "request-corporation-tax-number"
 
-lazy val appDependencies: Seq[ModuleID] = compile ++ test()
+lazy val appDependencies: Seq[ModuleID] = compile ++ test
 lazy val plugins : Seq[Plugins] = Seq.empty
 lazy val playSettings : Seq[Setting[_]] = Seq.empty
 
-val scalaTestPlusPlayVersion = "2.0.1"
-val mockitoAllVersion = "1.10.19"
-val wireMockVersion = "2.15.0"
-val scalacheckVersion = "1.14.0"
+val scope: String = "test,it"
 
 val compile = Seq(
   ws,
-  "uk.gov.hmrc" %% "bootstrap-play-25" % "4.11.0",
-  "uk.gov.hmrc" %% "domain" % "5.3.0",
-  "uk.gov.hmrc" %% "json-encryption" % "4.1.0"
+  "uk.gov.hmrc" %% "bootstrap-play-26" % "1.3.0",
+  "uk.gov.hmrc" %% "domain" % "5.6.0-play-26",
+  "uk.gov.hmrc" %% "json-encryption" % "4.5.0-play-26"
 )
 
-def test(scope: String = "test,it"): Seq[ModuleID] = Seq(
-  "uk.gov.hmrc" %% "hmrctest" % "3.4.0-play-25" % scope,
+val test: Seq[ModuleID] = Seq(
+  "uk.gov.hmrc" %% "hmrctest" % "3.9.0-play-26" % scope,
   "org.scalatest" %% "scalatest" % "3.0.5" % scope,
   "org.pegdown" % "pegdown" % "1.6.0" % scope,
-  "org.jsoup" % "jsoup" % "1.11.3" % "test,it",
+  "org.jsoup" % "jsoup" % "1.11.3" % scope,
   "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
-  "org.scalatestplus.play" %% "scalatestplus-play" % scalaTestPlusPlayVersion % scope,
-  "org.mockito" % "mockito-all" % mockitoAllVersion % scope,
-  "org.scalacheck" %% "scalacheck" % scalacheckVersion % scope,
-  "com.github.tomakehurst" % "wiremock" % wireMockVersion % scope
+  "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.3" % scope,
+  "org.mockito" % "mockito-core" % "3.2.4" % scope,
+  "org.scalacheck" %% "scalacheck" % "1.14.3" % scope,
+  "com.github.tomakehurst" % "wiremock" % "2.26.0" % scope
 )
+
+// Fixes a transitive dependency clash between wiremock and scalatestplus-play Thanks Mac
+val jettyFromWiremockVersion = "9.2.24.v20180105"
+
+
 
 def oneForkedJvmPerTest(tests: Seq[TestDefinition]): Seq[Group] =
   tests map {
@@ -75,3 +77,20 @@ lazy val microservice = Project(appName, file("."))
     Resolver.jcenterRepo
   ))
   .settings(majorVersion := 1)
+
+dependencyOverrides ++= Set(
+  "org.eclipse.jetty" % "jetty-client"                % jettyFromWiremockVersion % "test",
+  "org.eclipse.jetty" % "jetty-continuation"          % jettyFromWiremockVersion % "test",
+  "org.eclipse.jetty" % "jetty-http"                  % jettyFromWiremockVersion % "test",
+  "org.eclipse.jetty" % "jetty-io"                    % jettyFromWiremockVersion % "test",
+  "org.eclipse.jetty" % "jetty-security"              % jettyFromWiremockVersion % "test",
+  "org.eclipse.jetty" % "jetty-server"                % jettyFromWiremockVersion % "test",
+  "org.eclipse.jetty" % "jetty-servlet"               % jettyFromWiremockVersion % "test",
+  "org.eclipse.jetty" % "jetty-servlets"              % jettyFromWiremockVersion % "test",
+  "org.eclipse.jetty" % "jetty-util"                  % jettyFromWiremockVersion % "test",
+  "org.eclipse.jetty" % "jetty-webapp"                % jettyFromWiremockVersion % "test",
+  "org.eclipse.jetty" % "jetty-xml"                   % jettyFromWiremockVersion % "test",
+  "org.eclipse.jetty.websocket" % "websocket-api"     % jettyFromWiremockVersion % "test",
+  "org.eclipse.jetty.websocket" % "websocket-client"  % jettyFromWiremockVersion % "test",
+  "org.eclipse.jetty.websocket" % "websocket-common"  % jettyFromWiremockVersion % "test"
+)

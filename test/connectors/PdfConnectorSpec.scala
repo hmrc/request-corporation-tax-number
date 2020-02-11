@@ -16,79 +16,48 @@
 
 package connectors
 
-import akka.util.ByteString
-import com.kenshoo.play.metrics.Metrics
-import config.SpecBase
-import org.mockito.Matchers._
+import akka.http.scaladsl.model.HttpCharsets
+import helper.TestFixture
+import org.eclipse.jetty.util.Utf8LineParser
+import org.mockito.ArgumentMatchers.{any, anyString}
 import org.mockito.Mockito._
-import org.scalatest.mockito._
+import org.scalatest.concurrent.IntegrationPatience
 import org.scalatest.{BeforeAndAfterEachTestData, TestData}
-import play.api.libs.ws.{WSClient, WSRequest, WSResponse}
-import uk.gov.hmrc.http.HttpException
+import play.api.libs.json.{JsObject, JsString, JsValue, Json}
+import uk.gov.hmrc.http.{HttpException, HttpResponse}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 
-class PdfConnectorSpec extends SpecBase
-  with MockitoSugar
-  with BeforeAndAfterEachTestData {
+class PdfConnectorSpec extends TestFixture
+  with BeforeAndAfterEachTestData with IntegrationPatience {
 
   override protected def beforeEach(testData: TestData): Unit = {
-    reset(mockClient)
+    reset(mockHttpClient)
     reset(mockMetrics)
   }
 
+  val pdfConnector: PdfConnector = new PdfConnector(appConfig, mockHttpClient, mockMetrics, ec)
+
   "PdfConnector" should {
-
-    "return the basicUrl with serviceUrl prepended" when {
-      "the service url is supplied" in {
-
-        val sut = createSut("test-service-url")
-
-        sut.basicUrl mustBe "test-service-url/pdf-generator-service/generate"
-      }
-    }
-
-    "return the basicUrl without the serviceUrl prepended" when {
-      "the service url is not supplied" in {
-
-        val sut = createSut()
-
-        sut.basicUrl mustBe "/pdf-generator-service/generate"
-      }
-    }
-
-    "return the pdfServiceUrl as the service url" when {
-
-      "the PDFConnector object is created" in {
-        val connector = app.injector.instanceOf[PdfConnector]
-        connector.serviceUrl mustBe connector.appConfig.pdfServiceUrl
-      }
-    }
 
     "return the pdf service payload in bytes " when {
       "generatePdf is called successfully" in {
 
         val htmlAsString = "<html>test</html>"
 
-        val sut = createSut()
+        val httpResponse = HttpResponse(200, None, responseString = Some(htmlAsString))
 
-        val mockWSResponse = createMockResponse(200, htmlAsString)
+        when(mockHttpClient.doPost(anyString(), any(), any())(any(), any(), any()))
+          .thenReturn(Future.successful(httpResponse))
 
-        val mockWSRequest = mock[WSRequest]
-        when(mockWSRequest.post(anyString())(any())).thenReturn(Future.successful(mockWSResponse))
 
-        when(sut.wsClient.url(any())).thenReturn(mockWSRequest)
+        val response = pdfConnector.generatePdf(htmlAsString)
 
-        val response = sut.generatePdf(htmlAsString)
-
-        val result = Await.result(response, 5 seconds)
-
-        result mustBe htmlAsString.getBytes
-
-        verify(sut.wsClient, times(1)).url(sut.basicUrl)
-        verify(mockWSRequest, times(1)).post(anyString())(any())
+        whenReady(response) { res =>
+          res mustBe htmlAsString.getBytes
+        }
       }
     }
 
@@ -98,42 +67,15 @@ class PdfConnectorSpec extends SpecBase
 
         val htmlAsString = "<html>test</html>"
 
-        val sut = createSut()
+        val httpResponse = HttpResponse(400, None)
 
-        val mockWSResponse = createMockResponse(400, "")
+        when(mockHttpClient.doPost(anyString(), any(), any())(any(), any(), any()))
+          .thenReturn(Future.successful(httpResponse))
 
-        val mockWSRequest = mock[WSRequest]
-        when(mockWSRequest.post(anyString())(any())).thenReturn(Future.successful(mockWSResponse))
-
-        when(sut.wsClient.url(any())).thenReturn(mockWSRequest)
-
-        val result = sut.generatePdf(htmlAsString)
+        val result = pdfConnector.generatePdf(htmlAsString)
 
         the[HttpException] thrownBy Await.result(result, 5 seconds)
-
-        verify(sut.wsClient, times(1)).url(sut.basicUrl)
-        verify(mockWSRequest, times(1)).post(anyString())(any())
       }
     }
-  }
-
-  private def createMockResponse(status: Int, body: String): WSResponse = {
-
-    val wsResponseMock = mock[WSResponse]
-
-    when(wsResponseMock.status).thenReturn(status)
-    when(wsResponseMock.body).thenReturn(body)
-    when(wsResponseMock.bodyAsBytes).thenReturn(ByteString(body))
-
-    wsResponseMock
-  }
-
-  val mockClient = mock[WSClient]
-  val mockMetrics = mock[Metrics]
-
-  private def createSut(testServiceUrl: String = "") = new PdfConnectorTest(testServiceUrl)
-
-  private class PdfConnectorTest(testServiceUrl: String = "") extends PdfConnector(appConfig, mockClient, mockMetrics) {
-    override def serviceUrl: String = testServiceUrl
   }
 }

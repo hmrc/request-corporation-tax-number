@@ -16,6 +16,7 @@
 
 package templates
 
+import helper.TestFixture
 import model.CompanyDetails
 import model.templates.SubmissionViewModel
 import org.jsoup.Jsoup
@@ -23,7 +24,7 @@ import org.scalatest.Matchers
 import play.twirl.api.Html
 import uk.gov.hmrc.play.test.UnitSpec
 
-class CTUTRSchemeSpec extends UnitSpec with Matchers {
+class CTUTRSchemeSpec extends TestFixture {
 
   "CTUTR Form" should {
 
@@ -37,11 +38,11 @@ class CTUTRSchemeSpec extends UnitSpec with Matchers {
         val companyName = doc.getElementById("companyDetails").select("tbody > tr:nth-of-type(1)")
         val companyReference = doc.getElementById("companyDetails").select("tbody > tr:nth-of-type(2)")
 
-        companyName.select("td:nth-of-type(1)").text() shouldBe "Company name"
-        companyName.select("td:nth-of-type(2)").text() shouldBe "Big company"
+        companyName.select("td:nth-of-type(1)").text() mustBe "Company name"
+        companyName.select("td:nth-of-type(2)").text() mustBe "Big company"
 
-        companyReference.select("td:nth-of-type(1)").text() shouldBe "Company reference"
-        companyReference.select("td:nth-of-type(2)").text() shouldBe "AB123123"
+        companyReference.select("td:nth-of-type(1)").text() mustBe "Company reference"
+        companyReference.select("td:nth-of-type(2)").text() mustBe "AB123123"
 
       }
 

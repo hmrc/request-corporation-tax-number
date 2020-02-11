@@ -16,23 +16,23 @@
 
 package templates
 
-import config.SpecBase
+import helper.TestFixture
 import model.templates.CTUTRMetadata
 import org.jsoup.Jsoup
 import org.jsoup.parser.Parser
 import play.twirl.api.Xml
 
-class pdfSubmissionMetadataSpec extends SpecBase {
+class pdfSubmissionMetadataSpec extends TestFixture {
+
+  val pdfSubmission = CTUTRMetadata(appConfig)
+  val pdfSubmissionMetadata: Xml = templates.xml.pdfSubmissionMetadata(pdfSubmission)
 
   "pdfSubmissionMetadata" should {
 
     "not have a line feed character at the top of the file" when {
 
       "the xml is generated" in  {
-
-        val sut = createSUT(pdfSubmission)
-
-        val generatedXml = sut.toString()
+        val generatedXml = pdfSubmissionMetadata.toString()
 
         generatedXml(0) mustNot be('\n')
       }
@@ -42,9 +42,7 @@ class pdfSubmissionMetadataSpec extends SpecBase {
 
       "the pdf submission xml is generated" in {
 
-        val sut = createSUT(pdfSubmission)
-
-        val doc = Jsoup.parse(sut.toString(), "", Parser.xmlParser)
+        val doc = Jsoup.parse(pdfSubmissionMetadata.toString(), "", Parser.xmlParser)
 
         doc.select("header > title").text() mustBe pdfSubmission.submissionReference
         doc.select("header > format").text() mustBe pdfSubmission.fileFormat
@@ -60,9 +58,7 @@ class pdfSubmissionMetadataSpec extends SpecBase {
 
       "the pdf submission xml is generated" in {
 
-        val sut = createSUT(pdfSubmission)
-
-        val doc = Jsoup.parse(sut.toString(), "", Parser.xmlParser)
+        val doc = Jsoup.parse(pdfSubmissionMetadata.toString(), "", Parser.xmlParser)
 
         val section = doc.select("metadata > attribute").get(0)
 
@@ -75,10 +71,7 @@ class pdfSubmissionMetadataSpec extends SpecBase {
     "populate the correct attribute details for the time_xml_created attribute" when {
 
       "the pdf submission xml is generated" in {
-
-        val sut = createSUT(pdfSubmission)
-
-        val doc = Jsoup.parse(sut.toString(), "", Parser.xmlParser)
+        val doc = Jsoup.parse(pdfSubmissionMetadata.toString(), "", Parser.xmlParser)
 
         val section = doc.select("metadata > attribute").get(1)
 
@@ -91,10 +84,7 @@ class pdfSubmissionMetadataSpec extends SpecBase {
     "populate the correct attribute details for the submission_reference attribute" when {
 
       "the pdf submission xml is generated" in {
-
-        val sut = createSUT(pdfSubmission)
-
-        val doc = Jsoup.parse(sut.toString(), "", Parser.xmlParser)
+        val doc = Jsoup.parse(pdfSubmissionMetadata.toString(), "", Parser.xmlParser)
 
         val section = doc.select("metadata > attribute").get(2)
 
@@ -107,10 +97,7 @@ class pdfSubmissionMetadataSpec extends SpecBase {
     "populate the correct attribute details for the form_id attribute" when {
 
       "the pdf submission xml is generated" in {
-
-        val sut = createSUT(pdfSubmission)
-
-        val doc = Jsoup.parse(sut.toString(), "", Parser.xmlParser)
+        val doc = Jsoup.parse(pdfSubmissionMetadata.toString(), "", Parser.xmlParser)
 
         val section = doc.select("metadata > attribute").get(3)
 
@@ -123,10 +110,7 @@ class pdfSubmissionMetadataSpec extends SpecBase {
     "populate the correct attribute details for the number_pages attribute" when {
 
       "the pdf submission xml is generated" in {
-
-        val sut = createSUT(pdfSubmission)
-
-        val doc = Jsoup.parse(sut.toString(), "", Parser.xmlParser)
+        val doc = Jsoup.parse(pdfSubmissionMetadata.toString(), "", Parser.xmlParser)
 
         val section = doc.select("metadata > attribute").get(4)
 
@@ -139,10 +123,7 @@ class pdfSubmissionMetadataSpec extends SpecBase {
     "populate the correct attribute details for the source attribute" when {
 
       "the pdf submission xml is generated" in {
-
-        val sut = createSUT(pdfSubmission)
-
-        val doc = Jsoup.parse(sut.toString(), "", Parser.xmlParser)
+        val doc = Jsoup.parse(pdfSubmissionMetadata.toString(), "", Parser.xmlParser)
 
         val section = doc.select("metadata > attribute").get(5)
 
@@ -155,10 +136,7 @@ class pdfSubmissionMetadataSpec extends SpecBase {
     "populate the correct attribute details for the customer_id attribute" when {
 
       "the pdf submission xml is generated" in {
-
-        val sut = createSUT(pdfSubmission)
-
-        val doc = Jsoup.parse(sut.toString(), "", Parser.xmlParser)
+        val doc = Jsoup.parse(pdfSubmissionMetadata.toString(), "", Parser.xmlParser)
 
         val section = doc.select("metadata > attribute").get(6)
 
@@ -171,10 +149,7 @@ class pdfSubmissionMetadataSpec extends SpecBase {
     "populate the correct attribute details for the submission_mark attribute" when {
 
       "the pdf submission xml is generated" in {
-
-        val sut = createSUT(pdfSubmission)
-
-        val doc = Jsoup.parse(sut.toString(), "", Parser.xmlParser)
+        val doc = Jsoup.parse(pdfSubmissionMetadata.toString(), "", Parser.xmlParser)
 
         val section = doc.select("metadata > attribute").get(7)
 
@@ -187,10 +162,7 @@ class pdfSubmissionMetadataSpec extends SpecBase {
     "populate the correct attribute details for the cas_key attribute" when {
 
       "the pdf submission xml is generated" in {
-
-        val sut = createSUT(pdfSubmission)
-
-        val doc = Jsoup.parse(sut.toString(), "", Parser.xmlParser)
+        val doc = Jsoup.parse(pdfSubmissionMetadata.toString(), "", Parser.xmlParser)
 
         val section = doc.select("metadata > attribute").get(8)
 
@@ -203,10 +175,7 @@ class pdfSubmissionMetadataSpec extends SpecBase {
     "populate the correct attribute details for the classification_type attribute" when {
 
       "the pdf submission xml is generated" in {
-
-        val sut = createSUT(pdfSubmission)
-
-        val doc = Jsoup.parse(sut.toString(), "", Parser.xmlParser)
+        val doc = Jsoup.parse(pdfSubmissionMetadata.toString(), "", Parser.xmlParser)
 
         val section = doc.select("metadata > attribute").get(9)
 
@@ -219,10 +188,7 @@ class pdfSubmissionMetadataSpec extends SpecBase {
     "populate the correct attribute details for the business_area attribute" when {
 
       "the pdf submission xml is generated" in {
-
-        val sut = createSUT(pdfSubmission)
-
-        val doc = Jsoup.parse(sut.toString(), "", Parser.xmlParser)
+        val doc = Jsoup.parse(pdfSubmissionMetadata.toString(), "", Parser.xmlParser)
 
         val section = doc.select("metadata > attribute").get(10)
 
@@ -235,10 +201,7 @@ class pdfSubmissionMetadataSpec extends SpecBase {
     "populate the correct attribute details for the attachment_count attribute" when {
 
       "the pdf submission xml is generated" in {
-
-        val sut = createSUT(pdfSubmission)
-
-        val doc = Jsoup.parse(sut.toString(), "", Parser.xmlParser)
+        val doc = Jsoup.parse(pdfSubmissionMetadata.toString(), "", Parser.xmlParser)
 
         val section = doc.select("metadata > attribute").get(11)
 
@@ -249,9 +212,5 @@ class pdfSubmissionMetadataSpec extends SpecBase {
     }
   }
 
-  val pdfSubmission: CTUTRMetadata = CTUTRMetadata(
-    appConfig
-  )
 
-  private def createSUT(pdfSubmission: CTUTRMetadata): Xml = templates.xml.pdfSubmissionMetadata(pdfSubmission)
 }

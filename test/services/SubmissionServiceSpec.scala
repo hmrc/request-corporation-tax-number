@@ -18,28 +18,19 @@ package services
 
 import java.nio.file.{Files, Paths}
 
-import config.SpecBase
+import helper.TestFixture
 import model._
 import model.domain.SubmissionResponse
 import org.joda.time.LocalDate
-import org.mockito.Matchers
-import org.mockito.Matchers.any
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
-import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.mockito.MockitoSugar
-import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-class SubmissionServiceSpec extends SpecBase with MockitoSugar with ScalaFutures {
+class SubmissionServiceSpec extends TestFixture {
 
-  implicit val hc: HeaderCarrier = uk.gov.hmrc.http.HeaderCarrier()
-
-  val mockFileUploadService: FileUploadService = mock[FileUploadService]
-  val mockPdfService: PdfService = mock[PdfService]
-  val mockSubmissionService: SubmissionService = spy(new SubmissionService(mockFileUploadService, mockPdfService, appConfig))
-
+  val submissionService: SubmissionService = new SubmissionService(mockFileUploadService, mockPdfService, appConfig, ec)
 
   val pdfBytes: Array[Byte] = Files.readAllBytes(Paths.get("test/resources/sample.pdf"))
 
@@ -58,13 +49,13 @@ class SubmissionServiceSpec extends SpecBase with MockitoSugar with ScalaFutures
     "return a RuntimeException" when {
 
       "envelopeSummary fails" in {
-        when(mockPdfService.generatePdf(any())).thenReturn(Future.successful(pdfBytes))
+        when(mockPdfService.generatePdf(any())(any())).thenReturn(Future.successful(pdfBytes))
 
-        when(mockFileUploadService.createEnvelope()).thenReturn(Future.successful("1"))
+        when(mockFileUploadService.createEnvelope()(any())).thenReturn(Future.successful("1"))
 
         when(mockFileUploadService.envelopeSummary(any())(any())).thenReturn(Future.failed(new RuntimeException))
 
-        val results: Future[SubmissionResponse] = mockSubmissionService.submit(submission)
+        val results: Future[SubmissionResponse] = submissionService.submit(submission)
 
         whenReady(results.failed) {
           results =>
@@ -74,13 +65,13 @@ class SubmissionServiceSpec extends SpecBase with MockitoSugar with ScalaFutures
       }
 
       "createEnvelope fails" in {
-        when(mockPdfService.generatePdf(any())).thenReturn(Future.successful(pdfBytes))
+        when(mockPdfService.generatePdf(any())(any())).thenReturn(Future.successful(pdfBytes))
 
-        when(mockFileUploadService.createEnvelope()).thenReturn(Future.failed(new RuntimeException))
+        when(mockFileUploadService.createEnvelope()(any())).thenReturn(Future.failed(new RuntimeException))
 
         when(mockFileUploadService.envelopeSummary(any())(any())).thenReturn(Future.successful(Envelope("", Some(""), "OPEN", Some(Seq(File("", ""))))))
 
-        val results: Future[SubmissionResponse] = mockSubmissionService.submit(submission)
+        val results: Future[SubmissionResponse] = submissionService.submit(submission)
 
         whenReady(results.failed) {
           results =>
@@ -90,13 +81,13 @@ class SubmissionServiceSpec extends SpecBase with MockitoSugar with ScalaFutures
       }
 
       "generatePdf fails" in {
-        when(mockPdfService.generatePdf(any())).thenReturn(Future.failed(new RuntimeException))
+        when(mockPdfService.generatePdf(any())(any())).thenReturn(Future.failed(new RuntimeException))
 
-        when(mockFileUploadService.createEnvelope()).thenReturn(Future.successful("1"))
+        when(mockFileUploadService.createEnvelope()(any())).thenReturn(Future.successful("1"))
 
         when(mockFileUploadService.envelopeSummary(any())(any())).thenReturn(Future.successful(Envelope("", Some(""), "OPEN", Some(Seq(File("", ""))))))
 
-        val results: Future[SubmissionResponse] = mockSubmissionService.submit(submission)
+        val results: Future[SubmissionResponse] = submissionService.submit(submission)
 
         whenReady(results.failed) {
           results =>
@@ -106,13 +97,13 @@ class SubmissionServiceSpec extends SpecBase with MockitoSugar with ScalaFutures
       }
 
       "envelopeSummary is not OPEN" in {
-        when(mockPdfService.generatePdf(any())).thenReturn(Future.successful(pdfBytes))
+        when(mockPdfService.generatePdf(any())(any())).thenReturn(Future.successful(pdfBytes))
 
-        when(mockFileUploadService.createEnvelope()).thenReturn(Future.successful("1"))
+        when(mockFileUploadService.createEnvelope()(any())).thenReturn(Future.successful("1"))
 
         when(mockFileUploadService.envelopeSummary(any())(any())).thenReturn(Future.successful(Envelope("", Some(""), "CLOSED", Some(Seq(File("", ""))))))
 
-        val results: Future[SubmissionResponse] = mockSubmissionService.submit(submission)
+        val results: Future[SubmissionResponse] = submissionService.submit(submission)
 
         whenReady(results.failed) {
           results =>
@@ -128,17 +119,17 @@ class SubmissionServiceSpec extends SpecBase with MockitoSugar with ScalaFutures
     "return an SubmissionResponse" when {
 
       "given valid inputs" in {
-        when(mockPdfService.generatePdf(any())).thenReturn(Future.successful(pdfBytes))
+        when(mockPdfService.generatePdf(any())(any())).thenReturn(Future.successful(pdfBytes))
 
-        when(mockFileUploadService.createEnvelope()).thenReturn(Future.successful("1"))
+        when(mockFileUploadService.createEnvelope()(any())).thenReturn(Future.successful("1"))
 
         when(mockFileUploadService.envelopeSummary(any())(any())).thenReturn(Future.successful(Envelope("", Some(""), "OPEN", Some(Seq(File("", ""))))))
 
-        whenReady(mockSubmissionService.submit(submission)) {
+        whenReady(submissionService.submit(submission)) {
           result =>
-            verify(mockFileUploadService, atLeastOnce()).uploadFile(any(), any(), Matchers.eq(s"1-SubmissionCTUTR-$formatToday-iform.pdf"), any())(any())
-            verify(mockFileUploadService, atLeastOnce()).uploadFile(any(), any(), Matchers.eq(s"1-SubmissionCTUTR-$formatToday-metadata.xml"), any())(any())
-            verify(mockFileUploadService, atLeastOnce()).uploadFile(any(), any(), Matchers.eq(s"1-SubmissionCTUTR-$formatToday-robotic.xml"), any())(any())
+            verify(mockFileUploadService, atLeastOnce()).uploadFile(any(), any(), eqTo(s"1-SubmissionCTUTR-$formatToday-iform.pdf"), any())(any())
+            verify(mockFileUploadService, atLeastOnce()).uploadFile(any(), any(), eqTo(s"1-SubmissionCTUTR-$formatToday-metadata.xml"), any())(any())
+            verify(mockFileUploadService, atLeastOnce()).uploadFile(any(), any(), eqTo(s"1-SubmissionCTUTR-$formatToday-robotic.xml"), any())(any())
 
             result mustEqual SubmissionResponse("1", s"1-SubmissionCTUTR-$formatToday-iform.pdf")
         }
@@ -157,7 +148,7 @@ class SubmissionServiceSpec extends SpecBase with MockitoSugar with ScalaFutures
         ))
         when(mockFileUploadService.closeEnvelope("123")).thenReturn(Future.successful("123"))
 
-        Await.result(mockSubmissionService.callback("123"), 5.seconds) mustBe "123"
+        Await.result(submissionService.callback("123"), 5.seconds) mustBe "123"
 
       }
     }
@@ -169,7 +160,7 @@ class SubmissionServiceSpec extends SpecBase with MockitoSugar with ScalaFutures
           Envelope("123",Some("callback"),"CLOSED",Some(Seq(File("pdf","AVAILABLE"), File("metadata","AVAILABLE"), File("robot","AVAILABLE"))))
         ))
 
-        Await.result(mockSubmissionService.callback("123"), 5.seconds) mustBe "123"
+        Await.result(submissionService.callback("123"), 5.seconds) mustBe "123"
 
       }
 
@@ -178,7 +169,7 @@ class SubmissionServiceSpec extends SpecBase with MockitoSugar with ScalaFutures
           Envelope("123",Some("callback"),"OPEN",Some(Seq(File("pdf","ERROR"))))
         ))
 
-        Await.result(mockSubmissionService.callback("123"), 5.seconds) mustBe "123"
+        Await.result(submissionService.callback("123"), 5.seconds) mustBe "123"
 
       }
 
@@ -188,7 +179,7 @@ class SubmissionServiceSpec extends SpecBase with MockitoSugar with ScalaFutures
           Envelope("123",Some("callback"),"OPEN",Some(Seq(File("pdf","ERROR"), File("metadata","ERROR"), File("robot","ERROR"))))
         ))
 
-        Await.result(mockSubmissionService.callback("123"), 5.seconds) mustBe "123"
+        Await.result(submissionService.callback("123"), 5.seconds) mustBe "123"
 
       }
     }

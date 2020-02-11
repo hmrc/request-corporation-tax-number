@@ -16,8 +16,9 @@
 
 package audit
 
-import com.google.inject.{ImplementedBy, Inject}
+import com.google.inject.ImplementedBy
 import config.MicroserviceAppConfig
+import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.libs.json.{JsString, Json, Writes}
 import play.api.mvc.RequestHeader
@@ -39,9 +40,9 @@ trait AuditService {
 
 }
 
-class AuditServiceImpl @Inject()(
-                                  config: MicroserviceAppConfig,
-                                  connector: AuditConnector
+@Singleton
+class AuditServiceImpl @Inject()(config: MicroserviceAppConfig,
+                                 auditConnector: AuditConnector
                                 ) extends AuditService {
 
   private implicit def toHc(request: RequestHeader): AuditHeaderCarrier =
@@ -63,7 +64,7 @@ class AuditServiceImpl @Inject()(
 
     Logger.debug(s"[AuditService][sendEvent] sending ${event.auditType}")
 
-    val result: Future[AuditResult] = connector.sendExtendedEvent(ExtendedDataEvent(
+    val result: Future[AuditResult] = auditConnector.sendExtendedEvent(ExtendedDataEvent(
       auditSource = "request-corporation-tax-number",
       auditType = event.auditType,
       tags = rh.toAuditTags(

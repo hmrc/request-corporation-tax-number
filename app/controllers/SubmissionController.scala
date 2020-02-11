@@ -17,23 +17,24 @@
 package controllers
 
 import audit.{AuditService, CTUTRSubmission}
-import javax.inject.Inject
 import com.google.inject.Singleton
+import javax.inject.Inject
 import model.{CallbackRequest, Submission}
 import play.api.Logger
 import play.api.libs.json.Json
-import play.api.mvc.Action
+import play.api.mvc.{Action, ControllerComponents}
 import services.SubmissionService
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class SubmissionController @Inject()(
-                                   val submissionService: SubmissionService,
-                                   auditService: AuditService
-                                   ) extends BaseController {
+class SubmissionController @Inject()( val submissionService: SubmissionService,
+                                      auditService: AuditService,
+                                      cc: ControllerComponents
+                                    ) extends BackendController(cc) {
+
+  implicit val ec: ExecutionContext = cc.executionContext
 
   def submit() : Action[Submission] = Action.async(parse.json[Submission]) {
     implicit request =>

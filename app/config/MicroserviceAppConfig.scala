@@ -16,27 +16,22 @@
 
 package config
 
-import com.google.inject.{Inject, Singleton}
-import play.api.{Configuration, Environment}
-import uk.gov.hmrc.play.config.ServicesConfig
-
+import javax.inject.{Inject, Singleton}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 @Singleton
-class MicroserviceAppConfig @Inject()(override val runModeConfiguration: Configuration, environment: Environment) extends ServicesConfig {
-  override protected def mode = environment.mode
+class MicroserviceAppConfig @Inject()(servicesConfig: ServicesConfig) {
 
-  private def loadConfig(key: String) = runModeConfiguration.getString(key).getOrElse(throw new Exception(s"Missing configuration key: $key"))
+  private def loadConfig(key: String) = servicesConfig.getString(key)
 
-  private def loadBoolean(key: String) = runModeConfiguration.getBoolean(key).getOrElse(throw new Exception(s"Missing configuration key: $key"))
+  private def loadBoolean(key: String) = servicesConfig.getBoolean(key)
 
-  private def loadMilliseconds(key : String, default : Long) = runModeConfiguration.getMilliseconds(key).getOrElse(default)
-
-  lazy val appName: String = runModeConfiguration.underlying.getString("appName")
-  lazy val fileUploadUrl: String = baseUrl("file-upload")
-  lazy val fileUploadFrontendUrl: String = baseUrl("file-upload-frontend")
+  lazy val appName: String = servicesConfig.getString("appName")
+  lazy val fileUploadUrl: String = servicesConfig.baseUrl("file-upload")
+  lazy val fileUploadFrontendUrl: String = servicesConfig.baseUrl("file-upload-frontend")
   lazy val fileUploadCallbackUrl: String = loadConfig(s"microservice.services.file-upload.callbackUrl")
 
-  lazy val pdfServiceUrl: String = baseUrl("pdf-generator-service")
+  lazy val pdfServiceUrl: String = servicesConfig.baseUrl("pdf-generator-service")
 
   lazy val maxAttemptNumber: Int = 5
   lazy val firstRetryMilliseconds: Int = 20
