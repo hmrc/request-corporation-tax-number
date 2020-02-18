@@ -16,16 +16,15 @@
 
 package services
 
-import com.google.inject.{Inject, Singleton}
+import javax.inject.{Inject, Singleton}
 import connectors.PdfConnector
+import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.Future
 
 @Singleton
-class PdfService @Inject()(
-                          val pdfConnector: PdfConnector
-                          ){
+class PdfService @Inject()( val pdfConnector: PdfConnector) {
 
-  def generatePdf(html: String): Future[Array[Byte]] = pdfConnector.generatePdf(html)
+  def generatePdf(html: String)(implicit hc: HeaderCarrier): Future[Array[Byte]] = pdfConnector.generatePdf(html)
 
 }

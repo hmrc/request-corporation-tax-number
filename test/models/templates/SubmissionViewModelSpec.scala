@@ -16,15 +16,14 @@
 
 package models.templates
 
+import helper.TestFixture
 import model.templates.SubmissionViewModel
 import model.Submission
 import org.joda.time.LocalDateTime
 import org.joda.time.format.DateTimeFormat
 import org.mockito.Mockito.when
-import org.scalatest.mock.MockitoSugar
-import org.scalatestplus.play.PlaySpec
 
-class SubmissionViewModelSpec extends PlaySpec with MockitoSugar {
+class SubmissionViewModelSpec extends TestFixture {
 
   val time = LocalDateTime.parse("Tuesday 31 October 2017 15:18:12", DateTimeFormat.forPattern("EEEE dd MMMM yyyy HH:mm:ss"))
 

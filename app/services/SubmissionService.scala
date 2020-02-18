@@ -16,9 +16,7 @@
 
 package services
 
-import javax.inject.Inject
-
-import com.google.inject.Singleton
+import javax.inject.{Inject, Singleton}
 import config.MicroserviceAppConfig
 import model.domain.{MimeContentType, SubmissionResponse}
 import model.templates.{CTUTRMetadata, SubmissionViewModel}
@@ -29,7 +27,7 @@ import templates.html.CTUTRScheme
 import templates.xml.{pdfSubmissionMetadata, robotXml}
 import uk.gov.hmrc.http.HeaderCarrier
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 trait EnvelopeStatus
 case object Closed extends EnvelopeStatus
@@ -39,10 +37,9 @@ case object Open extends EnvelopeStatus
 class SubmissionService @Inject()(
                                 val fileUploadService: FileUploadService,
                                 val pdfService: PdfService,
-                                appConfig : MicroserviceAppConfig
+                                appConfig : MicroserviceAppConfig,
+                                implicit val ec: ExecutionContext
                                 ) {
-
-  import scala.concurrent.ExecutionContext.Implicits.global
 
   protected def fileName(envelopeId: String, fileType: String) = s"$envelopeId-SubmissionCTUTR-${LocalDate.now().toString("YYYYMMdd")}-$fileType"
 
@@ -102,7 +99,7 @@ class SubmissionService @Inject()(
     robotXml(metadata, viewModel).toString().getBytes
   }
 
-  def createPdf(submission: Submission): Future[Array[Byte]] = {
+  def createPdf(submission: Submission)(implicit hc: HeaderCarrier): Future[Array[Byte]] = {
     val viewModel = SubmissionViewModel.apply(submission)
     val pdfTemplate = CTUTRScheme(viewModel).toString
     pdfService.generatePdf(pdfTemplate)

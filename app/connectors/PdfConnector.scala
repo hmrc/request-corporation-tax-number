@@ -16,42 +16,38 @@
 
 package connectors
 
-import javax.inject.Inject
-
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
+import akka.util.ByteString
 import com.kenshoo.play.metrics.Metrics
 import config.MicroserviceAppConfig
+import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.http.Status
-import play.api.libs.ws.WSClient
-import uk.gov.hmrc.http.HttpException
+import play.api.libs.json.Json
+import uk.gov.hmrc.http.{HeaderCarrier, HttpException}
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-class PdfConnector @Inject()(
-                            val appConfig : MicroserviceAppConfig,
-                            val wsClient: WSClient,
-                            metrics : Metrics
+@Singleton
+class PdfConnector @Inject()(val appConfig : MicroserviceAppConfig,
+                             val httpClient: HttpClient,
+                             metrics : Metrics,
+                             implicit val ec: ExecutionContext
                             ) {
 
-  private implicit val system = ActorSystem()
-  private implicit val materializer = ActorMaterializer()
+  private implicit val system: ActorSystem = ActorSystem()
+  private implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-  def serviceUrl: String = appConfig.pdfServiceUrl
+  private val basicUrl: String = s"${appConfig.pdfServiceUrl}/pdf-generator-service/generate"
 
-  private[connectors] def basicUrl = s"$serviceUrl/pdf-generator-service/generate"
-
-  def generatePdf(html: String): Future[Array[Byte]] = {
-
-    val result = wsClient.url(basicUrl).post(Map("html" -> Seq(html)))
-
-    result.map { response =>
+  def generatePdf(html: String)(implicit hc: HeaderCarrier): Future[Array[Byte]] = {
+    httpClient.doPost(basicUrl, Map("html" -> Seq(html))).map { response =>
       response.status match {
         case Status.OK =>
           Logger.info(s"[PdfConnector][generatePdf] [Generated PDF]")
-          response.bodyAsBytes.toArray
+          response.body.getBytes()
         case _ =>
           Logger.warn(s"[PdfConnector][generatePdf][A Server error was received from PDF generator service]")
           throw new HttpException(response.body, response.status)

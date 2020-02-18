@@ -16,18 +16,22 @@
 
 package services
 
-import connectors.PdfConnector
-import org.mockito.Matchers.any
-import org.mockito.Mockito.when
-import org.scalatest.mock.MockitoSugar
-import org.scalatestplus.play.PlaySpec
+import helper.TestFixture
 import uk.gov.hmrc.http.HttpException
+
+import helper.TestFixture
+import model.domain.MimeContentType
+import model.{Envelope, File}
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import org.mockito.Mockito.when
+import uk.gov.hmrc.http.HttpResponse
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
-import scala.language.postfixOps
 
-class PdfServiceSpec extends PlaySpec with MockitoSugar {
+class PdfServiceSpec extends TestFixture {
+
+  val pdfService: PdfService = new PdfService(mockPdfConnector)
 
   "PdfService" should {
 
@@ -37,11 +41,9 @@ class PdfServiceSpec extends PlaySpec with MockitoSugar {
 
         val htmlAsString = "<html>test</html>"
 
-        val sut = createSut
+        when(pdfService.pdfConnector.generatePdf(any())(any())).thenReturn(Future.successful(htmlAsString.getBytes))
 
-        when(sut.pdfConnector.generatePdf(any())).thenReturn(Future.successful(htmlAsString.getBytes))
-
-        val response = sut.generatePdf(htmlAsString)
+        val response = pdfService.generatePdf(htmlAsString)
 
         val result = Await.result(response, 5 seconds)
 
@@ -55,20 +57,12 @@ class PdfServiceSpec extends PlaySpec with MockitoSugar {
 
         val htmlAsString = "<html>test</html>"
 
-        val sut = createSut
+        when(pdfService.pdfConnector.generatePdf(any())(any())).thenReturn(Future.failed(new HttpException("", 0)))
 
-        when(sut.pdfConnector.generatePdf(any())).thenReturn(Future.failed(new HttpException("", 0)))
-
-        val result = sut.generatePdf(htmlAsString)
+        val result = pdfService.generatePdf(htmlAsString)
 
         the[HttpException] thrownBy Await.result(result, 5 seconds)
       }
     }
   }
-
-  private def createSut = new PdfServiceTest()
-
-  val mockPdfConnector = mock[PdfConnector]
-
-  private class PdfServiceTest() extends PdfService(mockPdfConnector)
 }

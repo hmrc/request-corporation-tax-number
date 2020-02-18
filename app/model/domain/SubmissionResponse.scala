@@ -16,21 +16,10 @@
 
 package model.domain
 
-import play.api.libs.json.{JsPath, Reads, Writes}
-import play.api.libs.functional.syntax._
+import play.api.libs.json.{OFormat, Json}
 
 case class SubmissionResponse(id: String, filename : String)
 
 object SubmissionResponse {
-
-  implicit val writes : Writes[SubmissionResponse] = (
-    (JsPath \ "id").write[String] and
-      (JsPath \ "filename").write[String]
-    )(unlift(SubmissionResponse.unapply))
-
-  implicit val reads : Reads[SubmissionResponse] = (
-    (JsPath \ "id").read[String] and
-    (JsPath \ "filename").read[String]
-  )(SubmissionResponse.apply _)
-
+  implicit val format: OFormat[SubmissionResponse] = Json.format[SubmissionResponse]
 }

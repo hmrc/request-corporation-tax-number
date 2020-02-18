@@ -16,8 +16,9 @@
 
 package connectors
 
-import javax.inject.Singleton
+import java.util.concurrent.Callable
 
+import javax.inject.Singleton
 import akka.actor.ActorSystem
 import akka.pattern.Patterns.after
 import akka.stream.scaladsl.Source
@@ -36,16 +37,15 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import utils.HttpResponseHelper
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 
 @Singleton
-class FileUploadConnector @Inject()(
-                                     appConfig: MicroserviceAppConfig,
+class FileUploadConnector @Inject()( appConfig: MicroserviceAppConfig,
                                      val httpClient: HttpClient,
                                      val wsClient: WSClient,
-                                     val metrics: Metrics
+                                     val metrics: Metrics,
+                                     implicit val ec: ExecutionContext
                                    )(implicit as: ActorSystem) extends HttpResponseHelper {
 
   private val callbackUrl: String = appConfig.fileUploadCallbackUrl
@@ -92,7 +92,7 @@ class FileUploadConnector @Inject()(
       Source(ByteString(byteArray) :: Nil)) :: DataPart("", "") :: Nil)
 
     val result = wsClient.url(s"$fileUploadFrontEndUrl/file-upload/upload/envelopes/$envelopeId/files/$fileId")
-      .withHeaders(hc.copy(otherHeaders = Seq("CSRF-token" -> "nocheck")).headers: _*).post(multipartFormData).flatMap { response =>
+      .withHttpHeaders(hc.copy(otherHeaders = Seq("CSRF-token" -> "nocheck")).headers: _*).post(multipartFormData).flatMap { response =>
 
       response.status match {
         case OK =>
@@ -152,9 +152,11 @@ class FileUploadConnector @Inject()(
         val nextTry: Int = Math.ceil(cur * factor).toInt
         val nextAttempt = attempt + 1
 
-        after(nextTry.milliseconds, as.scheduler, global, Future.successful(1)).flatMap { _ =>
-          envelopeSummary(envelopeId, nextTry, nextAttempt)(as, hc)
-        }
+        after(nextTry.milliseconds, as.scheduler, ec,
+          new Callable[Future[Envelope]] {
+            override def call(): Future[Envelope] = envelopeSummary(envelopeId, nextTry, nextAttempt)(as, hc)
+          }
+        )
       case _ =>
         Future.failed(new RuntimeException(s"[FileUploadConnector][retry] envelope[$envelopeId] summary failed at attempt: $attempt"))
     }

@@ -16,10 +16,9 @@
 
 package services
 
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 
 import akka.actor.ActorSystem
-import com.google.inject.Singleton
 import connectors.FileUploadConnector
 import model.Envelope
 import model.domain.MimeContentType

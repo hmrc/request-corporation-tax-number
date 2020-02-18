@@ -16,101 +16,20 @@
 
 package controllers
 
-import audit.AuditService
+import helper.TestFixture
 import model.CallbackRequest
 import model.domain.SubmissionResponse
-import org.mockito.Matchers.{eq => eqTo, _}
 import org.mockito.Mockito._
-import org.scalatest.mockito.MockitoSugar
-import org.scalatestplus.play.OneAppPerSuite
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.test.Helpers.{contentAsJson, _}
 import play.api.test.{FakeHeaders, FakeRequest, Helpers}
-import services.SubmissionService
-import uk.gov.hmrc.http.{HeaderCarrier, InternalServerException}
-import uk.gov.hmrc.play.test.UnitSpec
-import util.MaterializerSupport
+import uk.gov.hmrc.http.InternalServerException
 
 import scala.concurrent.Future
 
-class SubmissionControllerSpec extends UnitSpec
-  with OneAppPerSuite
-  with MaterializerSupport
-  with MockitoSugar {
-
-  val submissionResponse = SubmissionResponse("12345", "12345-SubmissionCTUTR-20171023-iform.pdf")
-
-  "SubmissionController" must {
-
-    "return Ok with a envelopeId status" when {
-
-      "valid payload is submitted" in {
-        val sut = createSUT
-
-        when(sut.submissionService.submit(any())(any())).thenReturn(Future.successful(submissionResponse))
-
-        val result = Helpers.call(sut.submit(), fakeRequestValidDataset)
-        status(result) shouldBe Status.OK
-        contentAsJson(result).as[SubmissionResponse].id shouldBe "12345"
-        contentAsJson(result).as[SubmissionResponse].filename shouldBe "12345-SubmissionCTUTR-20171023-iform.pdf"
-      }
-
-    }
-
-    "return a non success http response" when {
-
-      "submit fails to parse invalid payload" in {
-        val sut = createSUT
-
-        val result = Helpers.call(sut.submit(), fakeRequestBadRequest)
-        status(result) shouldBe BAD_REQUEST
-      }
-
-      "the submission service returns an error" in {
-        val sut = createSUT
-
-        when(sut.submissionService.submit(any())(any())).thenReturn(Future.failed(new InternalServerException("failed to process submission")))
-
-        val result = Helpers.call(sut.submit(), fakeRequestValidDataset)
-        status(result) shouldBe INTERNAL_SERVER_ERROR
-      }
-    }
-  }
-
-  "fileUploadCallback" must {
-
-    "return a 200 response status" when {
-
-      "when available callback response" in {
-        val sut = createSUT
-        val callback = Json.toJson(CallbackRequest("env123", "file-id-1", "AVAILABLE"))
-
-        val fakeRequest = FakeRequest(method = "POST", uri = "",
-          headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = callback)
-
-        when(sut.submissionService.callback(any())(any())).thenReturn(Future.successful("env123"))
-
-        val result = Helpers.call(sut.fileUploadCallback(),fakeRequest)
-
-        status(result) shouldBe OK
-        verify(sut.submissionService, times(1)).callback(eqTo("env123"))(any())
-      }
-
-      "when closed callback response" in {
-        val sut = createSUT
-        val callback = Json.toJson(CallbackRequest("env123", "file-id-1", "CLOSED"))
-
-        val fakeRequest = FakeRequest(method = "POST", uri = "",
-          headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = callback)
-
-        val result = Helpers.call(sut.fileUploadCallback(),fakeRequest)
-
-        status(result) shouldBe OK
-        verify(sut.submissionService, times(0)).callback("env123")
-      }
-    }
-  }
+class SubmissionControllerSpec extends TestFixture {
 
   val validDataset = Json.parse(
     """
@@ -137,13 +56,69 @@ class SubmissionControllerSpec extends UnitSpec
 
   val fakeRequestBadRequest = FakeRequest("POST", "/submit").withJsonBody(invalidDataset)
 
-  val mockSubmissionService = mock[SubmissionService]
+  val submissionResponse: SubmissionResponse = SubmissionResponse("12345", "12345-SubmissionCTUTR-20171023-iform.pdf")
+  val submissionController = new SubmissionController(mockSubmissionService, mockAuditService, stubCC)
 
-  val mockAuditService = mock[AuditService]
+  "SubmissionController" must {
 
-  private class SUT extends SubmissionController(mockSubmissionService, mockAuditService)
+    "return Ok with a envelopeId status" when {
 
-  private def createSUT = new SUT
+      "valid payload is submitted" in {
+        when(submissionController.submissionService.submit(any())(any())).thenReturn(Future.successful(submissionResponse))
 
-  private implicit val hc = HeaderCarrier()
+        val result = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
+        status(result) mustBe Status.OK
+        contentAsJson(result).as[SubmissionResponse].id mustBe "12345"
+        contentAsJson(result).as[SubmissionResponse].filename mustBe "12345-SubmissionCTUTR-20171023-iform.pdf"
+      }
+
+    }
+
+    "return a non success http response" when {
+
+      "submit fails to parse invalid payload" in {
+
+        val result = Helpers.call(submissionController.submit(), fakeRequestBadRequest)
+        status(result) mustBe BAD_REQUEST
+      }
+
+      "the submission service returns an error" in {
+        when(submissionController.submissionService.submit(any())(any())).thenReturn(Future.failed(new InternalServerException("failed to process submission")))
+
+        val result = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
+        status(result) mustBe INTERNAL_SERVER_ERROR
+      }
+    }
+  }
+
+  "fileUploadCallback" must {
+
+    "return a 200 response status" when {
+
+      "when available callback response" in {
+        val callback = Json.toJson(CallbackRequest("env123", "file-id-1", "AVAILABLE"))
+
+        val fakeRequest = FakeRequest(method = "POST", uri = "",
+          headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = callback)
+
+        when(submissionController.submissionService.callback(eqTo("env123"))(any())).thenReturn(Future.successful("env123"))
+
+        val result = Helpers.call(submissionController.fileUploadCallback(),fakeRequest)
+
+        status(result) mustBe OK
+      }
+
+      "when closed callback response" in {
+        val callback = Json.toJson(CallbackRequest("env123", "file-id-1", "CLOSED"))
+
+        val fakeRequest = FakeRequest(method = "POST", uri = "",
+          headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = callback)
+
+        val result = Helpers.call(submissionController.fileUploadCallback(),fakeRequest)
+
+        status(result) mustBe OK
+        verify(submissionController.submissionService, times(0)).callback("env123")
+      }
+    }
+  }
 }
