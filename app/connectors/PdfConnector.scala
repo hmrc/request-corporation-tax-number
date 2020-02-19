@@ -18,13 +18,11 @@ package connectors
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import akka.util.ByteString
 import com.kenshoo.play.metrics.Metrics
 import config.MicroserviceAppConfig
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.http.Status
-import play.api.libs.json.Json
 import uk.gov.hmrc.http.{HeaderCarrier, HttpException}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
@@ -43,7 +41,7 @@ class PdfConnector @Inject()(val appConfig : MicroserviceAppConfig,
   private val basicUrl: String = s"${appConfig.pdfServiceUrl}/pdf-generator-service/generate"
 
   def generatePdf(html: String)(implicit hc: HeaderCarrier): Future[Array[Byte]] = {
-    httpClient.doPost(basicUrl, Map("html" -> Seq(html))).map { response =>
+    httpClient.doFormPost(basicUrl, body = Map("html" -> Seq(html))).map { response =>
       response.status match {
         case Status.OK =>
           Logger.info(s"[PdfConnector][generatePdf] [Generated PDF]")

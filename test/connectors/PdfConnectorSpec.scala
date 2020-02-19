@@ -16,14 +16,11 @@
 
 package connectors
 
-import akka.http.scaladsl.model.HttpCharsets
 import helper.TestFixture
-import org.eclipse.jetty.util.Utf8LineParser
-import org.mockito.ArgumentMatchers.{any, anyString}
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import org.scalatest.concurrent.IntegrationPatience
 import org.scalatest.{BeforeAndAfterEachTestData, TestData}
-import play.api.libs.json.{JsObject, JsString, JsValue, Json}
 import uk.gov.hmrc.http.{HttpException, HttpResponse}
 
 import scala.concurrent.duration._
@@ -40,6 +37,9 @@ class PdfConnectorSpec extends TestFixture
 
   val pdfConnector: PdfConnector = new PdfConnector(appConfig, mockHttpClient, mockMetrics, ec)
 
+  val gernerateUrl = s"http://localhost:9203/pdf-generator-service/generate"
+  val body = Map("html" -> List("<html>test</html>"))
+
   "PdfConnector" should {
 
     "return the pdf service payload in bytes " when {
@@ -49,9 +49,8 @@ class PdfConnectorSpec extends TestFixture
 
         val httpResponse = HttpResponse(200, None, responseString = Some(htmlAsString))
 
-        when(mockHttpClient.doPost(anyString(), any(), any())(any(), any(), any()))
+        when(mockHttpClient.doFormPost(eqTo(gernerateUrl), eqTo(body), any())(any(), any()))
           .thenReturn(Future.successful(httpResponse))
-
 
         val response = pdfConnector.generatePdf(htmlAsString)
 
@@ -69,7 +68,7 @@ class PdfConnectorSpec extends TestFixture
 
         val httpResponse = HttpResponse(400, None)
 
-        when(mockHttpClient.doPost(anyString(), any(), any())(any(), any(), any()))
+        when(mockHttpClient.doFormPost(eqTo(gernerateUrl), eqTo(body), any())(any(), any()))
           .thenReturn(Future.successful(httpResponse))
 
         val result = pdfConnector.generatePdf(htmlAsString)
