@@ -27,7 +27,7 @@ import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{MustMatchers, WordSpec}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.inject.Injector
-import play.api.libs.ws.WSClient
+import play.api.libs.ws.{WSClient, WSRequest}
 import play.api.mvc.ControllerComponents
 import play.api.test.Helpers.stubControllerComponents
 import play.api.test.StubPlayBodyParsersFactory
@@ -51,7 +51,8 @@ trait TestFixture extends WordSpec with MustMatchers with MockitoSugar with Guic
   lazy implicit val ec: ExecutionContext = real[ExecutionContext]
   val stubCC: ControllerComponents = stubControllerComponents(playBodyParsers = stubPlayBodyParsers(materializer))
 
-  val mockHttpClient: HttpClient = mock[HttpClient]
+  val mockWsClient: WSClient = mock[WSClient]
+  val mockWsRequest: WSRequest = mock[WSRequest]
   val mockMetrics: Metrics = mock[Metrics]
 
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
