@@ -23,14 +23,14 @@ import config.MicroserviceAppConfig
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import play.api.http.Status
+import play.api.libs.ws.WSClient
 import uk.gov.hmrc.http.{HeaderCarrier, HttpException}
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class PdfConnector @Inject()(val appConfig : MicroserviceAppConfig,
-                             val httpClient: HttpClient,
+                             val wsClient: WSClient,
                              metrics : Metrics,
                              implicit val ec: ExecutionContext
                             ) {
@@ -41,11 +41,11 @@ class PdfConnector @Inject()(val appConfig : MicroserviceAppConfig,
   private val basicUrl: String = s"${appConfig.pdfServiceUrl}/pdf-generator-service/generate"
 
   def generatePdf(html: String)(implicit hc: HeaderCarrier): Future[Array[Byte]] = {
-    httpClient.doFormPost(basicUrl, body = Map("html" -> Seq(html))).map { response =>
+    wsClient.url(basicUrl).post(body = Map("html" -> Seq(html))).map { response =>
       response.status match {
         case Status.OK =>
           Logger.info(s"[PdfConnector][generatePdf] [Generated PDF]")
-          response.body.getBytes()
+          response.bodyAsBytes.toArray
         case _ =>
           Logger.warn(s"[PdfConnector][generatePdf][A Server error was received from PDF generator service]")
           throw new HttpException(response.body, response.status)
