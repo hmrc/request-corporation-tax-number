@@ -39,11 +39,8 @@ class pdfSubmissionMetadataSpec extends TestFixture {
     }
 
     "populate the correct header details" when {
-
+      val doc = Jsoup.parse(pdfSubmissionMetadata.toString(), "", Parser.xmlParser)
       "the pdf submission xml is generated" in {
-
-        val doc = Jsoup.parse(pdfSubmissionMetadata.toString(), "", Parser.xmlParser)
-
         doc.select("header > title").text() mustBe pdfSubmission.submissionReference
         doc.select("header > format").text() mustBe pdfSubmission.fileFormat
         doc.select("header > mime_type").text() mustBe pdfSubmission.mimeType
@@ -51,6 +48,20 @@ class pdfSubmissionMetadataSpec extends TestFixture {
         doc.select("header > source").text() mustBe pdfSubmission.source
         doc.select("header > target").text() mustBe pdfSubmission.target
         doc.select("header > reconciliation_id").text() mustBe pdfSubmission.reconciliationId
+      }
+
+      "the reconciliation_id" should {
+        "end with an numeric number" in {
+          doc.select("header > reconciliation_id").text().matches("([-0-9]{13}$)")
+        }
+
+        "be alphanumeric" in {
+          doc.select("header > reconciliation_id").text().matches("[-a-zA-Z0-9]+")
+        }
+
+        "contain 27 characters" in {
+          doc.select("header > reconciliation_id").text().length() mustBe 27
+        }
       }
     }
 
