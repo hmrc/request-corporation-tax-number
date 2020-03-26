@@ -17,16 +17,14 @@
 package util
 
 import uk.gov.hmrc.play.test.UnitSpec
-import utils.ReconciliationIdHelper.createReconciliationId
+import utils.SubmissionReferenceHelper.createSubmissionRef
 
-class ReconciiationIdHelperSpec extends UnitSpec {
-
-  val subRefTimestamp: String = "20200101000000"
+class SubmissionReferenceHelperSpec extends UnitSpec {
 
   "createSubmissionRef" should {
     "create submission reference of default length" in {
-      val submissionRef = createReconciliationId(subRefTimestamp)
-      submissionRef.length shouldBe 27
+      val submissionRef = createSubmissionRef()
+      submissionRef.length shouldBe 12
       submissionRef.contains("-") shouldBe true
 
       submissionRef.substring(0,
@@ -34,11 +32,12 @@ class ReconciiationIdHelperSpec extends UnitSpec {
       submissionRef.substring(0,3).contains("-") shouldBe false
       submissionRef.substring(4,8).contains("-") shouldBe false
       submissionRef.substring(9,12).contains("-") shouldBe false
+      submissionRef.matches("([A-Z0-9]{3}-[A-Z0-9]{4}-[A-Z0-9]{3})") shouldBe true
     }
 
     "create submission reference of non-default length" in {
-      val submissionRef = createReconciliationId(subRefTimestamp, 12)
-      submissionRef.length shouldBe 29
+      val submissionRef = createSubmissionRef(12)
+      submissionRef.length shouldBe 14
       submissionRef.contains("-") shouldBe true
     }
   }

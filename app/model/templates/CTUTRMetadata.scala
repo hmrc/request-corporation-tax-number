@@ -18,15 +18,16 @@ package model.templates
 
 import config.MicroserviceAppConfig
 import org.joda.time.LocalDateTime
-import utils.ReconciliationIdHelper.createReconciliationId
+import utils.SubmissionReferenceHelper.createSubmissionRef
 
 case class CTUTRMetadata(appConfig : MicroserviceAppConfig,
                         customerId: String = "") {
 
   val hmrcReceivedAt : LocalDateTime = LocalDateTime.now()
   val xmlCreatedAt: LocalDateTime = LocalDateTime.now()
-  val submissionReference: String = xmlCreatedAt.toString("ssMMyyddmmHH")
-  val reconciliationId: String = createReconciliationId(xmlCreatedAt.toString("yyyyMMddHHmmss"))
+  val submissionReference: String = createSubmissionRef()
+
+  val reconciliationId: String = s"$submissionReference-" + xmlCreatedAt.toString("yyyyMMddHHmmss")
   val fileFormat: String = "pdf"
   val mimeType: String = "application/pdf"
 
