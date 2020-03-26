@@ -50,19 +50,9 @@ class pdfSubmissionMetadataSpec extends TestFixture {
         doc.select("header > reconciliation_id").text() mustBe pdfSubmission.reconciliationId
       }
 
-      "the reconciliation_id" should {
-        "end with an numeric number" in {
-          doc.select("header > reconciliation_id").text().matches("([-0-9]{13}$)")
+      "the reconciliation_id must be in the correct format" in {
+          doc.select("header > reconciliation_id").text().matches("(^[A-Z0-9]{3}-[A-Z0-9]{4}-[A-Z0-9]{3}-[0-9]{14}$)") mustBe true
         }
-
-        "be alphanumeric" in {
-          doc.select("header > reconciliation_id").text().matches("[-a-zA-Z0-9]+")
-        }
-
-        "contain 27 characters" in {
-          doc.select("header > reconciliation_id").text().length() mustBe 27
-        }
-      }
     }
 
     "populate the correct attribute details for the hmrc_time_of_receipt attribute" when {
@@ -101,7 +91,7 @@ class pdfSubmissionMetadataSpec extends TestFixture {
 
         section.select("attribute_name").text()  mustBe "submission_reference"
         section.select("attribute_type").text()  mustBe "string"
-        section.select("attribute_value").text()  mustBe pdfSubmission.xmlCreatedAt.toString("ssMMyyddmmHH")
+        section.select("attribute_value").text.matches("([A-Z0-9]{3}-[A-Z0-9]{4}-[A-Z0-9]{3})")  mustBe true
       }
     }
 
