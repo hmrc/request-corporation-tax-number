@@ -1,11 +1,11 @@
 import play.core.PlayVersion
-import sbt.Tests.{Group, SubProcess}
 import scoverage.ScoverageKeys
 import uk.gov.hmrc.DefaultBuildSettings._
-import uk.gov.hmrc.{SbtArtifactory, SbtAutoBuildPlugin, _}
+import uk.gov.hmrc.ForkedJvmPerTestSettings.oneForkedJvmPerTest
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
 import uk.gov.hmrc.versioning.SbtGitVersioning
 import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
+import uk.gov.hmrc.{SbtArtifactory, SbtAutoBuildPlugin}
 
 val appName = "request-corporation-tax-number"
 
@@ -17,9 +17,9 @@ val scope: String = "test,it"
 
 val compile = Seq(
   ws,
-  "uk.gov.hmrc" %% "bootstrap-play-26" % "1.3.0",
-  "uk.gov.hmrc" %% "domain" % "5.6.0-play-26",
-  "uk.gov.hmrc" %% "json-encryption" % "4.5.0-play-26"
+  "uk.gov.hmrc" %% "bootstrap-play-26" % "2.2.0",
+  "uk.gov.hmrc" %% "domain" % "5.10.0-play-26",
+  "uk.gov.hmrc" %% "json-encryption" % "4.8.0-play-26"
 )
 
 val test: Seq[ModuleID] = Seq(
@@ -37,17 +37,11 @@ val test: Seq[ModuleID] = Seq(
 // Fixes a transitive dependency clash between wiremock and scalatestplus-play Thanks Mac
 val jettyFromWiremockVersion = "9.2.24.v20180105"
 
-
-
-def oneForkedJvmPerTest(tests: Seq[TestDefinition]): Seq[Group] =
-  tests map {
-    test => new Group(test.name, Seq(test), SubProcess(ForkOptions(runJVMOptions = Seq("-Dtest.name=" + test.name))))
-  }
-
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin, SbtArtifactory) ++ plugins : _*)
   .settings(playSettings : _*)
   .settings(scalaSettings: _*)
+  .settings(scalaVersion := "2.12.12")
   .settings(publishingSettings: _*)
   .settings(defaultSettings(): _*)
   .settings(
@@ -68,7 +62,7 @@ lazy val microservice = Project(appName, file("."))
   .settings(inConfig(IntegrationTest)(Defaults.itSettings): _*)
   .settings(
     Keys.fork in IntegrationTest := false,
-    unmanagedSourceDirectories in IntegrationTest <<= (baseDirectory in IntegrationTest)(base => Seq(base / "it")),
+    unmanagedSourceDirectories in IntegrationTest := (baseDirectory in IntegrationTest)(base => Seq(base / "it")).value,
     addTestReportOption(IntegrationTest, "int-test-reports"),
     testGrouping in IntegrationTest := oneForkedJvmPerTest((definedTests in IntegrationTest).value),
     parallelExecution in IntegrationTest := false)
@@ -78,7 +72,7 @@ lazy val microservice = Project(appName, file("."))
   ))
   .settings(majorVersion := 1)
 
-dependencyOverrides ++= Set(
+dependencyOverrides ++= Seq(
   "org.eclipse.jetty" % "jetty-client"                % jettyFromWiremockVersion % "test",
   "org.eclipse.jetty" % "jetty-continuation"          % jettyFromWiremockVersion % "test",
   "org.eclipse.jetty" % "jetty-http"                  % jettyFromWiremockVersion % "test",
