@@ -18,13 +18,14 @@ package controllers
 
 import audit.{AuditService, CTUTRSubmission}
 import com.google.inject.Singleton
+
 import javax.inject.Inject
 import model.{CallbackRequest, Submission}
-import play.api.Logger
+import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, ControllerComponents}
 import services.SubmissionService
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -32,7 +33,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class SubmissionController @Inject()( val submissionService: SubmissionService,
                                       auditService: AuditService,
                                       cc: ControllerComponents
-                                    ) extends BackendController(cc) {
+                                    ) extends BackendController(cc) with Logging {
 
   implicit val ec: ExecutionContext = cc.executionContext
 
@@ -44,14 +45,14 @@ class SubmissionController @Inject()( val submissionService: SubmissionService,
           request.body.companyDetails.companyName
         )
       )
-      Logger.info(s"[SubmissionController][submit] processing submission")
+      logger.info(s"[SubmissionController][submit] processing submission")
       submissionService.submit(request.body) map {
         response =>
-          Logger.info(s"[SubmissionController][submit] processed submission $response")
+          logger.info(s"[SubmissionController][submit] processed submission $response")
           Ok(Json.toJson(response))
       } recoverWith {
         case e : Exception =>
-          Logger.error(s"[SubmissionController][submit][exception returned when processing submission] ${e.getMessage}")
+          logger.error(s"[SubmissionController][submit][exception returned when processing submission] ${e.getMessage}")
           Future.successful(InternalServerError)
       }
   }
@@ -59,14 +60,14 @@ class SubmissionController @Inject()( val submissionService: SubmissionService,
   def fileUploadCallback(): Action[CallbackRequest] =
     Action.async(parse.json[CallbackRequest]) {
       implicit request =>
-        Logger.info(s"[SubmissionController][fileUploadCallback] processing callback ${request.body}")
+        logger.info(s"[SubmissionController][fileUploadCallback] processing callback ${request.body}")
         if (request.body.status == "AVAILABLE") {
           submissionService.callback(request.body.envelopeId).map {
             _ =>
               Ok
           }
         } else {
-          Logger.info(s"[SubmissionController][fileUploadCallback] callback for ${request.body.fileId} had status: ${request.body.status}")
+          logger.info(s"[SubmissionController][fileUploadCallback] callback for ${request.body.fileId} had status: ${request.body.status}")
           Future.successful(Ok)
         }
     }

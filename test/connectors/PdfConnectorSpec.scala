@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ class PdfConnectorSpec extends TestFixture
     reset(mockMetrics)
   }
 
-  val pdfConnector: PdfConnector = new PdfConnector(appConfig, mockWsClient, mockMetrics, ec)
+  val pdfConnector: PdfConnector = new PdfConnector(appConfig, mockWsClient, ec)
 
   val gernerateUrl = s"http://localhost:9203/pdf-generator-service/generate"
   val body = Map("html" -> List("<html>test</html>"))

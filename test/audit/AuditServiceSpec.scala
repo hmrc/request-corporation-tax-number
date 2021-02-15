@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,19 +21,28 @@ import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import play.api.libs.json.Json
-import play.api.mvc.AnyContentAsEmpty
+import play.api.mvc.AnyContentAsJson
 import play.api.test.FakeRequest
 import uk.gov.hmrc.play.audit.http.connector.AuditResult
 import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
 
 import scala.concurrent.Future
-import scala.util.{Failure, Success}
 
 class AuditServiceSpec extends TestFixture {
 
-  private implicit val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
+  private implicit val request: FakeRequest[AnyContentAsJson] = FakeRequest()
+    .withHeaders("a" -> "B")
+    .withJsonBody(Json.parse(
+      """
+        |{
+        |   "companyDetails": {
+        |     "companyName": "Big Company",
+        |     "companyReferenceNumber": "AB123123"
+        |   }
+        |}
+        |""".stripMargin))
 
-  val auditService = new AuditServiceImpl(appConfig, mockAuditConnector)
+  val auditService = new AuditServiceImpl(mockAuditConnector)
 
   ".sendEvent" must {
 
@@ -53,7 +62,14 @@ class AuditServiceSpec extends TestFixture {
           eventCaptor.getValue.detail mustBe Json.obj(
             "data" -> CTUTRSubmission(
               "foo", "bar"
-            )
+            ),
+            "path" -> "/",
+            "X-Session-ID" -> "-",
+            "X-Request-ID" -> "-",
+            "clientIP" -> "-",
+            "clientPort" -> "-",
+            "Akamai-Reputation" -> "-",
+            "deviceID" -> "-"
           )
           eventCaptor.getValue.tags must contain(
             "transactionName" -> "CTUTRSubmission"
@@ -63,14 +79,15 @@ class AuditServiceSpec extends TestFixture {
     }
 
     "return failure when the audit event fails" in {
-      when(mockAuditConnector.sendEvent(any())(any(), any())).thenReturn(Future.successful(AuditResult.Failure("")))
+      when(mockAuditConnector.sendExtendedEvent(any[ExtendedDataEvent])(any(), any()))
+        .thenReturn(Future.successful(AuditResult.Failure("")))
 
       val result = auditService.sendEvent(CTUTRSubmission("foo", "bar"))
 
-      result onComplete {
-        case Success(x) => x mustBe AuditResult.Failure
-        case Failure(_) => fail("submitEnrolment returned a failure")
+      result.map {
+        x => x mustBe AuditResult.Failure
       }
+
     }
   }
 }
