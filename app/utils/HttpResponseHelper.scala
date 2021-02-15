@@ -17,7 +17,7 @@
 package utils
 
 import play.api.libs.json.{JsNull, JsResult, Json, Reads}
-import uk.gov.hmrc.http.{ HttpReads, HttpResponse }
+import uk.gov.hmrc.http.{HttpReads, HttpResponse}
 
 trait HttpResponseHelper {
 
@@ -39,12 +39,9 @@ trait HttpResponseHelper {
   }
 
   object JsonParsed {
-    def apply[A] = new JsonParsed[A]
+    def apply[A]: JsonParsed[A] = new JsonParsed[A]
   }
 
   implicit val httpReads: HttpReads[HttpResponse] =
-    new HttpReads[HttpResponse] {
-      override def read(method: String, url: String, response: HttpResponse): HttpResponse =
-        response
-    }
+    (_: String, _: String, response: HttpResponse) => response
 }

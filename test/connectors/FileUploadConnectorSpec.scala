@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 package connectors
 
-import akka.actor.ActorSystem
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import config.MicroserviceAppConfig
@@ -24,18 +23,15 @@ import model.domain.MimeContentType
 import model.{Envelope, File}
 import org.scalacheck.{Gen, Shrink}
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
-import org.scalatest.prop.PropertyChecks
-import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import play.api.Application
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
+import org.scalatestplus.play.PlaySpec
 import play.api.http.Status
 import play.api.inject.Injector
-import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsArray, Json}
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{AkamaiReputation, Authorization, ForwardedFor, HeaderCarrier, RequestId, SessionId}
 import util.WireMockHelper
 
-class FileUploadConnectorSpec extends PlaySpec with WireMockHelper with ScalaFutures with PropertyChecks with IntegrationPatience {
+class FileUploadConnectorSpec extends PlaySpec with WireMockHelper with ScalaFutures with ScalaCheckPropertyChecks with IntegrationPatience {
 
   def injector: Injector = app.injector
 
@@ -43,9 +39,17 @@ class FileUploadConnectorSpec extends PlaySpec with WireMockHelper with ScalaFut
 
   implicit def dontShrink[A]: Shrink[A] = Shrink.shrinkAny
 
-  private val as = ActorSystem()
-
-  implicit val hc = HeaderCarrier()
+  implicit val hc = HeaderCarrier(authorization = Some(Authorization("")),
+    forwarded = Some(ForwardedFor("")),
+      sessionId = Some(SessionId("")),
+      requestId = Some(RequestId("")),
+      trueClientIp = Some(""),
+      trueClientPort = Some(""),
+      gaToken = Some(""),
+      gaUserId = Some(""),
+      deviceID = Some(""),
+      akamaiReputation = Some(AkamaiReputation(""))
+  )
 
   private lazy val connector: FileUploadConnector =
     app.injector.instanceOf[FileUploadConnector]
@@ -283,7 +287,7 @@ class FileUploadConnectorSpec extends PlaySpec with WireMockHelper with ScalaFut
                 )
             )
 
-            whenReady(connector.envelopeSummary(envId)(as, hc)) {
+            whenReady(connector.envelopeSummary(envId)(hc)) {
               result =>
                 result mustBe Envelope(envId, None, envelopeStatus, None)
             }
@@ -315,7 +319,7 @@ class FileUploadConnectorSpec extends PlaySpec with WireMockHelper with ScalaFut
             )
 
             whenever(files.nonEmpty) {
-              whenReady(connector.envelopeSummary(envId)(as, hc)) {
+              whenReady(connector.envelopeSummary(envId)(hc)) {
                 result =>
                   result mustBe Envelope(envId, None, envelopeStatus, Some(files))
               }
@@ -381,7 +385,7 @@ class FileUploadConnectorSpec extends PlaySpec with WireMockHelper with ScalaFut
             )
 
             whenever(returnStatus != Status.OK && returnStatus != Status.NOT_FOUND) {
-              whenReady(connector.envelopeSummary(envId)(as, hc).failed) {
+              whenReady(connector.envelopeSummary(envId)(hc).failed) {
                 exception =>
                   exception mustBe a[RuntimeException]
               }

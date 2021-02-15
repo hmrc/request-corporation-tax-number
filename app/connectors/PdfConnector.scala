@@ -16,38 +16,31 @@
 
 package connectors
 
-import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
-import com.kenshoo.play.metrics.Metrics
 import config.MicroserviceAppConfig
-import javax.inject.{Inject, Singleton}
-import play.api.Logger
+import play.api.Logging
 import play.api.http.Status
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.http.{HeaderCarrier, HttpException}
+import uk.gov.hmrc.http.HttpException
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class PdfConnector @Inject()(val appConfig : MicroserviceAppConfig,
                              val wsClient: WSClient,
-                             metrics : Metrics,
                              implicit val ec: ExecutionContext
-                            ) {
-
-  private implicit val system: ActorSystem = ActorSystem()
-  private implicit val materializer: ActorMaterializer = ActorMaterializer()
+                            ) extends Logging {
 
   private val basicUrl: String = s"${appConfig.pdfServiceUrl}/pdf-generator-service/generate"
 
-  def generatePdf(html: String)(implicit hc: HeaderCarrier): Future[Array[Byte]] = {
+  def generatePdf(html: String): Future[Array[Byte]] = {
     wsClient.url(basicUrl).post(body = Map("html" -> Seq(html))).map { response =>
       response.status match {
         case Status.OK =>
-          Logger.info(s"[PdfConnector][generatePdf] [Generated PDF]")
+          logger.info(s"[PdfConnector][generatePdf] [Generated PDF]")
           response.bodyAsBytes.toArray
         case _ =>
-          Logger.warn(s"[PdfConnector][generatePdf][A Server error was received from PDF generator service]")
+          logger.warn(s"[PdfConnector][generatePdf][A Server error was received from PDF generator service]")
           throw new HttpException(response.body, response.status)
       }
     }

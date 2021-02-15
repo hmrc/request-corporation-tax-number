@@ -14,28 +14,27 @@ lazy val plugins : Seq[Plugins] = Seq.empty
 lazy val playSettings : Seq[Setting[_]] = Seq.empty
 
 val scope: String = "test,it"
+val silencerVersion: String = "1.7.1"
 
 val compile = Seq(
   ws,
-  "uk.gov.hmrc" %% "bootstrap-play-26" % "2.2.0",
-  "uk.gov.hmrc" %% "domain" % "5.10.0-play-26",
-  "uk.gov.hmrc" %% "json-encryption" % "4.8.0-play-26"
+  "uk.gov.hmrc" %% "bootstrap-backend-play-27" % "4.0.0",
+  "uk.gov.hmrc" %% "domain" % "5.10.0-play-27",
+  "uk.gov.hmrc" %% "json-encryption" % "4.8.0-play-27",
+  compilerPlugin("com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full),
+  "com.github.ghik" % "silencer-lib"    % silencerVersion % Provided cross CrossVersion.full
 )
 
 val test: Seq[ModuleID] = Seq(
-  "uk.gov.hmrc" %% "hmrctest" % "3.9.0-play-26" % scope,
-  "org.scalatest" %% "scalatest" % "3.0.5" % scope,
+  "org.scalatest" %% "scalatest" % "3.0.9" % scope,
   "org.pegdown" % "pegdown" % "1.6.0" % scope,
   "org.jsoup" % "jsoup" % "1.11.3" % scope,
   "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
-  "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.3" % scope,
+  "org.scalatestplus.play" %% "scalatestplus-play" % "4.0.3" % scope,
   "org.mockito" % "mockito-core" % "3.2.4" % scope,
   "org.scalacheck" %% "scalacheck" % "1.14.3" % scope,
-  "com.github.tomakehurst" % "wiremock" % "2.26.0" % scope
+  "com.github.tomakehurst" % "wiremock-jre8" % "2.26.3" % scope
 )
-
-// Fixes a transitive dependency clash between wiremock and scalatestplus-play Thanks Mac
-val jettyFromWiremockVersion = "9.2.24.v20180105"
 
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin, SbtArtifactory) ++ plugins : _*)
@@ -72,19 +71,6 @@ lazy val microservice = Project(appName, file("."))
   ))
   .settings(majorVersion := 1)
 
-dependencyOverrides ++= Seq(
-  "org.eclipse.jetty" % "jetty-client"                % jettyFromWiremockVersion % "test",
-  "org.eclipse.jetty" % "jetty-continuation"          % jettyFromWiremockVersion % "test",
-  "org.eclipse.jetty" % "jetty-http"                  % jettyFromWiremockVersion % "test",
-  "org.eclipse.jetty" % "jetty-io"                    % jettyFromWiremockVersion % "test",
-  "org.eclipse.jetty" % "jetty-security"              % jettyFromWiremockVersion % "test",
-  "org.eclipse.jetty" % "jetty-server"                % jettyFromWiremockVersion % "test",
-  "org.eclipse.jetty" % "jetty-servlet"               % jettyFromWiremockVersion % "test",
-  "org.eclipse.jetty" % "jetty-servlets"              % jettyFromWiremockVersion % "test",
-  "org.eclipse.jetty" % "jetty-util"                  % jettyFromWiremockVersion % "test",
-  "org.eclipse.jetty" % "jetty-webapp"                % jettyFromWiremockVersion % "test",
-  "org.eclipse.jetty" % "jetty-xml"                   % jettyFromWiremockVersion % "test",
-  "org.eclipse.jetty.websocket" % "websocket-api"     % jettyFromWiremockVersion % "test",
-  "org.eclipse.jetty.websocket" % "websocket-client"  % jettyFromWiremockVersion % "test",
-  "org.eclipse.jetty.websocket" % "websocket-common"  % jettyFromWiremockVersion % "test"
+scalacOptions ++= Seq(
+  "-P:silencer:pathFilters=templates;routes"
 )

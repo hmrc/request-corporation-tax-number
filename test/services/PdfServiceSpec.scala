@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,14 +17,9 @@
 package services
 
 import helper.TestFixture
-import uk.gov.hmrc.http.HttpException
-
-import helper.TestFixture
-import model.domain.MimeContentType
-import model.{Envelope, File}
-import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
-import uk.gov.hmrc.http.HttpResponse
+import uk.gov.hmrc.http.HttpException
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -41,7 +36,7 @@ class PdfServiceSpec extends TestFixture {
 
         val htmlAsString = "<html>test</html>"
 
-        when(pdfService.pdfConnector.generatePdf(any())(any())).thenReturn(Future.successful(htmlAsString.getBytes))
+        when(pdfService.pdfConnector.generatePdf(any())).thenReturn(Future.successful(htmlAsString.getBytes))
 
         val response = pdfService.generatePdf(htmlAsString)
 
@@ -57,7 +52,7 @@ class PdfServiceSpec extends TestFixture {
 
         val htmlAsString = "<html>test</html>"
 
-        when(pdfService.pdfConnector.generatePdf(any())(any())).thenReturn(Future.failed(new HttpException("", 0)))
+        when(pdfService.pdfConnector.generatePdf(any())).thenReturn(Future.failed(new HttpException("", 0)))
 
         val result = pdfService.generatePdf(htmlAsString)
 
