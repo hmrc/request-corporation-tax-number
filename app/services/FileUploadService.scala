@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,11 +18,10 @@ package services
 
 import javax.inject.{Inject, Singleton}
 
-import akka.actor.ActorSystem
 import connectors.FileUploadConnector
 import model.Envelope
 import model.domain.MimeContentType
-import play.api.Logger
+import play.api.Logging
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import scala.concurrent.Future
@@ -30,20 +29,20 @@ import scala.concurrent.Future
 @Singleton
 class FileUploadService @Inject()(
                                  val fileUploadConnector: FileUploadConnector
-                                 )(implicit as: ActorSystem) {
+                                 ) extends Logging {
 
   def createEnvelope()(implicit hc: HeaderCarrier): Future[String] = {
-    Logger.info(s"[FileUploadService][createEnvelope][creating envelope")
+    logger.info(s"[FileUploadService][createEnvelope][creating envelope")
     fileUploadConnector.createEnvelope
   }
 
   def uploadFile(data: Array[Byte], envelopeId: String, fileName: String, contentType: MimeContentType)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
-    Logger.info(s"[FileUploadService][uploadFile][uploading file $envelopeId $fileName ${contentType.description}")
+    logger.info(s"[FileUploadService][uploadFile][uploading file $envelopeId $fileName ${contentType.description}")
     fileUploadConnector.uploadFile(data, fileName, contentType, envelopeId, removeExtension(fileName))
   }
 
   def closeEnvelope(envelopeId: String)(implicit hc: HeaderCarrier): Future[String] = {
-    Logger.info(s"[FileUploadService][closeEnvelope][closing envelope $envelopeId")
+    logger.info(s"[FileUploadService][closeEnvelope][closing envelope $envelopeId")
     fileUploadConnector.closeEnvelope(envelopeId)
   }
 

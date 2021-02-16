@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,6 @@
 
 package connectors
 
-import java.util.concurrent.Callable
-
-import javax.inject.Singleton
 import akka.actor.ActorSystem
 import akka.pattern.Patterns.after
 import akka.stream.scaladsl.Source
@@ -28,31 +25,31 @@ import com.kenshoo.play.metrics.Metrics
 import config.MicroserviceAppConfig
 import model.Envelope
 import model.domain.MimeContentType
-import play.Logger
+import play.api.Logging
 import play.api.http.Status._
 import play.api.libs.json._
 import play.api.libs.ws.WSClient
 import play.api.mvc.MultipartFormData.{DataPart, FilePart}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.http.{HeaderCarrier, HeaderNames, HttpClient, HttpResponse}
 import utils.HttpResponseHelper
 
-import scala.concurrent.{ExecutionContext, Future}
+import javax.inject.Singleton
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class FileUploadConnector @Inject()( appConfig: MicroserviceAppConfig,
-                                     val httpClient: HttpClient,
-                                     val wsClient: WSClient,
-                                     val metrics: Metrics,
-                                     implicit val ec: ExecutionContext
-                                   )(implicit as: ActorSystem) extends HttpResponseHelper {
+class FileUploadConnector @Inject()(appConfig: MicroserviceAppConfig,
+                                    val httpClient: HttpClient,
+                                    val wsClient: WSClient,
+                                    val metrics: Metrics,
+                                    implicit val ec: ExecutionContext
+                                   )(implicit as: ActorSystem) extends HttpResponseHelper with Logging {
 
   private val callbackUrl: String = appConfig.fileUploadCallbackUrl
   private val fileUploadUrl: String = appConfig.fileUploadUrl
   private val fileUploadFrontEndUrl: String = appConfig.fileUploadFrontendUrl
 
-  private val firstRetryMilliseconds : Int = appConfig.firstRetryMilliseconds
+  private val firstRetryMilliseconds: Int = appConfig.firstRetryMilliseconds
   private val maxAttemptNumber: Int = appConfig.maxAttemptNumber
 
   def routingRequest(envelopeId: String): JsValue = Json.obj(
@@ -77,9 +74,8 @@ class FileUploadConnector @Inject()( appConfig: MicroserviceAppConfig,
       }
     }
 
-    result.onFailure {
-      case e =>
-        Logger.error("[FileUploadConnector][createEnvelope] - call to create envelope failed", e)
+    result.failed.foreach { e =>
+      logger.error("[FileUploadConnector][createEnvelope] - call to create envelope failed", e)
     }
 
     result
@@ -91,20 +87,36 @@ class FileUploadConnector @Inject()( appConfig: MicroserviceAppConfig,
     val multipartFormData = Source(FilePart("attachment", fileName, Some(contentType.description),
       Source(ByteString(byteArray) :: Nil)) :: DataPart("", "") :: Nil)
 
-    val result = wsClient.url(s"$fileUploadFrontEndUrl/file-upload/upload/envelopes/$envelopeId/files/$fileId")
-      .withHttpHeaders(hc.copy(otherHeaders = Seq("CSRF-token" -> "nocheck")).headers: _*).post(multipartFormData).flatMap { response =>
+    val headers: Seq[(String, String)] = {
+      List(
+        hc.requestId.map(rid => HeaderNames.xRequestId -> rid.value),
+        hc.sessionId.map(sid => HeaderNames.xSessionId -> sid.value),
+        hc.forwarded.map(f => HeaderNames.xForwardedFor -> f.value),
+        Some(HeaderNames.xRequestChain -> hc.requestChain.value),
+        hc.authorization.map(auth => HeaderNames.authorisation -> auth.value),
+        hc.trueClientIp.map(HeaderNames.trueClientIp -> _),
+        hc.trueClientPort.map(HeaderNames.trueClientPort -> _),
+        hc.gaToken.map(HeaderNames.googleAnalyticTokenId -> _),
+        hc.gaUserId.map(HeaderNames.googleAnalyticUserId -> _),
+        hc.deviceID.map(HeaderNames.deviceID -> _),
+        hc.akamaiReputation.map(HeaderNames.akamaiReputation -> _.value)
+      ).flatten ++ Seq("CSRF-token" -> "nocheck")
+
+    }
+
+    val result: Future[HttpResponse] = wsClient.url(s"$fileUploadFrontEndUrl/file-upload/upload/envelopes/$envelopeId/files/$fileId")
+      .withHttpHeaders(headers: _*).post(multipartFormData).flatMap { response =>
 
       response.status match {
         case OK =>
-          Future.successful(HttpResponse(response.status))
+          Future.successful(HttpResponse(response.status, ""))
         case _ =>
           Future.failed(new RuntimeException(s"failed with status [${response.status}]"))
       }
     }
 
-    result.onFailure {
-      case e =>
-        Logger.error("[FileUploadConnector][uploadFile] - call to upload file failed", e)
+    result.failed.foreach { e =>
+      logger.error("[FileUploadConnector][uploadFile] - call to upload file failed", e)
     }
 
     result
@@ -120,7 +132,7 @@ class FileUploadConnector @Inject()( appConfig: MicroserviceAppConfig,
           }
         case BAD_REQUEST =>
           if (response.body.contains("Routing request already received for envelope")) {
-            Logger.warn(s"[FileUploadConnector][closeEnvelope] Routing request already received for envelope")
+            logger.warn(s"[FileUploadConnector][closeEnvelope] Routing request already received for envelope")
             Future.successful("Already Closed")
           } else {
             Future.failed(new RuntimeException("failed with status 400 bad request"))
@@ -130,9 +142,8 @@ class FileUploadConnector @Inject()( appConfig: MicroserviceAppConfig,
       }
     }
 
-    result.onFailure {
-      case e =>
-        Logger.error("[FileUploadConnector][closeEnvelope] call to close envelope failed", e)
+    result.failed.foreach { e =>
+      logger.error("[FileUploadConnector][closeEnvelope] call to close envelope failed", e)
     }
 
     result
@@ -153,9 +164,7 @@ class FileUploadConnector @Inject()( appConfig: MicroserviceAppConfig,
         val nextAttempt = attempt + 1
 
         after(nextTry.milliseconds, as.scheduler, ec,
-          new Callable[Future[Envelope]] {
-            override def call(): Future[Envelope] = envelopeSummary(envelopeId, nextTry, nextAttempt)(as, hc)
-          }
+          () => envelopeSummary(envelopeId, nextTry, nextAttempt)
         )
       case _ =>
         Future.failed(new RuntimeException(s"[FileUploadConnector][retry] envelope[$envelopeId] summary failed at attempt: $attempt"))
@@ -163,7 +172,7 @@ class FileUploadConnector @Inject()( appConfig: MicroserviceAppConfig,
   }
 
   def envelopeSummary(envelopeId: String, nextTry: Int = firstRetryMilliseconds, attempt: Int = 1)
-                     (implicit as: ActorSystem, hc: HeaderCarrier): Future[Envelope] = {
+                     (implicit hc: HeaderCarrier): Future[Envelope] = {
     httpClient.GET(s"$fileUploadUrl/file-upload/envelopes/$envelopeId").flatMap {
       response =>
         response.status match {

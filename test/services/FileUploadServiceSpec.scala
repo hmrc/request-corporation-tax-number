@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ class FileUploadServiceSpec extends TestFixture {
 
     "able to upload the file" in {
       when(fileUploadService.fileUploadConnector.uploadFile(any(), eqTo(fileName), eqTo(contentType), any(), eqTo(fileId))(any()))
-        .thenReturn(Future.successful(HttpResponse(200)))
+        .thenReturn(Future.successful(HttpResponse(200, "")))
 
       val result = Await.result(fileUploadService.uploadFile(new Array[Byte](1), "123", fileName, contentType), 5.seconds)
 

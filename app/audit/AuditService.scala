@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,16 +17,15 @@
 package audit
 
 import com.google.inject.ImplementedBy
-import config.MicroserviceAppConfig
-import javax.inject.{Inject, Singleton}
-import play.api.Logger
+import play.api.Logging
 import play.api.libs.json.{JsString, Json, Writes}
 import play.api.mvc.RequestHeader
-import uk.gov.hmrc.play.HeaderCarrierConverter
 import uk.gov.hmrc.play.audit.AuditExtensions._
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
 import uk.gov.hmrc.play.audit.model.ExtendedDataEvent
+import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.implicitConversions
 
@@ -41,12 +40,12 @@ trait AuditService {
 }
 
 @Singleton
-class AuditServiceImpl @Inject()(config: MicroserviceAppConfig,
+class AuditServiceImpl @Inject()(
                                  auditConnector: AuditConnector
-                                ) extends AuditService {
+                                ) extends AuditService with Logging {
 
   private implicit def toHc(request: RequestHeader): AuditHeaderCarrier =
-    auditHeaderCarrier(HeaderCarrierConverter.fromHeadersAndSession(request.headers, Some(request.session)))
+    auditHeaderCarrier(HeaderCarrierConverter.fromRequestAndSession(request, request.session))
 
   def sendEvent[T <: AuditEvent](event: T)(implicit
                                            rh: RequestHeader,
@@ -57,12 +56,12 @@ class AuditServiceImpl @Inject()(config: MicroserviceAppConfig,
       "data" -> event
     )
 
-    val details = rh.toAuditDetails().foldLeft(eventJson) {
+    val details = rh.toAuditTags().foldLeft(eventJson) {
       case (m, (k, v)) =>
         m + (k -> JsString(v))
     }
 
-    Logger.debug(s"[AuditService][sendEvent] sending ${event.auditType}")
+    logger.debug(s"[AuditService][sendEvent] sending ${event.auditType}")
 
     val result: Future[AuditResult] = auditConnector.sendExtendedEvent(ExtendedDataEvent(
       auditSource = "request-corporation-tax-number",
@@ -74,14 +73,12 @@ class AuditServiceImpl @Inject()(config: MicroserviceAppConfig,
       detail = details
     ))
 
-    result.onSuccess {
-      case _ =>
-        Logger.debug(s"[AuditService][sendEvent] successfully sent ${event.auditType}")
+    result.foreach { _ =>
+        logger.debug(s"[AuditService][sendEvent] successfully sent ${event.auditType}")
     }
 
-    result.onFailure {
-      case e =>
-        Logger.error(s"[AuditService][sendEvent] failed to send event ${event.auditType}", e)
+    result.failed.foreach { e =>
+        logger.error(s"[AuditService][sendEvent] failed to send event ${event.auditType}", e)
     }
 
     result

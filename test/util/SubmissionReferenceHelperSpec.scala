@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@
 
 package util
 
-import uk.gov.hmrc.play.test.UnitSpec
+import org.scalatest.{Matchers, OptionValues, WordSpecLike}
 import utils.SubmissionReferenceHelper.createSubmissionRef
 
-class SubmissionReferenceHelperSpec extends UnitSpec {
+class SubmissionReferenceHelperSpec extends WordSpecLike with Matchers with OptionValues {
 
   "createSubmissionRef" should {
     "create submission reference of default length" in {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import model.domain.{MimeContentType, SubmissionResponse}
 import model.templates.{CTUTRMetadata, SubmissionViewModel}
 import model.{Envelope, Submission}
 import org.joda.time.LocalDate
-import play.api.Logger
+import play.api.Logging
 import templates.html.CTUTRScheme
 import templates.xml.{pdfSubmissionMetadata, robotXml}
 import uk.gov.hmrc.http.HeaderCarrier
@@ -39,7 +39,7 @@ class SubmissionService @Inject()(
                                 val pdfService: PdfService,
                                 appConfig : MicroserviceAppConfig,
                                 implicit val ec: ExecutionContext
-                                ) {
+                                ) extends Logging {
 
   protected def fileName(envelopeId: String, fileType: String) = s"$envelopeId-SubmissionCTUTR-${LocalDate.now().toString("YYYYMMdd")}-$fileType"
 
@@ -50,7 +50,7 @@ class SubmissionService @Inject()(
       envelopeId: String <- fileUploadService.createEnvelope()
       envelope: Envelope <- fileUploadService.envelopeSummary(envelopeId)
     } yield {
-      Logger.info(s"[SubmissionService][submit] submission created $envelopeId")
+      logger.info(s"[SubmissionService][submit] submission created $envelopeId")
 
       envelope.status match {
         case "OPEN" =>
@@ -75,7 +75,7 @@ class SubmissionService @Inject()(
             MimeContentType.ApplicationXml
           )
         case _ =>
-          Logger.error(s"[SubmissionService][submit] Envelope status not OPEN for envelopeId: $envelopeId")
+          logger.error(s"[SubmissionService][submit] Envelope status not OPEN for envelopeId: $envelopeId")
           Future.failed(throw new RuntimeException())
       }
 
@@ -99,7 +99,7 @@ class SubmissionService @Inject()(
     robotXml(metadata, viewModel).toString().getBytes
   }
 
-  def createPdf(submission: Submission)(implicit hc: HeaderCarrier): Future[Array[Byte]] = {
+  def createPdf(submission: Submission): Future[Array[Byte]] = {
     val viewModel = SubmissionViewModel.apply(submission)
     val pdfTemplate = CTUTRScheme(viewModel).toString
     pdfService.generatePdf(pdfTemplate)
@@ -114,11 +114,11 @@ class SubmissionService @Inject()(
               case Some(files) if files.count(file => file.status == "AVAILABLE") == 3 =>
                 fileUploadService.closeEnvelope(envelopeId)
               case _=>
-                Logger.info("[SubmissionService][callback] incomplete wait for files")
+                logger.info("[SubmissionService][callback] incomplete wait for files")
                 Future.successful(envelopeId)
             }
           case _ =>
-            Logger.error(s"[SubmissionService][callback] envelope: $envelopeId not open instead status: ${envelope.status}")
+            logger.error(s"[SubmissionService][callback] envelope: $envelopeId not open instead status: ${envelope.status}")
             Future.successful(envelopeId)
         }
     }

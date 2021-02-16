@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,11 +20,19 @@ import helper.TestFixture
 import model.CompanyDetails
 import model.templates.SubmissionViewModel
 import org.jsoup.Jsoup
-import org.scalatest.Matchers
 import play.twirl.api.Html
-import uk.gov.hmrc.play.test.UnitSpec
 
 class CTUTRSchemeSpec extends TestFixture {
+
+  private val submitValidViewModel: SubmissionViewModel = SubmissionViewModel(
+    company = CompanyDetails(
+      companyName = "Big company",
+      companyReferenceNumber = "AB123123"
+    ),
+    timeStamp = "Tuesday 31 October 2017 at 15:18:12"
+  )
+
+  private def createSUT(viewModel: SubmissionViewModel): Html = templates.html.CTUTRScheme(viewModel)
 
   "CTUTR Form" should {
 
@@ -43,21 +51,7 @@ class CTUTRSchemeSpec extends TestFixture {
 
         companyReference.select("td:nth-of-type(1)").text() mustBe "Company reference"
         companyReference.select("td:nth-of-type(2)").text() mustBe "AB123123"
-
       }
-
     }
-
   }
-
-  private val submitValidViewModel: SubmissionViewModel = SubmissionViewModel(
-    company = CompanyDetails(
-      companyName = "Big company",
-      companyReferenceNumber = "AB123123"
-    ),
-    timeStamp = "Tuesday 31 October 2017 at 15:18:12"
-  )
-
-
-  private def createSUT(viewModel: SubmissionViewModel): Html = templates.html.CTUTRScheme(viewModel)
 }

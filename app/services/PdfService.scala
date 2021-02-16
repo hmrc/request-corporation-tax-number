@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,13 +18,12 @@ package services
 
 import javax.inject.{Inject, Singleton}
 import connectors.PdfConnector
-import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.Future
 
 @Singleton
 class PdfService @Inject()( val pdfConnector: PdfConnector) {
 
-  def generatePdf(html: String)(implicit hc: HeaderCarrier): Future[Array[Byte]] = pdfConnector.generatePdf(html)
+  def generatePdf(html: String): Future[Array[Byte]] = pdfConnector.generatePdf(html)
 
 }
