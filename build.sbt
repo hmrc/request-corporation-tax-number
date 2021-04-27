@@ -5,13 +5,11 @@ import uk.gov.hmrc.ForkedJvmPerTestSettings.oneForkedJvmPerTest
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
 import uk.gov.hmrc.versioning.SbtGitVersioning
 import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
-import uk.gov.hmrc.{SbtArtifactory, SbtAutoBuildPlugin}
+import uk.gov.hmrc.SbtAutoBuildPlugin
 
 val appName = "request-corporation-tax-number"
 
 lazy val appDependencies: Seq[ModuleID] = compile ++ test
-lazy val plugins : Seq[Plugins] = Seq.empty
-lazy val playSettings : Seq[Setting[_]] = Seq.empty
 
 val scope: String = "test,it"
 val silencerVersion: String = "1.7.1"
@@ -19,26 +17,25 @@ val silencerVersion: String = "1.7.1"
 val compile = Seq(
   ws,
   "uk.gov.hmrc" %% "bootstrap-backend-play-27" % "4.0.0",
-  "uk.gov.hmrc" %% "domain" % "5.10.0-play-27",
-  "uk.gov.hmrc" %% "json-encryption" % "4.8.0-play-27",
+  "uk.gov.hmrc" %% "domain"                    % "5.10.0-play-27",
+  "uk.gov.hmrc" %% "json-encryption"           % "4.8.0-play-27",
   compilerPlugin("com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full),
   "com.github.ghik" % "silencer-lib"    % silencerVersion % Provided cross CrossVersion.full
 )
 
 val test: Seq[ModuleID] = Seq(
-  "org.scalatest" %% "scalatest" % "3.0.9" % scope,
-  "org.pegdown" % "pegdown" % "1.6.0" % scope,
-  "org.jsoup" % "jsoup" % "1.11.3" % scope,
-  "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
-  "org.scalatestplus.play" %% "scalatestplus-play" % "4.0.3" % scope,
-  "org.mockito" % "mockito-core" % "3.2.4" % scope,
-  "org.scalacheck" %% "scalacheck" % "1.14.3" % scope,
-  "com.github.tomakehurst" % "wiremock-jre8" % "2.26.3" % scope
+  "org.scalatest"          %% "scalatest"          % "3.0.9"             % scope,
+  "org.pegdown"            % "pegdown"             % "1.6.0"             % scope,
+  "org.jsoup"              % "jsoup"               % "1.11.3"            % scope,
+  "com.typesafe.play"      %% "play-test"          % PlayVersion.current % scope,
+  "org.scalatestplus.play" %% "scalatestplus-play" % "4.0.3"             % scope,
+  "org.mockito"            % "mockito-core"        % "3.2.4"             % scope,
+  "org.scalacheck"         %% "scalacheck"         % "1.14.3"            % scope,
+  "com.github.tomakehurst" % "wiremock-jre8"       % "2.26.3"            % scope
 )
 
 lazy val microservice = Project(appName, file("."))
-  .enablePlugins(Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin, SbtArtifactory) ++ plugins : _*)
-  .settings(playSettings : _*)
+  .enablePlugins(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin)
   .settings(scalaSettings: _*)
   .settings(scalaVersion := "2.12.12")
   .settings(publishingSettings: _*)
@@ -65,10 +62,6 @@ lazy val microservice = Project(appName, file("."))
     addTestReportOption(IntegrationTest, "int-test-reports"),
     testGrouping in IntegrationTest := oneForkedJvmPerTest((definedTests in IntegrationTest).value),
     parallelExecution in IntegrationTest := false)
-  .settings(resolvers ++= Seq(
-    Resolver.bintrayRepo("hmrc", "releases"),
-    Resolver.jcenterRepo
-  ))
   .settings(majorVersion := 1)
 
 scalacOptions ++= Seq(
