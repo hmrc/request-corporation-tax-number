@@ -3,9 +3,7 @@ import scoverage.ScoverageKeys
 import uk.gov.hmrc.DefaultBuildSettings._
 import uk.gov.hmrc.ForkedJvmPerTestSettings.oneForkedJvmPerTest
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin._
-import uk.gov.hmrc.versioning.SbtGitVersioning
 import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
-import uk.gov.hmrc.SbtAutoBuildPlugin
 
 val appName = "request-corporation-tax-number"
 
@@ -16,9 +14,9 @@ val silencerVersion: String = "1.7.1"
 
 val compile = Seq(
   ws,
-  "uk.gov.hmrc" %% "bootstrap-backend-play-27" % "4.0.0",
-  "uk.gov.hmrc" %% "domain"                    % "5.10.0-play-27",
-  "uk.gov.hmrc" %% "json-encryption"           % "4.8.0-play-27",
+  "uk.gov.hmrc" %% "bootstrap-backend-play-27" % "5.3.0",
+  "uk.gov.hmrc" %% "domain"                    % "5.11.0-play-27",
+  "uk.gov.hmrc" %% "json-encryption"           % "4.10.0-play-27",
   compilerPlugin("com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full),
   "com.github.ghik" % "silencer-lib"    % silencerVersion % Provided cross CrossVersion.full
 )
@@ -35,7 +33,7 @@ val test: Seq[ModuleID] = Seq(
 )
 
 lazy val microservice = Project(appName, file("."))
-  .enablePlugins(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin)
+  .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
   .settings(scalaSettings: _*)
   .settings(scalaVersion := "2.12.12")
   .settings(publishingSettings: _*)
