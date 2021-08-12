@@ -24,7 +24,8 @@ import config.MicroserviceAppConfig
 import connectors.{FileUploadConnector, PdfConnector}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatestplus.mockito.MockitoSugar
-import org.scalatest.{MustMatchers, WordSpec}
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.inject.Injector
 import play.api.libs.ws.{WSClient, WSRequest}
@@ -38,7 +39,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
 
-trait TestFixture extends WordSpec with MustMatchers with MockitoSugar with GuiceOneAppPerSuite with ScalaFutures with StubPlayBodyParsersFactory {
+trait TestFixture extends AnyWordSpec with Matchers with MockitoSugar with GuiceOneAppPerSuite with ScalaFutures with StubPlayBodyParsersFactory {
   val injector: Injector = app.injector
   val appConfig : MicroserviceAppConfig = real[MicroserviceAppConfig]
 

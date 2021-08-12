@@ -36,10 +36,10 @@ case class CTUTRMetadata(appConfig : MicroserviceAppConfig,
   val attachmentCount : Int = 0
   val numberOfPages : Int = 2
 
-  lazy val formId : String = appConfig.CTUTR.formId
-  lazy val businessArea : String = appConfig.CTUTR.businessArea
-  lazy val classificationType : String = appConfig.CTUTR.queue
-  lazy val source : String = appConfig.CTUTR.source
-  lazy val target : String = appConfig.CTUTR.target
-  lazy val store : Boolean = appConfig.CTUTR.save
+  lazy val formId : String = appConfig.formId
+  lazy val businessArea : String = appConfig.businessArea
+  lazy val classificationType : String = appConfig.queue
+  lazy val source : String = appConfig.source
+  lazy val target : String = appConfig.target
+  lazy val store : Boolean = appConfig.save
 }
