@@ -24,8 +24,6 @@ class MicroserviceAppConfig @Inject()(servicesConfig: ServicesConfig) {
 
   private def loadConfig(key: String) = servicesConfig.getString(key)
 
-  private def loadBoolean(key: String) = servicesConfig.getBoolean(key)
-
   lazy val appName: String = servicesConfig.getString("appName")
   lazy val fileUploadUrl: String = servicesConfig.baseUrl("file-upload")
   lazy val fileUploadFrontendUrl: String = servicesConfig.baseUrl("file-upload-frontend")
@@ -33,18 +31,11 @@ class MicroserviceAppConfig @Inject()(servicesConfig: ServicesConfig) {
 
   lazy val pdfServiceUrl: String = servicesConfig.baseUrl("pdf-generator-service")
 
-  lazy val maxAttemptNumber: Int = 5
-  lazy val firstRetryMilliseconds: Int = 20
-
-  object CTUTR {
-
-    lazy val businessArea : String = loadConfig(s"pdf.ctutr.metadata.businessArea")
-    lazy val queue : String = loadConfig(s"pdf.ctutr.metadata.queue")
-    lazy val formId : String = loadConfig(s"pdf.ctutr.metadata.formId")
-    lazy val source : String = loadConfig(s"pdf.ctutr.metadata.source")
-    lazy val target : String = loadConfig(s"pdf.ctutr.metadata.target")
-    lazy val save : Boolean = loadBoolean(s"pdf.ctutr.save")
-
-  }
+  lazy val businessArea : String = loadConfig(s"pdf.ctutr.metadata.businessArea")
+  lazy val queue : String = loadConfig(s"pdf.ctutr.metadata.queue")
+  lazy val formId : String = loadConfig(s"pdf.ctutr.metadata.formId")
+  lazy val source : String = loadConfig(s"pdf.ctutr.metadata.source")
+  lazy val target : String = loadConfig(s"pdf.ctutr.metadata.target")
+  lazy val save : Boolean = servicesConfig.getBoolean(s"pdf.ctutr.save")
 
 }

@@ -16,29 +16,31 @@
 
 package util
 
-import org.scalatest.{Matchers, OptionValues, WordSpecLike}
+import org.scalatest.OptionValues
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.matchers.must.Matchers
 import utils.SubmissionReferenceHelper.createSubmissionRef
 
-class SubmissionReferenceHelperSpec extends WordSpecLike with Matchers with OptionValues {
+class SubmissionReferenceHelperSpec extends AnyWordSpec with Matchers with OptionValues {
 
   "createSubmissionRef" should {
     "create submission reference of default length" in {
       val submissionRef = createSubmissionRef()
-      submissionRef.length shouldBe 12
-      submissionRef.contains("-") shouldBe true
+      submissionRef.length mustBe 12
+      submissionRef.contains("-") mustBe true
 
       submissionRef.substring(0,
-        submissionRef.indexOf("-")).length shouldBe 3
-      submissionRef.substring(0,3).contains("-") shouldBe false
-      submissionRef.substring(4,8).contains("-") shouldBe false
-      submissionRef.substring(9,12).contains("-") shouldBe false
-      submissionRef.matches("([A-Z0-9]{3}-[A-Z0-9]{4}-[A-Z0-9]{3})") shouldBe true
+        submissionRef.indexOf("-")).length mustBe 3
+      submissionRef.substring(0,3).contains("-") mustBe false
+      submissionRef.substring(4,8).contains("-") mustBe false
+      submissionRef.substring(9,12).contains("-") mustBe false
+      submissionRef.matches("([A-Z0-9]{3}-[A-Z0-9]{4}-[A-Z0-9]{3})") mustBe true
     }
 
     "create submission reference of non-default length" in {
       val submissionRef = createSubmissionRef(12)
-      submissionRef.length shouldBe 14
-      submissionRef.contains("-") shouldBe true
+      submissionRef.length mustBe 14
+      submissionRef.contains("-") mustBe true
     }
   }
 }

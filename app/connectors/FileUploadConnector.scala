@@ -30,8 +30,7 @@ import play.api.http.Status._
 import play.api.libs.json._
 import play.api.libs.ws.WSClient
 import play.api.mvc.MultipartFormData.{DataPart, FilePart}
-import uk.gov.hmrc.http.{HeaderCarrier, HeaderNames, HttpClient, HttpResponse}
-import utils.HttpResponseHelper
+import uk.gov.hmrc.http.{HeaderCarrier, HeaderNames, HttpClient, HttpReads, HttpResponse}
 
 import javax.inject.Singleton
 import scala.concurrent.duration._
@@ -43,14 +42,17 @@ class FileUploadConnector @Inject()(appConfig: MicroserviceAppConfig,
                                     val wsClient: WSClient,
                                     val metrics: Metrics,
                                     implicit val ec: ExecutionContext
-                                   )(implicit as: ActorSystem) extends HttpResponseHelper with Logging {
+                                   )(implicit as: ActorSystem) extends Logging {
 
   private val callbackUrl: String = appConfig.fileUploadCallbackUrl
   private val fileUploadUrl: String = appConfig.fileUploadUrl
   private val fileUploadFrontEndUrl: String = appConfig.fileUploadFrontendUrl
 
-  private val firstRetryMilliseconds: Int = appConfig.firstRetryMilliseconds
-  private val maxAttemptNumber: Int = appConfig.maxAttemptNumber
+  private val firstRetryMilliseconds: Int = 20
+  private val maxAttemptNumber: Int = 5
+
+  implicit val httpReads: HttpReads[HttpResponse] = (_: String, _: String, response: HttpResponse) => response
+
 
   def routingRequest(envelopeId: String): JsValue = Json.obj(
     "envelopeId" -> envelopeId,
