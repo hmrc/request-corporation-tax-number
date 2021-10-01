@@ -30,7 +30,6 @@ import utils.CorrelationIdHelper
 
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
 @Singleton
 class SubmissionController @Inject()( val submissionService: SubmissionService,
@@ -42,9 +41,8 @@ class SubmissionController @Inject()( val submissionService: SubmissionService,
 
   def submit() : Action[Submission] = Action.async(parse.json[Submission]) {
     implicit request =>
-      implicit val hc: HeaderCarrier =
-        HeaderCarrierConverter.fromRequest(request)
-        .withExtraHeaders((HEADER_X_CORRELATION_ID, getOrCreateCID(request)))
+      implicit val hc: HeaderCarrier = getOrCreateCorrelationID(request)
+      println(s"[SubmissionController][submit] Header Carrier: ${hc.toString()}")
       auditService.sendEvent(
         CTUTRSubmission(
           request.body.companyDetails.companyReferenceNumber,
@@ -66,9 +64,7 @@ class SubmissionController @Inject()( val submissionService: SubmissionService,
   def fileUploadCallback(): Action[CallbackRequest] =
     Action.async(parse.json[CallbackRequest]) {
       implicit request =>
-        implicit val hc: HeaderCarrier =
-          HeaderCarrierConverter.fromRequest(request)
-          .withExtraHeaders((HEADER_X_CORRELATION_ID, getOrCreateCID(request)))
+        implicit val hc: HeaderCarrier = getOrCreateCorrelationID(request)
         logger.info(s"[SubmissionController][fileUploadCallback] processing callback ${request.body}")
         if (request.body.status == "AVAILABLE") {
           submissionService.callback(request.body.envelopeId).map {
