@@ -49,7 +49,7 @@ class SubmissionServiceSpec extends TestFixture {
     "return a RuntimeException" when {
 
       "envelopeSummary fails" in {
-        when(mockPdfService.generatePdf(any())).thenReturn(Future.successful(pdfBytes))
+        when(mockPdfService.generatePdf(any())(any())).thenReturn(Future.successful(pdfBytes))
 
         when(mockFileUploadService.createEnvelope()(any())).thenReturn(Future.successful("1"))
 
@@ -65,7 +65,7 @@ class SubmissionServiceSpec extends TestFixture {
       }
 
       "createEnvelope fails" in {
-        when(mockPdfService.generatePdf(any())).thenReturn(Future.successful(pdfBytes))
+        when(mockPdfService.generatePdf(any())(any())).thenReturn(Future.successful(pdfBytes))
 
         when(mockFileUploadService.createEnvelope()(any())).thenReturn(Future.failed(new RuntimeException))
 
@@ -81,7 +81,7 @@ class SubmissionServiceSpec extends TestFixture {
       }
 
       "generatePdf fails" in {
-        when(mockPdfService.generatePdf(any())).thenReturn(Future.failed(new RuntimeException))
+        when(mockPdfService.generatePdf(any())(any())).thenReturn(Future.failed(new RuntimeException))
 
         when(mockFileUploadService.createEnvelope()(any())).thenReturn(Future.successful("1"))
 
@@ -97,7 +97,7 @@ class SubmissionServiceSpec extends TestFixture {
       }
 
       "envelopeSummary is not OPEN" in {
-        when(mockPdfService.generatePdf(any())).thenReturn(Future.successful(pdfBytes))
+        when(mockPdfService.generatePdf(any())(any())).thenReturn(Future.successful(pdfBytes))
 
         when(mockFileUploadService.createEnvelope()(any())).thenReturn(Future.successful("1"))
 
@@ -119,7 +119,7 @@ class SubmissionServiceSpec extends TestFixture {
     "return an SubmissionResponse" when {
 
       "given valid inputs" in {
-        when(mockPdfService.generatePdf(any())).thenReturn(Future.successful(pdfBytes))
+        when(mockPdfService.generatePdf(any())(any())).thenReturn(Future.successful(pdfBytes))
 
         when(mockFileUploadService.createEnvelope()(any())).thenReturn(Future.successful("1"))
 
