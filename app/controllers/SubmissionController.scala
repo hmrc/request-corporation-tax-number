@@ -42,7 +42,6 @@ class SubmissionController @Inject()( val submissionService: SubmissionService,
   def submit() : Action[Submission] = Action.async(parse.json[Submission]) {
     implicit request =>
       implicit val hc: HeaderCarrier = getOrCreateCorrelationID(request)
-      println(s"[SubmissionController][submit] Header Carrier: ${hc.toString()}")
       auditService.sendEvent(
         CTUTRSubmission(
           request.body.companyDetails.companyReferenceNumber,
