@@ -14,17 +14,20 @@
  * limitations under the License.
  */
 
-package services
+package utils
 
-import javax.inject.{Inject, Singleton}
-import connectors.PdfConnector
+import uk.gov.hmrc.http.HeaderNames
+import java.util.UUID
+import play.api.mvc.Request
 
-import scala.concurrent.Future
-import uk.gov.hmrc.http.HeaderCarrier
-
-@Singleton
-class PdfService @Inject()( val pdfConnector: PdfConnector) {
-
-  def generatePdf(html: String)(implicit hc: HeaderCarrier): Future[Array[Byte]] = pdfConnector.generatePdf(html)
-
+trait CorrelationIdHelper {
+    protected val HEADER_X_CORRELATION_ID: String = "X-Correlation-Id"
+    protected def getOrCreateCID(request: Request[_]): String = {
+    request.headers.get(HEADER_X_CORRELATION_ID) match {
+      case Some(value) => value
+      case None =>
+        UUID.randomUUID().toString()
+    }
+  }
+  protected val explicitlyIncludedHeaders: Seq[String] = HeaderNames.explicitlyIncludedHeaders ++ Seq(HEADER_X_CORRELATION_ID)
 }

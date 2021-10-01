@@ -26,19 +26,25 @@ import play.api.libs.json.Json
 import play.api.mvc.{Action, ControllerComponents}
 import services.SubmissionService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import utils.CorrelationIdHelper
 
 import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
 @Singleton
 class SubmissionController @Inject()( val submissionService: SubmissionService,
                                       auditService: AuditService,
                                       cc: ControllerComponents
-                                    ) extends BackendController(cc) with Logging {
+                                    ) extends BackendController(cc) with Logging with CorrelationIdHelper {
 
   implicit val ec: ExecutionContext = cc.executionContext
 
   def submit() : Action[Submission] = Action.async(parse.json[Submission]) {
     implicit request =>
+      implicit val hc: HeaderCarrier =
+        HeaderCarrierConverter.fromRequest(request)
+        .withExtraHeaders((HEADER_X_CORRELATION_ID, getOrCreateCID(request)))
       auditService.sendEvent(
         CTUTRSubmission(
           request.body.companyDetails.companyReferenceNumber,
@@ -60,6 +66,9 @@ class SubmissionController @Inject()( val submissionService: SubmissionService,
   def fileUploadCallback(): Action[CallbackRequest] =
     Action.async(parse.json[CallbackRequest]) {
       implicit request =>
+        implicit val hc: HeaderCarrier =
+          HeaderCarrierConverter.fromRequest(request)
+          .withExtraHeaders((HEADER_X_CORRELATION_ID, getOrCreateCID(request)))
         logger.info(s"[SubmissionController][fileUploadCallback] processing callback ${request.body}")
         if (request.body.status == "AVAILABLE") {
           submissionService.callback(request.body.envelopeId).map {

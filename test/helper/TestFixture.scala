@@ -28,7 +28,6 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.inject.Injector
-import play.api.libs.ws.{WSClient, WSRequest}
 import play.api.mvc.ControllerComponents
 import play.api.test.Helpers.stubControllerComponents
 import play.api.test.StubPlayBodyParsersFactory
@@ -38,6 +37,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
+import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
 trait TestFixture extends AnyWordSpec with Matchers with MockitoSugar with GuiceOneAppPerSuite with ScalaFutures with StubPlayBodyParsersFactory {
   val injector: Injector = app.injector
@@ -51,8 +51,7 @@ trait TestFixture extends AnyWordSpec with Matchers with MockitoSugar with Guice
   lazy implicit val ec: ExecutionContext = real[ExecutionContext]
   val stubCC: ControllerComponents = stubControllerComponents(playBodyParsers = stubPlayBodyParsers(materializer))
 
-  val mockWsClient: WSClient = mock[WSClient]
-  val mockWsRequest: WSRequest = mock[WSRequest]
+  val mockHttpClient: DefaultHttpClient = mock[DefaultHttpClient]
   val mockMetrics: Metrics = mock[Metrics]
 
   val mockAuditConnector: AuditConnector = mock[AuditConnector]

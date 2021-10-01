@@ -36,7 +36,7 @@ class PdfServiceSpec extends TestFixture {
 
         val htmlAsString = "<html>test</html>"
 
-        when(pdfService.pdfConnector.generatePdf(any())).thenReturn(Future.successful(htmlAsString.getBytes))
+        when(pdfService.pdfConnector.generatePdf(any())(any())).thenReturn(Future.successful(htmlAsString.getBytes))
 
         val response = pdfService.generatePdf(htmlAsString)
 
@@ -52,7 +52,7 @@ class PdfServiceSpec extends TestFixture {
 
         val htmlAsString = "<html>test</html>"
 
-        when(pdfService.pdfConnector.generatePdf(any())).thenReturn(Future.failed(new HttpException("", 0)))
+        when(pdfService.pdfConnector.generatePdf(any())(any())).thenReturn(Future.failed(new HttpException("", 0)))
 
         val result = pdfService.generatePdf(htmlAsString)
 

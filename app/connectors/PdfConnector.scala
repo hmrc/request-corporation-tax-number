@@ -19,26 +19,31 @@ package connectors
 import config.MicroserviceAppConfig
 import play.api.Logging
 import play.api.http.Status
-import play.api.libs.ws.WSClient
 import uk.gov.hmrc.http.HttpException
+import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
+import uk.gov.hmrc.http.HeaderCarrier
+import utils.CorrelationIdHelper
+import uk.gov.hmrc.http.HttpResponse
 
 @Singleton
 class PdfConnector @Inject()(val appConfig : MicroserviceAppConfig,
-                             val wsClient: WSClient,
+                             val httpClient: DefaultHttpClient,
                              implicit val ec: ExecutionContext
-                            ) extends Logging {
+                            ) extends Logging with CorrelationIdHelper {
 
   private val basicUrl: String = s"${appConfig.pdfServiceUrl}/pdf-generator-service/generate"
 
-  def generatePdf(html: String): Future[Array[Byte]] = {
-    wsClient.url(basicUrl).post(body = Map("html" -> Seq(html))).map { response =>
+  def generatePdf(html: String)(implicit hc: HeaderCarrier): Future[Array[Byte]] = {
+    val body: Map[String,Seq[String]] = Map("html" -> Seq(html))
+    httpClient.POST[Map[String,Seq[String]], HttpResponse](basicUrl, body).map { response => 
       response.status match {
         case Status.OK =>
           logger.info(s"[PdfConnector][generatePdf] [Generated PDF]")
-          response.bodyAsBytes.toArray
+          response.body.getBytes()
         case _ =>
           logger.warn(s"[PdfConnector][generatePdf][A Server error was received from PDF generator service]")
           throw new HttpException(response.body, response.status)

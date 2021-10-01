@@ -16,28 +16,26 @@
 
 package connectors
 
-import akka.util.ByteString
 import helper.TestFixture
-import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import org.scalatest.concurrent.IntegrationPatience
 import org.scalatest.{BeforeAndAfterEachTestData, TestData}
-import play.api.libs.ws.WSResponse
 import uk.gov.hmrc.http.HttpException
-
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
+import uk.gov.hmrc.http.HttpResponse
 
 class PdfConnectorSpec extends TestFixture
   with BeforeAndAfterEachTestData with IntegrationPatience {
 
   override protected def beforeEach(testData: TestData): Unit = {
-    reset(mockWsClient)
+    reset(mockHttpClient)
     reset(mockMetrics)
   }
 
-  val pdfConnector: PdfConnector = new PdfConnector(appConfig, mockWsClient, ec)
+  val pdfConnector: PdfConnector = new PdfConnector(appConfig, mockHttpClient, ec)
 
   val gernerateUrl = s"http://localhost:9203/pdf-generator-service/generate"
   val body = Map("html" -> List("<html>test</html>"))
@@ -48,11 +46,10 @@ class PdfConnectorSpec extends TestFixture
       "generatePdf is called successfully" in {
 
         val htmlAsString = "<html>test</html>"
-
         val httpResponse = createMockResponse(200, htmlAsString)
 
-        when(mockWsClient.url(eqTo(gernerateUrl))).thenReturn(mockWsRequest)
-        when(mockWsRequest.post(eqTo(body))(any())).thenReturn(Future.successful(httpResponse))
+        when(mockHttpClient.POST[Map[String,Seq[String]], HttpResponse](any(), any(), any())(any(), any(), any(), any()))
+          .thenReturn(Future.successful(httpResponse))
 
         val response = pdfConnector.generatePdf(htmlAsString)
 
@@ -67,11 +64,10 @@ class PdfConnectorSpec extends TestFixture
       "generatePdf is called and the pdf service returns something other than 200" in {
 
         val htmlAsString = "<html>test</html>"
-
         val httpResponse = createMockResponse(400, "")
 
-        when(mockWsClient.url(eqTo(gernerateUrl))).thenReturn(mockWsRequest)
-        when(mockWsRequest.post(eqTo(body))(any())).thenReturn(Future.successful(httpResponse))
+        when(mockHttpClient.POST[Map[String,Seq[String]], HttpResponse](any(), any(), any())(any(), any(), any(), any()))
+          .thenReturn(Future.successful(httpResponse))
 
         val result = pdfConnector.generatePdf(htmlAsString)
 
@@ -80,14 +76,13 @@ class PdfConnectorSpec extends TestFixture
     }
   }
 
-  private def createMockResponse(status: Int, body: String): WSResponse = {
+  private def createMockResponse(status: Int, body: String): HttpResponse = {
 
-    val wsResponseMock = mock[WSResponse]
+    val httpResponseMock = mock[HttpResponse]
 
-    when(wsResponseMock.status).thenReturn(status)
-    when(wsResponseMock.body).thenReturn(body)
-    when(wsResponseMock.bodyAsBytes).thenReturn(ByteString(body))
+    when(httpResponseMock.status).thenReturn(status)
+    when(httpResponseMock.body).thenReturn(body)
 
-    wsResponseMock
+    httpResponseMock
   }
 }
