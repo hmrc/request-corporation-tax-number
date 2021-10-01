@@ -52,6 +52,7 @@ class PdfConnectorSpec extends TestFixture
         val httpResponse = createMockResponse(200, htmlAsString)
 
         when(mockWsClient.url(eqTo(gernerateUrl))).thenReturn(mockWsRequest)
+        when(mockWsRequest.addHttpHeaders(any())).thenReturn(mockWsRequest)
         when(mockWsRequest.post(eqTo(body))(any())).thenReturn(Future.successful(httpResponse))
 
         val response = pdfConnector.generatePdf(htmlAsString)
@@ -71,6 +72,7 @@ class PdfConnectorSpec extends TestFixture
         val httpResponse = createMockResponse(400, "")
 
         when(mockWsClient.url(eqTo(gernerateUrl))).thenReturn(mockWsRequest)
+        when(mockWsRequest.addHttpHeaders(any())).thenReturn(mockWsRequest)
         when(mockWsRequest.post(eqTo(body))(any())).thenReturn(Future.successful(httpResponse))
 
         val result = pdfConnector.generatePdf(htmlAsString)

@@ -30,6 +30,7 @@ import play.api.inject.Injector
 import play.api.libs.json.{JsArray, Json}
 import uk.gov.hmrc.http.{AkamaiReputation, Authorization, ForwardedFor, HeaderCarrier, RequestId, SessionId}
 import util.WireMockHelper
+import java.util.UUID
 
 class FileUploadConnectorSpec extends PlaySpec with WireMockHelper with ScalaFutures with ScalaCheckPropertyChecks with IntegrationPatience {
 
@@ -39,16 +40,19 @@ class FileUploadConnectorSpec extends PlaySpec with WireMockHelper with ScalaFut
 
   implicit def dontShrink[A]: Shrink[A] = Shrink.shrinkAny
 
-  implicit val hc = HeaderCarrier(authorization = Some(Authorization("")),
+  private lazy val randomCorrelationId: String = UUID.randomUUID().toString()
+  implicit val hc = HeaderCarrier(
+    authorization = Some(Authorization("")),
     forwarded = Some(ForwardedFor("")),
-      sessionId = Some(SessionId("")),
-      requestId = Some(RequestId("")),
-      trueClientIp = Some(""),
-      trueClientPort = Some(""),
-      gaToken = Some(""),
-      gaUserId = Some(""),
-      deviceID = Some(""),
-      akamaiReputation = Some(AkamaiReputation(""))
+    sessionId = Some(SessionId("")),
+    requestId = Some(RequestId("")),
+    trueClientIp = Some(""),
+    trueClientPort = Some(""),
+    gaToken = Some(""),
+    gaUserId = Some(""),
+    deviceID = Some(""),
+    akamaiReputation = Some(AkamaiReputation("")),
+    extraHeaders = Seq(("X-Correlation-Id", randomCorrelationId))
   )
 
   private lazy val connector: FileUploadConnector =

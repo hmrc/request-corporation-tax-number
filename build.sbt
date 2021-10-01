@@ -11,10 +11,12 @@ lazy val appDependencies: Seq[ModuleID] = compile ++ test
 
 val scope: String = "test,it"
 val silencerVersion: String = "1.7.1"
+val bootstrapPlayVersion: String = "5.14.0"
+val scalaTestVersion: String = "3.2.9.0"
 
 val compile = Seq(
   ws,
-  "uk.gov.hmrc" %% "bootstrap-backend-play-28" % "5.10.0",
+  "uk.gov.hmrc" %% "bootstrap-backend-play-28" % bootstrapPlayVersion,
   "uk.gov.hmrc" %% "domain"                    % "6.2.0-play-28",
   "uk.gov.hmrc" %% "json-encryption"           % "4.10.0-play-28",
   compilerPlugin("com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full),
@@ -22,15 +24,13 @@ val compile = Seq(
 )
 
 val test: Seq[ModuleID] = Seq(
-  "org.scalatestplus"      %% "mockito-3-4"        % "3.2.9.0"           % scope,
-  "org.scalatestplus"      %% "scalacheck-1-15"    % "3.2.9.0"           % scope,
-  "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0"             % scope,
-  "com.typesafe.play"      %% "play-test"          % PlayVersion.current % scope,
-  "com.github.tomakehurst" % "wiremock-jre8"       % "2.30.0"            % scope,
-  "org.pegdown"            % "pegdown"             % "1.6.0"             % scope,
-  "org.jsoup"              % "jsoup"               % "1.14.1"            % scope,
-  "com.vladsch.flexmark"   % "flexmark-all"        % "0.36.8"            % scope,
-  "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.12.0"    % scope
+  "uk.gov.hmrc"            %% "bootstrap-test-play-28" % bootstrapPlayVersion % scope,
+  "com.typesafe.play"      %% "play-test"              % PlayVersion.current  % scope,
+  "org.scalatestplus"      %% "mockito-3-4"            % scalaTestVersion     % scope,
+  "org.scalatestplus"      %% "scalacheck-1-15"        % scalaTestVersion     % scope,
+  "com.github.tomakehurst" % "wiremock-jre8"           % "2.30.0"             % scope,
+  "org.jsoup"              % "jsoup"                   % "1.14.3"             % scope,
+  "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.12.0"         % scope
 )
 
 lazy val microservice = Project(appName, file("."))

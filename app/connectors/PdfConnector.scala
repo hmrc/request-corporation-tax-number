@@ -24,6 +24,7 @@ import uk.gov.hmrc.http.HttpException
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.http.HeaderCarrier
 
 @Singleton
 class PdfConnector @Inject()(val appConfig : MicroserviceAppConfig,
@@ -33,14 +34,20 @@ class PdfConnector @Inject()(val appConfig : MicroserviceAppConfig,
 
   private val basicUrl: String = s"${appConfig.pdfServiceUrl}/pdf-generator-service/generate"
 
-  def generatePdf(html: String): Future[Array[Byte]] = {
-    wsClient.url(basicUrl).post(body = Map("html" -> Seq(html))).map { response =>
+  def generatePdf(html: String)(implicit hc: HeaderCarrier): Future[Array[Byte]] = {
+    val headers: Seq[(String, String)] = hc.extraHeaders
+    val body: Map[String,Seq[String]] = Map("html" -> Seq(html))
+    wsClient
+      .url(basicUrl)
+      .addHttpHeaders(headers: _*)
+      .post(body)
+      .map { response =>
       response.status match {
         case Status.OK =>
-          logger.info(s"[PdfConnector][generatePdf] [Generated PDF]")
+          logger.info(s"[PdfConnector][generatePdf] PDF Generator Service successfully generated PDF")
           response.bodyAsBytes.toArray
         case _ =>
-          logger.warn(s"[PdfConnector][generatePdf][A Server error was received from PDF generator service]")
+          logger.warn(s"[PdfConnector][generatePdf] A server error was received from PDF Generator Service. Status: ${response.status}. Body: ${response.body}.")
           throw new HttpException(response.body, response.status)
       }
     }
