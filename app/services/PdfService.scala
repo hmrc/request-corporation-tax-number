@@ -20,10 +20,11 @@ import javax.inject.{Inject, Singleton}
 import connectors.PdfConnector
 
 import scala.concurrent.Future
+import uk.gov.hmrc.http.HeaderCarrier
 
 @Singleton
 class PdfService @Inject()( val pdfConnector: PdfConnector) {
 
-  def generatePdf(html: String): Future[Array[Byte]] = pdfConnector.generatePdf(html)
+  def generatePdf(html: String)(implicit hc: HeaderCarrier): Future[Array[Byte]] = pdfConnector.generatePdf(html)
 
 }

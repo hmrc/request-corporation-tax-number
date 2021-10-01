@@ -99,7 +99,7 @@ class SubmissionService @Inject()(
     robotXml(metadata, viewModel).toString().getBytes
   }
 
-  def createPdf(submission: Submission): Future[Array[Byte]] = {
+  def createPdf(submission: Submission)(implicit hc: HeaderCarrier): Future[Array[Byte]] = {
     val viewModel = SubmissionViewModel.apply(submission)
     val pdfTemplate = CTUTRScheme(viewModel).toString
     pdfService.generatePdf(pdfTemplate)

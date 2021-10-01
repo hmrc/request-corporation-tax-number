@@ -28,17 +28,20 @@ import services.SubmissionService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.http.HeaderCarrier
+import utils.CorrelationIdHelper
 
 @Singleton
 class SubmissionController @Inject()( val submissionService: SubmissionService,
                                       auditService: AuditService,
                                       cc: ControllerComponents
-                                    ) extends BackendController(cc) with Logging {
+                                    ) extends BackendController(cc) with Logging with CorrelationIdHelper {
 
   implicit val ec: ExecutionContext = cc.executionContext
 
   def submit() : Action[Submission] = Action.async(parse.json[Submission]) {
     implicit request =>
+      implicit val hc: HeaderCarrier = getOrCreateCorrelationID(request)
       auditService.sendEvent(
         CTUTRSubmission(
           request.body.companyDetails.companyReferenceNumber,
