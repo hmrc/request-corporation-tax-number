@@ -102,7 +102,7 @@ class FileUploadConnector @Inject()(appConfig: MicroserviceAppConfig,
         hc.gaUserId.map(HeaderNames.googleAnalyticUserId -> _),
         hc.deviceID.map(HeaderNames.deviceID -> _),
         hc.akamaiReputation.map(HeaderNames.akamaiReputation -> _.value)
-      ).flatten ++ Seq("CSRF-token" -> "nocheck")
+      ).flatten ++ Seq("CSRF-token" -> "nocheck") ++ hc.extraHeaders
 
     }
 
