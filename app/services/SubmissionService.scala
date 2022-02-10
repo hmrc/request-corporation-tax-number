@@ -35,15 +35,17 @@ case object Open extends EnvelopeStatus
 
 @Singleton
 class SubmissionService @Inject()(
-                                val fileUploadService: FileUploadService,
-                                val pdfService: PdfService,
-                                appConfig : MicroserviceAppConfig,
-                                implicit val ec: ExecutionContext
-                                ) extends Logging {
+                                   val fileUploadService: FileUploadService,
+                                   val pdfService: PdfService,
+                                   appConfig : MicroserviceAppConfig,
+                                   implicit val ec: ExecutionContext
+                                 ) extends Logging {
 
   protected def fileName(envelopeId: String, fileType: String) = s"$envelopeId-SubmissionCTUTR-${LocalDate.now().toString("YYYYMMdd")}-$fileType"
 
   def submit(submission: Submission)(implicit hc: HeaderCarrier): Future[SubmissionResponse] = {
+
+    val metadata: CTUTRMetadata = CTUTRMetadata(appConfig, submission.companyDetails.companyReferenceNumber)
 
     val handleUpload: Future[SubmissionResponse] = for {
       pdf: Array[Byte] <- createPdf(submission)
@@ -62,14 +64,14 @@ class SubmissionService @Inject()(
           )
 
           fileUploadService.uploadFile(
-            createMetadata(submission),
+            createMetadata(metadata),
             envelopeId,
             fileName(envelopeId, "metadata.xml"),
             MimeContentType.ApplicationXml
           )
 
           fileUploadService.uploadFile(
-            createRobotXml(submission),
+            createRobotXml(submission, metadata),
             envelopeId,
             fileName(envelopeId, "robotic.xml"),
             MimeContentType.ApplicationXml
@@ -88,14 +90,12 @@ class SubmissionService @Inject()(
     }
   }
 
-  def createMetadata(submission: Submission): Array[Byte] = {
-    val metadata = CTUTRMetadata(appConfig, submission.companyDetails.companyReferenceNumber)
+  def createMetadata(metadata: CTUTRMetadata): Array[Byte] = {
     pdfSubmissionMetadata(metadata).toString().getBytes
   }
 
-  def createRobotXml(submission: Submission): Array[Byte] = {
+  def createRobotXml(submission: Submission, metadata: CTUTRMetadata): Array[Byte] = {
     val viewModel = SubmissionViewModel.apply(submission)
-    val metadata = CTUTRMetadata(appConfig, submission.companyDetails.companyReferenceNumber)
     robotXml(metadata, viewModel).toString().getBytes
   }
 

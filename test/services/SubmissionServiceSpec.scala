@@ -17,11 +17,13 @@
 package services
 
 import java.nio.file.{Files, Paths}
-
 import helper.TestFixture
 import model._
 import model.domain.SubmissionResponse
+import model.templates.CTUTRMetadata
 import org.joda.time.LocalDate
+import org.jsoup.Jsoup
+import org.jsoup.parser.Parser
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 
@@ -137,7 +139,6 @@ class SubmissionServiceSpec extends TestFixture {
     }
   }
 
-
   "callback" must {
 
     "close the envelope" when {
@@ -184,4 +185,24 @@ class SubmissionServiceSpec extends TestFixture {
       }
     }
   }
+
+  "createMetadata and createRobotXml" must {
+
+    "create and contain identical submissionReference values" when {
+
+      "the metadata is created" in {
+
+        val metadata = CTUTRMetadata(appConfig)
+        val pdfSubmissionMetadata = submissionService.createMetadata(metadata)
+        val robotXml = submissionService.createRobotXml(submission, metadata)
+
+        val pdfMetadataDoc = Jsoup.parse(pdfSubmissionMetadata.mkString("Array(", ", ", ")"), "", Parser.xmlParser)
+        val robotXmlDoc = Jsoup.parse(robotXml.mkString("Array(", ", ", ")"), "", Parser.xmlParser)
+
+        pdfMetadataDoc.select("header > title").text() mustBe robotXmlDoc.select("ctutr > submissionReference").text()
+
+      }
+    }
+  }
+
 }
