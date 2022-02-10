@@ -137,7 +137,6 @@ class SubmissionServiceSpec extends TestFixture {
     }
   }
 
-
   "callback" must {
 
     "close the envelope" when {
