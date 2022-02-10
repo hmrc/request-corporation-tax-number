@@ -41,7 +41,8 @@ class SubmissionService @Inject()(
                                 implicit val ec: ExecutionContext
                                 ) extends Logging {
 
-  protected def fileName(envelopeId: String, fileType: String) = s"$envelopeId-SubmissionCTUTR-${LocalDate.now().toString("YYYYMMdd")}-$fileType"
+  protected def fileName(envelopeId: String, fileType: String) =
+    s"$envelopeId-SubmissionCTUTR-${LocalDate.now().toString("YYYYMMdd")}-$fileType"
 
   def submit(submission: Submission)(implicit hc: HeaderCarrier): Future[SubmissionResponse] = {
 
@@ -90,12 +91,14 @@ class SubmissionService @Inject()(
 
   def createMetadata(submission: Submission): Array[Byte] = {
     val metadata = CTUTRMetadata(appConfig, submission.companyDetails.companyReferenceNumber)
+    logger.info(s"***** METADATA sub ref is ${metadata.submissionReference}, recid is ${metadata.reconciliationId}")
     pdfSubmissionMetadata(metadata).toString().getBytes
   }
 
   def createRobotXml(submission: Submission): Array[Byte] = {
     val viewModel = SubmissionViewModel.apply(submission)
     val metadata = CTUTRMetadata(appConfig, submission.companyDetails.companyReferenceNumber)
+    logger.info(s"***** ROBOTXML sub ref is ${metadata.submissionReference}, recid is ${metadata.reconciliationId}")
     robotXml(metadata, viewModel).toString().getBytes
   }
 
