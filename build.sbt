@@ -11,14 +11,14 @@ lazy val appDependencies: Seq[ModuleID] = compile ++ test
 
 val scope: String = "test,it"
 val silencerVersion: String = "1.7.1"
-val bootstrapPlayVersion: String = "5.14.0"
+val bootstrapPlayVersion: String = "5.20.0"
 val scalaTestVersion: String = "3.2.9.0"
 
 val compile = Seq(
   ws,
   "uk.gov.hmrc" %% "bootstrap-backend-play-28" % bootstrapPlayVersion,
-  "uk.gov.hmrc" %% "domain"                    % "6.2.0-play-28",
-  "uk.gov.hmrc" %% "json-encryption"           % "4.10.0-play-28",
+  "uk.gov.hmrc" %% "domain"                    % "7.0.0-play-28",
+  "uk.gov.hmrc" %% "json-encryption"           % "4.11.0-play-28",
   compilerPlugin("com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full),
   "com.github.ghik" % "silencer-lib"    % silencerVersion % Provided cross CrossVersion.full
 )
