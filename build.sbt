@@ -11,7 +11,7 @@ lazy val appDependencies: Seq[ModuleID] = compile ++ test
 
 val scope: String = "test,it"
 val silencerVersion: String = "1.7.1"
-val bootstrapPlayVersion: String = "5.20.0"
+val bootstrapPlayVersion: String = "5.24.0"
 val scalaTestVersion: String = "3.2.9.0"
 
 val compile = Seq(
