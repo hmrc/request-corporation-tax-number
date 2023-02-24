@@ -1,4 +1,4 @@
 # microservice specific routes
 
-POST /submission            @controllers.SubmissionController.submit
-POST /file-upload/callback  @controllers.SubmissionController.fileUploadCallback
+POST /submission            @controllers.SubmissionController.submit()
+POST /file-upload/callback  @controllers.SubmissionController.fileUploadCallback()
