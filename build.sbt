@@ -37,7 +37,6 @@ lazy val microservice = Project(appName, file("."))
   .settings(
     libraryDependencies ++= appDependencies,
     retrieveManaged := true,
-    update / evictionWarningOptions := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),
     PlayKeys.devSettings += "play.server.http.port" -> "9201"
   )
   .settings(
