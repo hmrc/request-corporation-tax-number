@@ -1,12 +1,9 @@
-import play.core.PlayVersion
 import play.sbt.PlayImport.ws
-import sbt.{ModuleID, _}
+import sbt._
 
 object AppDependencies {
 
-  private val scope: String = "test,it"
-  private val bootstrapPlayVersion: String = "7.14.0"
-  private val scalaTestVersion: String = "3.2.9.0"
+  private val bootstrapPlayVersion: String = "7.21.0"
 
   private val compile = Seq(
     ws,
@@ -16,14 +13,15 @@ object AppDependencies {
   )
 
   private val test: Seq[ModuleID] = Seq(
-    "uk.gov.hmrc"            %% "bootstrap-test-play-28" % bootstrapPlayVersion % scope,
-    "com.typesafe.play"      %% "play-test"              % PlayVersion.current  % scope,
-    "org.scalatestplus"      %% "mockito-3-4"            % scalaTestVersion     % scope,
-    "org.scalatestplus"      %% "scalacheck-1-15"        % scalaTestVersion     % scope,
-    "com.github.tomakehurst" % "wiremock-jre8"           % "2.35.0"             % scope,
-    "org.jsoup"              % "jsoup"                   % "1.14.3"             % scope,
-    "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.14.2"         % scope
-  )
+    "uk.gov.hmrc"            %% "bootstrap-test-play-28"      % bootstrapPlayVersion,
+    "org.scalatest"          %% "scalatest"                   % "3.2.16",
+    "org.scalatestplus"      %% "scalacheck-1-17"             % "3.2.16.0",
+    "org.scalatestplus"      %% "mockito-4-11"                % "3.2.16.0",
+    "com.github.tomakehurst" %  "wiremock-standalone"         % "2.27.2",
+    "org.jsoup"              %  "jsoup"                       % "1.16.1",
+    "com.fasterxml.jackson.module" %% "jackson-module-scala"  % "2.15.2",
+    "com.vladsch.flexmark"   % "flexmark-all"                 % "0.64.8"
+  ).map(_ % Test)
 
   def apply(): Seq[ModuleID] = compile ++ test
 
