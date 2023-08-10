@@ -47,7 +47,8 @@ class PdfConnector @Inject()(val appConfig : MicroserviceAppConfig,
           logger.info(s"[PdfConnector][generatePdf] PDF Generator Service successfully generated PDF")
           response.bodyAsBytes.toArray
         case _ =>
-          logger.warn(s"[PdfConnector][generatePdf] A server error was received from PDF Generator Service. Status: ${response.status}. Body: ${response.body}.")
+          logger.warn(s"[PdfConnector][generatePdf] A server error was received from PDF Generator Service. " +
+            s"Status: ${response.status}. Body: ${response.body}.")
           throw new HttpException(response.body, response.status)
       }
     }
