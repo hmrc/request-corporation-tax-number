@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ class FileUploadConnectorSpec extends PlaySpec with WireMockHelper with ScalaFut
   implicit def dontShrink[A]: Shrink[A] = Shrink.shrinkAny
 
   private lazy val randomCorrelationId: String = UUID.randomUUID().toString()
-  implicit val hc = HeaderCarrier(
+  implicit val hc:HeaderCarrier = HeaderCarrier(
     authorization = Some(Authorization("")),
     forwarded = Some(ForwardedFor("")),
     sessionId = Some(SessionId("")),

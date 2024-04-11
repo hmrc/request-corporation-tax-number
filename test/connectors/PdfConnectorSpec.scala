@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package connectors
 
-import akka.util.ByteString
+import org.apache.pekko.util.ByteString
 import helper.TestFixture
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
@@ -34,7 +34,6 @@ class PdfConnectorSpec extends TestFixture
 
   override protected def beforeEach(testData: TestData): Unit = {
     reset(mockWsClient)
-    reset(mockMetrics)
   }
 
   val pdfConnector: PdfConnector = new PdfConnector(appConfig, mockWsClient, ec)

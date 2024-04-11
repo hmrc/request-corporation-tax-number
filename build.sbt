@@ -2,7 +2,7 @@ import sbt.Keys.scalacOptions
 import uk.gov.hmrc.DefaultBuildSettings._
 import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
 
-scalaVersion := "2.13.10"
+scalaVersion := "2.13.13"
 
 val appName = "request-corporation-tax-number"
 
@@ -24,11 +24,9 @@ lazy val microservice = Project(appName, file("."))
     coverageFailOnMinimum := true,
     coverageHighlighting := true,
     Test / parallelExecution := false,
-    // To resolve a bug with version 2.x.x of the scoverage plugin - https://github.com/sbt/sbt/issues/6997
-    libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always,
     scalacOptions -= "-Xmax-classfile-name",
       scalacOptions ++= Seq(
-          "-Wconf:src=routes/.*:s",
+          "-Wconf:cat=unused-imports&src=routes/.*:s",
           "-Wconf:cat=unused-imports&src=html/.*:s",
           "-Wconf:cat=unused-imports&src=xml/.*:s"
       )
