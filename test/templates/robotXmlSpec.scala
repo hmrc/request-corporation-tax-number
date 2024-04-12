@@ -55,7 +55,7 @@ class robotXmlSpec extends TestFixture {
         val doc = Jsoup.parse(robotXml.toString(), "", Parser.xmlParser)
 
         doc.select("ctutr > submissionReference").text() mustBe pdfSubmission.submissionReference
-        doc.select("ctutr > dateCreated").text() mustBe pdfSubmission.xmlCreatedAt.toString("dd/MM/yyyy HH:mm:ss")
+        doc.select("ctutr > dateCreated").text() mustBe pdfSubmission.xmlCreatedAt
         doc.select("ctutr > companyName").text() mustBe submitValidViewModel.company.companyName
         doc.select("ctutr > companyReference").text() mustBe submitValidViewModel.company.companyReferenceNumber
       }

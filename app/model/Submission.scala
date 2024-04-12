@@ -16,15 +16,12 @@
 
 package model
 
-import org.joda.time.{DateTimeZone, LocalDateTime}
 import play.api.libs.json._
 
-case class Submission(companyDetails: CompanyDetails) {
+import java.time.LocalDateTime
 
-  val time : LocalDateTime = {
-    val zone = DateTimeZone.forID("Europe/London")
-    LocalDateTime.now(zone)
-  }
+case class Submission(companyDetails: CompanyDetails) {
+  val time : LocalDateTime = LocalDateTime.now()
 }
 
 object Submission {
