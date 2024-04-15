@@ -1,1 +1,7 @@
-@(robotSubmission:model.templates.CTUTRMetadata,viewmodel:model.templates.SubmissionViewModel)<?xml version="1.0" encoding="UTF-8" standalone="no"?><ctutr><submissionReference>@robotSubmission.submissionReference</submissionReference><dateCreated>@robotSubmission.xmlCreatedAt</dateCreated><companyName>@viewmodel.company.companyName</companyName><companyReference>@viewmodel.company.companyReferenceNumber</companyReference></ctutr>
+@(robotSubmission:model.templates.CTUTRMetadata,viewmodel:model.templates.SubmissionViewModel)<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<ctutr>
+    <submissionReference>@robotSubmission.submissionReference</submissionReference>
+    <dateCreated>@robotSubmission.xmlCreatedAt</dateCreated>
+    <companyName>@viewmodel.company.companyName</companyName>
+    <companyReference>@viewmodel.company.companyReferenceNumber</companyReference>
+</ctutr>
