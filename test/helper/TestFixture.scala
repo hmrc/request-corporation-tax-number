@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,15 @@
 
 package helper
 
-import akka.actor.ActorSystem
-import akka.stream.Materializer
 import audit.AuditService
-import com.kenshoo.play.metrics.Metrics
 import config.MicroserviceAppConfig
 import connectors.{FileUploadConnector, PdfConnector}
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.stream.Materializer
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatestplus.mockito.MockitoSugar
-import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.inject.Injector
 import play.api.libs.ws.{WSClient, WSRequest}
@@ -40,6 +39,7 @@ import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
 
 trait TestFixture extends AnyWordSpec with Matchers with MockitoSugar with GuiceOneAppPerSuite with ScalaFutures with StubPlayBodyParsersFactory {
+
   val injector: Injector = app.injector
   val appConfig : MicroserviceAppConfig = real[MicroserviceAppConfig]
 
@@ -53,7 +53,6 @@ trait TestFixture extends AnyWordSpec with Matchers with MockitoSugar with Guice
 
   val mockWsClient: WSClient = mock[WSClient]
   val mockWsRequest: WSRequest = mock[WSRequest]
-  val mockMetrics: Metrics = mock[Metrics]
 
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
   val mockFileUploadConnector: FileUploadConnector = mock[FileUploadConnector]
@@ -63,6 +62,5 @@ trait TestFixture extends AnyWordSpec with Matchers with MockitoSugar with Guice
   val mockSubmissionService: SubmissionService = mock[SubmissionService]
   val mockAuditService: AuditService = mock[AuditService]
   val mockFileUploadService: FileUploadService = mock[FileUploadService]
-
 
 }

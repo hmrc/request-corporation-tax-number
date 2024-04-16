@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,15 +17,16 @@
 package models.templates
 
 import helper.TestFixture
-import model.templates.SubmissionViewModel
 import model.Submission
-import org.joda.time.LocalDateTime
-import org.joda.time.format.DateTimeFormat
+import model.templates.SubmissionViewModel
 import org.mockito.Mockito.when
+
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 class SubmissionViewModelSpec extends TestFixture {
 
-  val time = LocalDateTime.parse("Tuesday 31 October 2017 15:18:12", DateTimeFormat.forPattern("EEEE dd MMMM yyyy HH:mm:ss"))
+  val time = LocalDateTime.parse("Tuesday 31 October 2017 15:18:12", DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy HH:mm:ss"))
 
   "SubmissionViewModel" must {
 

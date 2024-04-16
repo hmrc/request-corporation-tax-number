@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@ package model.templates
 
 import model.{CompanyDetails, Submission}
 
+import java.time.format.DateTimeFormatter
+
 case class SubmissionViewModel(company: CompanyDetails, timeStamp: String)
 
 object SubmissionViewModel {
@@ -31,7 +33,8 @@ object SubmissionViewModel {
 
   def apply(submission : Submission) : SubmissionViewModel = {
 
-    val timestamp = s"${submission.time.toString("EEEE dd MMMM yyyy")} at ${submission.time.toString("HH:mm:ss")}"
+    val timestamp = s"${submission.time.format(DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy"))}" +
+      s" at ${submission.time.format(DateTimeFormatter.ofPattern("HH:mm:ss"))}"
 
     SubmissionViewModel(
       company = modelCompanyDetails(submission.companyDetails),

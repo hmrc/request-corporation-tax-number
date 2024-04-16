@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,17 +17,20 @@
 package model.templates
 
 import config.MicroserviceAppConfig
-import org.joda.time.LocalDateTime
+
+import java.time.LocalDateTime
 import utils.SubmissionReferenceHelper.createSubmissionRef
+
+import java.time.format.DateTimeFormatter
 
 case class CTUTRMetadata(appConfig : MicroserviceAppConfig,
                         customerId: String = "") {
 
-  val hmrcReceivedAt : LocalDateTime = LocalDateTime.now()
-  val xmlCreatedAt: LocalDateTime = LocalDateTime.now()
+  val hmrcReceivedAt : String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))
+  val xmlCreatedAt: String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
   val submissionReference: String = createSubmissionRef()
 
-  val reconciliationId: String = s"$submissionReference-" + xmlCreatedAt.toString("yyyyMMddHHmmss")
+  val reconciliationId: String = s"$submissionReference-" + xmlCreatedAt
   val fileFormat: String = "pdf"
   val mimeType: String = "application/pdf"
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,17 +16,18 @@
 
 package services
 
-import javax.inject.{Inject, Singleton}
 import config.MicroserviceAppConfig
 import model.domain.{MimeContentType, SubmissionResponse}
 import model.templates.{CTUTRMetadata, SubmissionViewModel}
 import model.{Envelope, Submission}
-import org.joda.time.LocalDate
 import play.api.Logging
 import templates.html.CTUTRScheme
 import templates.xml.{pdfSubmissionMetadata, robotXml}
 import uk.gov.hmrc.http.HeaderCarrier
 
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 trait EnvelopeStatus
@@ -41,7 +42,8 @@ class SubmissionService @Inject()(
                                    implicit val ec: ExecutionContext
                                  ) extends Logging {
 
-  protected def fileName(envelopeId: String, fileType: String) = s"$envelopeId-SubmissionCTUTR-${LocalDate.now().toString("YYYYMMdd")}-$fileType"
+  protected def fileName(envelopeId: String, fileType: String) =
+    s"$envelopeId-SubmissionCTUTR-${LocalDate.now().format(DateTimeFormatter.ofPattern("YYYYMMdd"))}-$fileType"
 
   def submit(submission: Submission)(implicit hc: HeaderCarrier): Future[SubmissionResponse] = {
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,11 @@
 
 package connectors
 
-import akka.actor.ActorSystem
-import akka.pattern.Patterns.after
-import akka.stream.scaladsl.Source
-import akka.util.ByteString
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.pattern.Patterns.after
+import org.apache.pekko.stream.scaladsl.Source
+import org.apache.pekko.util.ByteString
 import com.google.inject.Inject
-import com.kenshoo.play.metrics.Metrics
 import config.MicroserviceAppConfig
 import model.Envelope
 import model.domain.MimeContentType
@@ -40,7 +39,6 @@ import scala.concurrent.{ExecutionContext, Future}
 class FileUploadConnector @Inject()(appConfig: MicroserviceAppConfig,
                                     val httpClient: HttpClient,
                                     val wsClient: WSClient,
-                                    val metrics: Metrics,
                                     implicit val ec: ExecutionContext
                                    )(implicit as: ActorSystem) extends Logging {
 

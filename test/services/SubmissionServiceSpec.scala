@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,17 +16,18 @@
 
 package services
 
-import java.nio.file.{Files, Paths}
 import helper.TestFixture
 import model._
 import model.domain.SubmissionResponse
 import model.templates.CTUTRMetadata
-import org.joda.time.LocalDate
 import org.jsoup.Jsoup
 import org.jsoup.parser.Parser
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 
+import java.nio.file.{Files, Paths}
+import java.time._
+import java.time.format.DateTimeFormatter
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
@@ -43,8 +44,8 @@ class SubmissionServiceSpec extends TestFixture {
     )
   )
 
-  val today = new LocalDate()
-  val formatToday: String = today.toString("yyyyMMdd")
+  val today = LocalDate.now()
+  val formatToday: String = today.format(DateTimeFormatter.ofPattern("yyyyMMdd"))
 
   "submit" must {
 

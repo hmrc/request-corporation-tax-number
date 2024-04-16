@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,9 +63,9 @@ class pdfSubmissionMetadataSpec extends TestFixture {
 
         val section = doc.select("metadata > attribute").get(0)
 
-        section.select("attribute_name").text()  mustBe "hmrc_time_of_receipt"
-        section.select("attribute_type").text()  mustBe "time"
-        section.select("attribute_value").text()  mustBe pdfSubmission.hmrcReceivedAt.toString("dd/MM/yyyy HH:mm:ss")
+        section.select("attribute_name").text() mustBe "hmrc_time_of_receipt"
+        section.select("attribute_type").text() mustBe "time"
+        section.select("attribute_value").text() mustBe pdfSubmission.hmrcReceivedAt
       }
     }
 
@@ -76,9 +76,9 @@ class pdfSubmissionMetadataSpec extends TestFixture {
 
         val section = doc.select("metadata > attribute").get(1)
 
-        section.select("attribute_name").text()  mustBe "time_xml_created"
-        section.select("attribute_type").text()  mustBe "time"
-        section.select("attribute_value").text()  mustBe pdfSubmission.xmlCreatedAt.toString("dd/MM/yyyy HH:mm:ss")
+        section.select("attribute_name").text() mustBe "time_xml_created"
+        section.select("attribute_type").text() mustBe "time"
+        section.select("attribute_value").text() mustBe pdfSubmission.xmlCreatedAt
       }
     }
 
