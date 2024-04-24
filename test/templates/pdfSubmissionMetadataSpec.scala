@@ -39,7 +39,9 @@ class pdfSubmissionMetadataSpec extends TestFixture {
     }
 
     "populate the correct header details" when {
+
       val doc = Jsoup.parse(pdfSubmissionMetadata.toString(), "", Parser.xmlParser)
+
       "the pdf submission xml is generated" in {
         doc.select("header > title").text() mustBe pdfSubmission.submissionReference
         doc.select("header > format").text() mustBe pdfSubmission.fileFormat
@@ -51,8 +53,9 @@ class pdfSubmissionMetadataSpec extends TestFixture {
       }
 
       "the reconciliation_id must be in the correct format" in {
-          doc.select("header > reconciliation_id").text().matches("(^[A-Z0-9]{3}-[A-Z0-9]{4}-[A-Z0-9]{3}-[0-9]{14}$)") mustBe true
-        }
+        doc.select("header > reconciliation_id").text().matches("(^[A-Z0-9]{3}-[A-Z0-9]{4}-[A-Z0-9]{3}-[0-9]{14}$)") mustBe true
+      }
+
     }
 
     "populate the correct attribute details for the hmrc_time_of_receipt attribute" when {
@@ -66,6 +69,7 @@ class pdfSubmissionMetadataSpec extends TestFixture {
         section.select("attribute_name").text() mustBe "hmrc_time_of_receipt"
         section.select("attribute_type").text() mustBe "time"
         section.select("attribute_value").text() mustBe pdfSubmission.hmrcReceivedAt
+        section.select("attribute_value").text() mustMatchDateTimeFormat "dd/MM/yyyy HH:mm:ss"
       }
     }
 
@@ -79,6 +83,7 @@ class pdfSubmissionMetadataSpec extends TestFixture {
         section.select("attribute_name").text() mustBe "time_xml_created"
         section.select("attribute_type").text() mustBe "time"
         section.select("attribute_value").text() mustBe pdfSubmission.xmlCreatedAt
+        section.select("attribute_value").text() mustMatchDateTimeFormat "dd/MM/yyyy HH:mm:ss"
       }
     }
 

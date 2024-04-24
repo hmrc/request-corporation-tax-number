@@ -17,20 +17,18 @@
 package model.templates
 
 import config.MicroserviceAppConfig
-
-import java.time.LocalDateTime
 import utils.SubmissionReferenceHelper.createSubmissionRef
 
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-case class CTUTRMetadata(appConfig : MicroserviceAppConfig,
-                        customerId: String = "") {
+case class CTUTRMetadata(appConfig : MicroserviceAppConfig, customerId: String = "") {
 
-  val hmrcReceivedAt : String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))
-  val xmlCreatedAt: String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
+  val xmlCreatedAt: String = now("dd/MM/yyyy HH:mm:ss")
+  val hmrcReceivedAt : String = now("dd/MM/yyyy HH:mm:ss")
   val submissionReference: String = createSubmissionRef()
 
-  val reconciliationId: String = s"$submissionReference-" + xmlCreatedAt
+  val reconciliationId: String = s"$submissionReference-" + now("yyyyMMddHHmmss")
   val fileFormat: String = "pdf"
   val mimeType: String = "application/pdf"
 
@@ -45,4 +43,7 @@ case class CTUTRMetadata(appConfig : MicroserviceAppConfig,
   lazy val source : String = appConfig.source
   lazy val target : String = appConfig.target
   lazy val store : Boolean = appConfig.save
+
+  private def now(dateTimePattern:String) = LocalDateTime.now().format(DateTimeFormatter.ofPattern(dateTimePattern))
+
 }
