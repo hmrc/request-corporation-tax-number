@@ -37,7 +37,6 @@ class robotXmlSpec extends TestFixture {
 
   val robotXml: Xml = templates.xml.robotXml(pdfSubmission, submitValidViewModel)
 
-
   "robotXml" should {
 
     "not have a line feed character at the top of the file" when {
@@ -56,6 +55,7 @@ class robotXmlSpec extends TestFixture {
 
         doc.select("ctutr > submissionReference").text() mustBe pdfSubmission.submissionReference
         doc.select("ctutr > dateCreated").text() mustBe pdfSubmission.xmlCreatedAt
+        doc.select("ctutr > dateCreated").text() mustMatchDateTimeFormat "dd/MM/yyyy HH:mm:ss"
         doc.select("ctutr > companyName").text() mustBe submitValidViewModel.company.companyName
         doc.select("ctutr > companyReference").text() mustBe submitValidViewModel.company.companyReferenceNumber
       }

@@ -21,6 +21,7 @@ import config.MicroserviceAppConfig
 import connectors.{FileUploadConnector, PdfConnector}
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.stream.Materializer
+import org.scalatest.{Assertion, Succeeded}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -35,6 +36,8 @@ import services.{FileUploadService, PdfService, SubmissionService}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
 
@@ -62,5 +65,17 @@ trait TestFixture extends AnyWordSpec with Matchers with MockitoSugar with Guice
   val mockSubmissionService: SubmissionService = mock[SubmissionService]
   val mockAuditService: AuditService = mock[AuditService]
   val mockFileUploadService: FileUploadService = mock[FileUploadService]
+
+  /**
+   * Wraps some text extracted from an XML element to provide extra assertion methods
+   *
+   * @param text The text to implicitly wrap
+   */
+  implicit class XmlTextWrapper(val text:String) {
+    def mustMatchDateTimeFormat(pattern: String): Assertion = {
+      LocalDateTime.parse(this.text, DateTimeFormatter.ofPattern(pattern))
+      Succeeded
+    }
+  }
 
 }
