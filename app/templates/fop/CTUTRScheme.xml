@@ -1,0 +1,22 @@
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:fo="http://www.w3.org/1999/XSL/Format" xmlns:fox="http://xmlgraphics.apache.org/fop/extensions" version="2.0">
+
+    <xsl:include href="*/hmrc-frontend-fop-matchers.xsl"/>
+
+    <xsl:template match = "/">
+        <fo:root xml:lang="en" xmlns:fo="http://www.w3.org/1999/XSL/Format" xmlns:fox="http://xmlgraphics.apache.org/fop/extensions">
+            <fo:layout-master-set>
+                <fo:simple-page-master master-name="main" page-height="297mm" page-width="210mm" margin-top="1.3cm"
+                                       margin-bottom="1.3cm" margin-left="1.4cm" margin-right="1.4cm">
+                    <fo:region-body region-name="xsl-region-body" margin-top="2.8cm" margin-bottom="0.5cm"/>
+                    <fo:region-before region-name="xsl-region-before" extent="2.8cm"/>
+                    <fo:region-after region-name="xsl-region-after"/>
+                </fo:simple-page-master>
+            </fo:layout-master-set>
+            <fo:page-sequence master-reference="main">
+                <fo:flow flow-name="xsl-region-body" text-align="left">
+                    <xsl:apply-templates select="." mode="pdf"/>
+                </fo:flow>
+            </fo:page-sequence>
+        </fo:root>
+    </xsl:template>
+</xsl:stylesheet>

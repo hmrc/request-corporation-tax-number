@@ -17,7 +17,6 @@ This service is also known as Ask for a copy of your Corporation Tax UTR
 |-------|----|
 |File upload frontend|https://github.com/hmrc/file-upload-frontend|
 |File upload|https://github.com/hmrc/file-upload|
-|Pdf generator|https://github.com/hmrc/pdf-generator-service|
 
 ## Running the service locally
 
