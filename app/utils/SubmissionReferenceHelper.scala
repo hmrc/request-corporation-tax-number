@@ -16,7 +16,7 @@
 
 package utils
 
-object SubmissionReferenceHelper {
+object SubmissionReferenceHelper { // scalastyle:off magic.number
   def createSubmissionRef(length: Integer = 10): String = {
     val len: Integer = {
       if (length < 10) 10 else if (length % 2 == 1) length + 1  else length
@@ -30,7 +30,7 @@ object SubmissionReferenceHelper {
       sb.append(chars.toList(randomNum))
     }
     sb.toString.substring(0,first) + "-" +
-      sb.toString.substring(first,(first+4)) + "-" +
-      sb.toString.substring((first+4),length)
+      sb.toString.substring(first,(first + 4)) + "-" +
+      sb.toString.substring((first + 4),length)
   }
 }

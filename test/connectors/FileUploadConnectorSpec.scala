@@ -33,7 +33,7 @@ import util.WireMockHelper
 import java.util.UUID
 
 class FileUploadConnectorSpec extends PlaySpec with WireMockHelper with ScalaFutures with ScalaCheckPropertyChecks with IntegrationPatience {
-
+  // scalastyle:off magic.number
   def injector: Injector = app.injector
 
   def appConfig : MicroserviceAppConfig = injector.instanceOf[MicroserviceAppConfig]
