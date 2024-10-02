@@ -29,7 +29,8 @@ import play.api.http.Status._
 import play.api.libs.json._
 import play.api.libs.ws.WSClient
 import play.api.mvc.MultipartFormData.{DataPart, FilePart}
-import uk.gov.hmrc.http.{HeaderCarrier, HeaderNames, HttpClient, HttpReads, HttpResponse}
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, HeaderNames, HttpReads, HttpResponse, StringContextOps}
 
 import javax.inject.Singleton
 import scala.concurrent.duration._
@@ -37,7 +38,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class FileUploadConnector @Inject()(appConfig: MicroserviceAppConfig,
-                                    val httpClient: HttpClient,
+                                    val httpClientV2: HttpClientV2,
                                     val wsClient: WSClient,
                                     implicit val ec: ExecutionContext
                                    )(implicit as: ActorSystem) extends Logging {
@@ -52,27 +53,30 @@ class FileUploadConnector @Inject()(appConfig: MicroserviceAppConfig,
   implicit val httpReads: HttpReads[HttpResponse] = (_: String, _: String, response: HttpResponse) => response
 
 
-  def routingRequest(envelopeId: String): JsValue = Json.obj(
+  private def routingRequest(envelopeId: String): JsValue = Json.obj(
     "envelopeId" -> envelopeId,
     "application" -> "CTUTR",
     "destination" -> "DMS"
   )
 
-  def createEnvelopeBody: JsValue = Json.obj("callbackUrl" -> callbackUrl)
+  private def createEnvelopeBody: JsValue = Json.obj("callbackUrl" -> callbackUrl)
 
   def createEnvelope(implicit hc: HeaderCarrier): Future[String] = {
-
-    val result: Future[String] = httpClient.POST[JsValue, HttpResponse](s"$fileUploadUrl/file-upload/envelopes", createEnvelopeBody).flatMap { response =>
-
-      response.status match {
-        case CREATED =>
-          envelopeId(response).map(Future.successful).getOrElse {
-            Future.failed(new RuntimeException("No envelope id returned by file upload service"))
-          }
-        case _ =>
-          Future.failed(new RuntimeException(s"failed to create envelope with status [${response.status}]"))
+    
+    val result: Future[String] = httpClientV2
+      .post(url"$fileUploadUrl/file-upload/envelopes")
+      .withBody(createEnvelopeBody)
+      .execute[HttpResponse]
+      .flatMap { response =>
+        response.status match {
+          case CREATED =>
+            envelopeId(response).map(Future.successful).getOrElse {
+              Future.failed(new RuntimeException("No envelope id returned by file upload service"))
+            }
+          case _ =>
+            Future.failed(new RuntimeException(s"failed to create envelope with status [${response.status}]"))
+        }
       }
-    }
 
     result.failed.foreach { e =>
       logger.error("[FileUploadConnector][createEnvelope] - call to create envelope failed", e)
@@ -124,7 +128,7 @@ class FileUploadConnector @Inject()(appConfig: MicroserviceAppConfig,
 
   def closeEnvelope(envId: String)(implicit hc: HeaderCarrier): Future[String] = {
 
-    val result = httpClient.POST[JsValue, HttpResponse](s"$fileUploadUrl/file-routing/requests", routingRequest(envId)).flatMap { response =>
+    val result = httpClientV2.post(url"$fileUploadUrl/file-routing/requests").withBody(routingRequest(envId)).execute[HttpResponse].flatMap { response =>
       response.status match {
         case CREATED =>
           envelopeId(response).map(Future.successful).getOrElse {
@@ -173,7 +177,7 @@ class FileUploadConnector @Inject()(appConfig: MicroserviceAppConfig,
 
   def envelopeSummary(envelopeId: String, nextTry: Int = firstRetryMilliseconds, attempt: Int = 1)
                      (implicit hc: HeaderCarrier): Future[Envelope] = {
-    httpClient.GET(s"$fileUploadUrl/file-upload/envelopes/$envelopeId").flatMap {
+    httpClientV2.get(url"$fileUploadUrl/file-upload/envelopes/$envelopeId").execute[HttpResponse].flatMap {
       response =>
         response.status match {
           case OK =>
