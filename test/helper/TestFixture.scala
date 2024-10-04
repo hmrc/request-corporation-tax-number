@@ -21,22 +21,19 @@ import config.MicroserviceAppConfig
 import connectors.{FileUploadConnector, PdfConnector}
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.stream.Materializer
-import org.scalatest.{Assertion, Succeeded}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.{Assertion, Succeeded}
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import play.api.Application
-import play.api.inject.{Injector, bind}
-import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.inject.Injector
 import play.api.libs.ws.{WSClient, WSRequest}
 import play.api.mvc.ControllerComponents
 import play.api.test.Helpers.stubControllerComponents
 import play.api.test.StubPlayBodyParsersFactory
 import services.{FileUploadService, PdfService, SubmissionService}
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import java.time.LocalDateTime
@@ -56,8 +53,7 @@ trait TestFixture extends AnyWordSpec with Matchers with MockitoSugar with Guice
   implicit val hc: HeaderCarrier = HeaderCarrier()
   lazy implicit val ec: ExecutionContext = real[ExecutionContext]
   val stubCC: ControllerComponents = stubControllerComponents(playBodyParsers = stubPlayBodyParsers(materializer))
-
-  val mockHttpClient: HttpClientV2 = mock[HttpClientV2]
+  
   val mockWsClient: WSClient = mock[WSClient]
   val mockWsRequest: WSRequest = mock[WSRequest]
 
@@ -69,11 +65,6 @@ trait TestFixture extends AnyWordSpec with Matchers with MockitoSugar with Guice
   val mockSubmissionService: SubmissionService = mock[SubmissionService]
   val mockAuditService: AuditService = mock[AuditService]
   val mockFileUploadService: FileUploadService = mock[FileUploadService]
-
-  override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
-      .overrides(bind[HttpClientV2].toInstance(mockHttpClient))
-      .build()
 
   /**
    * Wraps some text extracted from an XML element to provide extra assertion methods

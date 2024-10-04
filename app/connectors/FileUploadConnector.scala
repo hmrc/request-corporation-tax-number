@@ -128,7 +128,9 @@ class FileUploadConnector @Inject()(appConfig: MicroserviceAppConfig,
 
   def closeEnvelope(envId: String)(implicit hc: HeaderCarrier): Future[String] = {
 
-    val result = httpClientV2.post(url"$fileUploadUrl/file-routing/requests").withBody(routingRequest(envId)).execute[HttpResponse].flatMap { response =>
+    val result = httpClientV2.post(url"$fileUploadUrl/file-routing/requests")
+      .withBody(routingRequest(envId)).execute[HttpResponse]
+      .flatMap { response =>
       response.status match {
         case CREATED =>
           envelopeId(response).map(Future.successful).getOrElse {
