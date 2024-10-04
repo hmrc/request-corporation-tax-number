@@ -26,7 +26,7 @@ import uk.gov.hmrc.http.HttpResponse
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-class FileUploadServiceSpec extends TestFixture {
+class FileUploadServiceSpec extends TestFixture { // scalastyle:off magic.number
 
   private val fileName = "CTUTR.pdf"
   private val fileId = "CTUTR"
@@ -63,7 +63,8 @@ class FileUploadServiceSpec extends TestFixture {
     }
 
     "able to get the envelope" in {
-      when(fileUploadService.fileUploadConnector.envelopeSummary("123")).thenReturn(Future.successful(Envelope("123",Some("callback"),"OPEN",Some(Seq(File("pdf","open"))))))
+      when(fileUploadService.fileUploadConnector.envelopeSummary("123"))
+        .thenReturn(Future.successful(Envelope("123",Some("callback"),"OPEN",Some(Seq(File("pdf","open"))))))
 
       val result = Await.result(fileUploadService.envelopeSummary("123"), 5.seconds)
 

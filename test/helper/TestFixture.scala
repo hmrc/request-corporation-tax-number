@@ -21,10 +21,10 @@ import config.MicroserviceAppConfig
 import connectors.{FileUploadConnector, PdfConnector}
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.stream.Materializer
-import org.scalatest.{Assertion, Succeeded}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.{Assertion, Succeeded}
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.inject.Injector
@@ -53,7 +53,7 @@ trait TestFixture extends AnyWordSpec with Matchers with MockitoSugar with Guice
   implicit val hc: HeaderCarrier = HeaderCarrier()
   lazy implicit val ec: ExecutionContext = real[ExecutionContext]
   val stubCC: ControllerComponents = stubControllerComponents(playBodyParsers = stubPlayBodyParsers(materializer))
-
+  
   val mockWsClient: WSClient = mock[WSClient]
   val mockWsRequest: WSRequest = mock[WSRequest]
 

@@ -21,7 +21,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.must.Matchers
 import utils.SubmissionReferenceHelper.createSubmissionRef
 
-class SubmissionReferenceHelperSpec extends AnyWordSpec with Matchers with OptionValues {
+class SubmissionReferenceHelperSpec extends AnyWordSpec with Matchers with OptionValues { // scalastyle:off magic.number
 
   "createSubmissionRef" should {
     "create submission reference of default length" in {

@@ -30,7 +30,7 @@ import scala.concurrent.{Await, Future}
 import scala.language.postfixOps
 
 class PdfConnectorSpec extends TestFixture
-  with BeforeAndAfterEachTestData with IntegrationPatience {
+  with BeforeAndAfterEachTestData with IntegrationPatience { // scalastyle:off magic.number
 
   override protected def beforeEach(testData: TestData): Unit = {
     reset(mockWsClient)
