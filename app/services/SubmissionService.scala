@@ -21,6 +21,7 @@ import model.domain.{MimeContentType, SubmissionResponse}
 import model.templates.{CTUTRMetadata, SubmissionViewModel}
 import model.{Envelope, Submission}
 import play.api.Logging
+import play.twirl.api.HtmlFormat
 import templates.html.CTUTRScheme
 import templates.xml.{pdfSubmissionMetadata, robotXml}
 import uk.gov.hmrc.http.HeaderCarrier
@@ -29,6 +30,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.io.Source
 
 trait EnvelopeStatus
 case object Closed extends EnvelopeStatus
@@ -37,7 +39,7 @@ case object Open extends EnvelopeStatus
 @Singleton
 class SubmissionService @Inject()(
                                    val fileUploadService: FileUploadService,
-                                   val pdfService: PdfService,
+                                   pdfService: PdfGeneratorService,
                                    appConfig : MicroserviceAppConfig,
                                    implicit val ec: ExecutionContext
                                  ) extends Logging {
@@ -102,9 +104,10 @@ class SubmissionService @Inject()(
   }
 
   def createPdf(submission: Submission)(implicit hc: HeaderCarrier): Future[Array[Byte]] = {
-    val viewModel = SubmissionViewModel.apply(submission)
-    val pdfTemplate = CTUTRScheme(viewModel).toString
-    pdfService.generatePdf(pdfTemplate)
+    val viewModel: SubmissionViewModel = SubmissionViewModel.apply(submission)
+    val pdfTemplate: HtmlFormat.Appendable = CTUTRScheme(viewModel)
+    val xlsTransformer: String = Source.fromResource("CTUTRScheme.xml").mkString
+    pdfService.render(pdfTemplate, xlsTransformer)
   }
 
   def callback(envelopeId: String)(implicit hc: HeaderCarrier): Future[String] = {
