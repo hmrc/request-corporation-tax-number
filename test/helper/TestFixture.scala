@@ -18,7 +18,7 @@ package helper
 
 import audit.AuditService
 import config.MicroserviceAppConfig
-import connectors.{FileUploadConnector, PdfConnector}
+import connectors.FileUploadConnector
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.stream.Materializer
 import org.scalatest.concurrent.ScalaFutures
@@ -32,7 +32,7 @@ import play.api.libs.ws.{WSClient, WSRequest}
 import play.api.mvc.ControllerComponents
 import play.api.test.Helpers.stubControllerComponents
 import play.api.test.StubPlayBodyParsersFactory
-import services.{FileUploadService, PdfService, SubmissionService}
+import services.{FileUploadService, PdfGeneratorService, SubmissionService}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
@@ -59,9 +59,8 @@ trait TestFixture extends AnyWordSpec with Matchers with MockitoSugar with Guice
 
   val mockAuditConnector: AuditConnector = mock[AuditConnector]
   val mockFileUploadConnector: FileUploadConnector = mock[FileUploadConnector]
-  val mockPdfConnector: PdfConnector = mock[PdfConnector]
 
-  val mockPdfService: PdfService = mock[PdfService]
+  val mockPdfService: PdfGeneratorService = mock[PdfGeneratorService]
   val mockSubmissionService: SubmissionService = mock[SubmissionService]
   val mockAuditService: AuditService = mock[AuditService]
   val mockFileUploadService: FileUploadService = mock[FileUploadService]

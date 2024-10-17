@@ -40,11 +40,13 @@ lazy val microservice = Project(appName, file("."))
     coverageHighlighting := true,
     Test / parallelExecution := false,
     scalacOptions -= "-Xmax-classfile-name",
-      scalacOptions ++= Seq(
-          "-Wconf:cat=unused-imports&src=routes/.*:s",
-          "-Wconf:cat=unused-imports&src=html/.*:s",
-          "-Wconf:cat=unused-imports&src=xml/.*:s"
-      )
+    scalacOptions ++= Seq(
+        "-Wconf:cat=unused-imports&src=routes/.*:s",
+        "-Wconf:cat=unused-imports&src=html/.*:s",
+        "-Wconf:cat=unused-imports&src=xml/.*:s"
+    ),
+    Compile / unmanagedResourceDirectories += baseDirectory.value / "app" / "templates" / "fop",
+    Test / unmanagedResourceDirectories += baseDirectory.value / "app" / "templates" / "fop"
   )
 
 addCommandAlias("scalastyleAll", "all scalastyle Test/scalastyle")

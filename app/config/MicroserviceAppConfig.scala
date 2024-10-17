@@ -29,8 +29,6 @@ class MicroserviceAppConfig @Inject()(servicesConfig: ServicesConfig) {
   lazy val fileUploadFrontendUrl: String = servicesConfig.baseUrl("file-upload-frontend")
   lazy val fileUploadCallbackUrl: String = loadConfig(s"microservice.services.file-upload.callbackUrl")
 
-  lazy val pdfServiceUrl: String = servicesConfig.baseUrl("pdf-generator-service")
-
   lazy val businessArea : String = loadConfig(s"pdf.ctutr.metadata.businessArea")
   lazy val queue : String = loadConfig(s"pdf.ctutr.metadata.queue")
   lazy val formId : String = loadConfig(s"pdf.ctutr.metadata.formId")
