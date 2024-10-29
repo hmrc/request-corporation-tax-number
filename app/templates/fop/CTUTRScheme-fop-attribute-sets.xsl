@@ -15,6 +15,7 @@
 
   <xsl:attribute-set name="heading-large">
     <xsl:attribute name="color">#6f777b</xsl:attribute>
+    <xsl:attribute name="margin-bottom">0.4em</xsl:attribute>
   </xsl:attribute-set>
 
   <xsl:attribute-set name="heading">
