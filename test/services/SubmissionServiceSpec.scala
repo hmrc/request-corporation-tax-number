@@ -35,7 +35,9 @@ class SubmissionServiceSpec extends TestFixture {
 
   val submissionService: SubmissionService = new SubmissionService(mockFileUploadService, mockPdfService, appConfig, ec)
 
-  val pdfBytes: Array[Byte] = Files.readAllBytes(Paths.get("test/resources/sample.pdf"))
+  val pdfBytes: Array[Byte] = getClass
+    .getResourceAsStream("/CTUTR_example_04102024.pdf")
+    .readAllBytes()
 
   val submission: Submission = Submission(
     CompanyDetails (
@@ -52,7 +54,7 @@ class SubmissionServiceSpec extends TestFixture {
     "return a RuntimeException" when {
 
       "envelopeSummary fails" in {
-        when(mockPdfService.generatePdf(any())(any())).thenReturn(Future.successful(pdfBytes))
+        when(mockPdfService.render(any(), any())).thenReturn(Future.successful(pdfBytes))
 
         when(mockFileUploadService.createEnvelope()(any())).thenReturn(Future.successful("1"))
 
@@ -68,7 +70,7 @@ class SubmissionServiceSpec extends TestFixture {
       }
 
       "createEnvelope fails" in {
-        when(mockPdfService.generatePdf(any())(any())).thenReturn(Future.successful(pdfBytes))
+        when(mockPdfService.render(any(), any())).thenReturn(Future.successful(pdfBytes))
 
         when(mockFileUploadService.createEnvelope()(any())).thenReturn(Future.failed(new RuntimeException))
 
@@ -84,7 +86,7 @@ class SubmissionServiceSpec extends TestFixture {
       }
 
       "generatePdf fails" in {
-        when(mockPdfService.generatePdf(any())(any())).thenReturn(Future.failed(new RuntimeException))
+        when(mockPdfService.render(any(), any())).thenReturn(Future.failed(new RuntimeException))
 
         when(mockFileUploadService.createEnvelope()(any())).thenReturn(Future.successful("1"))
 
@@ -100,7 +102,7 @@ class SubmissionServiceSpec extends TestFixture {
       }
 
       "envelopeSummary is not OPEN" in {
-        when(mockPdfService.generatePdf(any())(any())).thenReturn(Future.successful(pdfBytes))
+        when(mockPdfService.render(any(), any())).thenReturn(Future.successful(pdfBytes))
 
         when(mockFileUploadService.createEnvelope()(any())).thenReturn(Future.successful("1"))
 
@@ -122,7 +124,7 @@ class SubmissionServiceSpec extends TestFixture {
     "return an SubmissionResponse" when {
 
       "given valid inputs" in {
-        when(mockPdfService.generatePdf(any())(any())).thenReturn(Future.successful(pdfBytes))
+        when(mockPdfService.render(any(), any())).thenReturn(Future.successful(pdfBytes))
 
         when(mockFileUploadService.createEnvelope()(any())).thenReturn(Future.successful("1"))
 

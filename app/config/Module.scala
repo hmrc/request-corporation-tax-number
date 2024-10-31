@@ -14,17 +14,15 @@
  * limitations under the License.
  */
 
-package services
+package config
 
-import javax.inject.{Inject, Singleton}
-import connectors.PdfConnector
+import org.apache.fop.apps.FopFactory
+import play.api.inject.{Binding, Module => PlayModule}
+import play.api.{Configuration, Environment}
 
-import scala.concurrent.Future
-import uk.gov.hmrc.http.HeaderCarrier
-
-@Singleton
-class PdfService @Inject()( val pdfConnector: PdfConnector) {
-
-  def generatePdf(html: String)(implicit hc: HeaderCarrier): Future[Array[Byte]] = pdfConnector.generatePdf(html)
-
+class Module extends PlayModule {
+  override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] =
+    Seq(
+      bind[FopFactory].toProvider[FopFactoryProvider].eagerly()
+    )
 }

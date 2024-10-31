@@ -15,48 +15,29 @@
  *@
 
 @(viewmodel: model.templates.SubmissionViewModel)
-
-<!DOCTYPE html>
-<html lang="en" class="no-js">
-<head>
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
-    <title>Request a corporation tax unique tax reference number</title>
-    <style>
-    table td, table th {
-        font-size:19px;
-    }
-    </style>
-</head>
-<body>
-<main id="wrapper">
-    <div id="content">
-        <div>
-            <div class="logo">
-                <span class="organisation-logo organisation-logo-medium">HM Revenue &amp; Customs</span>
-            </div>
-        </div>
-
-        <article class="content__body full-width">
-            <span style="color: #6f777b; display: block;" class="heading-large">Internal HMRC Copy</span>
-            <h1 class="heading-large">Request a corporation tax unique tax reference number</h1>
-
-            <p id="timestamp">Submitted on @viewmodel.timeStamp</p>
-
-            <h3 class="heading-medium" id="companyDetails-heading">Company Details</h3>
-            <table id="companyDetails">
-                <tbody>
-                <tr>
-                    <td>Company name</td>
-                    <td>@viewmodel.company.companyName</td>
-                </tr>
-                <tr>
-                    <td>Company reference</td>
-                    <td>@viewmodel.company.companyReferenceNumber</td>
-                </tr>
-                </tbody>
-            </table>
-        </article>
+<div class="print-document">
+ <div>
+  <div class="logo">
+   <span class="organisation-logo organisation-logo-medium">HM Revenue &amp; Customs</span>
+  </div>
+ </div>
+ <h1 class="heading-large">Internal HMRC Copy</h1>
+ <h1 class="govuk-heading-l">Request a Corporation Tax Unique Taxpayer Reference</h1>
+ <p id="timestamp">Submitted on @viewmodel.timeStamp</p>
+ <div class="govuk-grid-row">
+  <div class="govuk-grid-column-full">
+   <h3 class="govuk-heading-m heading">Company Details</h3>
+   <dl class="govuk-list">
+    <div class="govuk-list__row">
+     <dt class="govuk-list__key">Company name</dt>
+     <dd class="govuk-list__value prevent-content-split">@viewmodel.company.companyName</dd>
     </div>
-</main>
-</body>
-</html>
+    <div class="govuk-list__row">
+     <dt class="govuk-list__key">Company reference</dt>
+     <dd class="govuk-list__value prevent-content-split">@viewmodel.company.companyReferenceNumber</dd>
+    </div>
+   </dl>
+  </div>
+ </div>
+</div>
+

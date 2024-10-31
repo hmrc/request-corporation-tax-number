@@ -24,20 +24,13 @@ case class SubmissionViewModel(company: CompanyDetails, timeStamp: String)
 
 object SubmissionViewModel {
 
-  private def modelCompanyDetails(company: model.CompanyDetails) : CompanyDetails = {
-    CompanyDetails (
-      companyName = company.companyName,
-      companyReferenceNumber = company.companyReferenceNumber
-    )
-  }
-
-  def apply(submission : Submission) : SubmissionViewModel = {
+  def apply(submission: Submission) : SubmissionViewModel = {
 
     val timestamp = s"${submission.time.format(DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy"))}" +
       s" at ${submission.time.format(DateTimeFormatter.ofPattern("HH:mm:ss"))}"
 
     SubmissionViewModel(
-      company = modelCompanyDetails(submission.companyDetails),
+      company = submission.companyDetails,
       timeStamp = timestamp
     )
   }
