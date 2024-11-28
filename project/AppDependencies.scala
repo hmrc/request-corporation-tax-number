@@ -24,7 +24,7 @@ object AppDependencies {
     ws,
     "uk.gov.hmrc"            %% "bootstrap-backend-play-30" % bootstrapPlayVersion,
     "uk.gov.hmrc"            %% "domain-play-30"            % "10.0.0",
-    "org.apache.xmlgraphics" % "fop"                        % "2.9",
+    "org.apache.xmlgraphics" % "fop"                        % "2.10",
     "net.sf.saxon"           % "Saxon-HE"                   % "12.5"
   )
 
