@@ -13,10 +13,9 @@ This service is also known as Ask for a copy of your Corporation Tax UTR
 
 ### Dependencies
 
-|Service|Link|
-|-------|----|
-|File upload frontend|https://github.com/hmrc/file-upload-frontend|
-|File upload|https://github.com/hmrc/file-upload|
+| Service        |Link|
+|----------------|----|
+| DMS Submission |https://github.com/hmrc/dms-submission|
 
 ## Running the service locally
 
@@ -45,10 +44,10 @@ sbt run
 
 Port number is `9201` but is defaulted to that in build.sbt
 
-| Url | Description |
-|-------|---------------|
+| Url | Description                           |
+|-------|---------------------------------------|
 | /submission | The frontend submits to this endpoint |
-| /file-upload/callback | Callback endpoint for file upload |
+| /dms-submission/callback | Callback endpoint for dms submission  |
 
 ## Testing the Service
 

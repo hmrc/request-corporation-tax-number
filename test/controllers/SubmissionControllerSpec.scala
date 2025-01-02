@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,21 +17,21 @@
 package controllers
 
 import helper.TestFixture
-import model.CallbackRequest
 import model.domain.SubmissionResponse
 import org.mockito.Mockito._
-import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import org.mockito.ArgumentMatchers.any
 import play.api.http.Status
-import play.api.libs.json.Json
-import play.api.test.Helpers.{contentAsJson, _}
-import play.api.test.{FakeHeaders, FakeRequest, Helpers}
-import uk.gov.hmrc.http.InternalServerException
+import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.AnyContentAsJson
+import play.api.test.Helpers._
+import play.api.test.{FakeRequest, Helpers}
+import uk.gov.hmrc.http.{HeaderCarrier, InternalServerException}
 
 import scala.concurrent.Future
 
 class SubmissionControllerSpec extends TestFixture {
 
-  val validDataset = Json.parse(
+  val validDataset: JsValue = Json.parse(
     """
       |{
       |   "companyDetails": {
@@ -42,7 +42,7 @@ class SubmissionControllerSpec extends TestFixture {
       |""".stripMargin)
 
 
-  val invalidDataset = Json.parse(
+  val invalidDataset: JsValue = Json.parse(
     """
       |{
       |   "companyDetails": {
@@ -52,19 +52,19 @@ class SubmissionControllerSpec extends TestFixture {
       |}
       |""".stripMargin)
 
-  val fakeRequestValidDataset = FakeRequest("POST", "/submit").withJsonBody(validDataset)
+  val fakeRequestValidDataset: FakeRequest[AnyContentAsJson] = FakeRequest("POST", "/submit").withJsonBody(validDataset)
 
-  val fakeRequestBadRequest = FakeRequest("POST", "/submit").withJsonBody(invalidDataset)
+  val fakeRequestBadRequest: FakeRequest[AnyContentAsJson] = FakeRequest("POST", "/submit").withJsonBody(invalidDataset)
 
-  val submissionResponse: SubmissionResponse = SubmissionResponse("12345", "12345-SubmissionCTUTR-20171023-iform.pdf")
-  val submissionController = new SubmissionController(mockSubmissionService, mockAuditService, stubCC)
+  val successSubmissionResponse: SubmissionResponse = SubmissionResponse("12345", "12345-SubmissionCTUTR-20171023-iform.pdf")
+  val submissionController = new SubmissionController(mockSubmissionService, mockAuditService, stubCC, appConfig)
 
   "SubmissionController" must {
 
-    "return Ok with a envelopeId status" when {
+    "return Ok http response" when {
 
-      "valid payload is submitted" in {
-        when(submissionController.submissionService.submit(any())(any())).thenReturn(Future.successful(submissionResponse))
+      "submit is called with valid payload" in {
+        when(submissionController.submissionService.submit(any(), any())(any())).thenReturn(Future.successful(successSubmissionResponse))
 
         val result = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         status(result) mustBe Status.OK
@@ -74,51 +74,42 @@ class SubmissionControllerSpec extends TestFixture {
 
     }
 
-    "return a non success http response" when {
+    "return a BAD_REQUEST http response" when {
 
-      "submit fails to parse invalid payload" in {
-
+      "submit is called with payload that cannot be passed" in {
         val result = Helpers.call(submissionController.submit(), fakeRequestBadRequest)
         status(result) mustBe BAD_REQUEST
       }
+    }
 
-      "the submission service returns an error" in {
-        when(submissionController.submissionService.submit(any())(any())).thenReturn(Future.failed(new InternalServerException("failed to process submission")))
+    "return an InternalServerError http response" when {
 
-        val result = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
-        status(result) mustBe INTERNAL_SERVER_ERROR
+      Seq(
+        ("RuntimeException", new RuntimeException(s"Failed with status [400]")),
+        ("InternalServerException", new InternalServerException("failed to process submission"))
+      ).foreach { errorStringAndError: (String, Exception) =>
+        s"the submission service returns an ${errorStringAndError._1}" in {
+          when(submissionController.submissionService.submit(any(), any())(any())).thenReturn(Future.failed(errorStringAndError._2))
+
+          val result = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
+          status(result) mustBe INTERNAL_SERVER_ERROR
+        }
       }
     }
   }
 
-  "fileUploadCallback" must {
+  "getOrCreateCorrelationID" must {
 
-    "return a 200 response status" when {
+    "add HEADER_X_CORRELATION_ID to header when not in request" in {
+      val hc: HeaderCarrier = submissionController.getOrCreateCorrelationID(fakeRequestValidDataset)
+      hc.headers(Seq(submissionController.HEADER_X_CORRELATION_ID)).nonEmpty
+    }
 
-      "when available callback response" in {
-        val callback = Json.toJson(CallbackRequest("env123", "file-id-1", "AVAILABLE"))
-
-        val fakeRequest = FakeRequest(method = "POST", uri = "",
-          headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = callback)
-
-        when(submissionController.submissionService.callback(eqTo("env123"))(any())).thenReturn(Future.successful("env123"))
-
-        val result = Helpers.call(submissionController.fileUploadCallback(),fakeRequest)
-
-        status(result) mustBe OK
-      }
-
-      "when closed callback response" in {
-        val callback = Json.toJson(CallbackRequest("env123", "file-id-1", "CLOSED"))
-
-        val fakeRequest = FakeRequest(method = "POST", uri = "",
-          headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = callback)
-
-        val result = Helpers.call(submissionController.fileUploadCallback(),fakeRequest)
-
-        status(result) mustBe OK
-        verify(submissionController.submissionService, times(0)).callback("env123")
-      }
+    "return original header if it contains HEADER_X_CORRELATION_ID already" in {
+      val hc: HeaderCarrier = submissionController.getOrCreateCorrelationID(
+        fakeRequestValidDataset.withHeaders((submissionController.HEADER_X_CORRELATION_ID, "1234"))
+      )
+      hc.headers(Seq(submissionController.HEADER_X_CORRELATION_ID)).nonEmpty
     }
   }
 }

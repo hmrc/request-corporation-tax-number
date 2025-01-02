@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,117 +16,63 @@
 
 package services
 
-import config.MicroserviceAppConfig
-import model.domain.{MimeContentType, SubmissionResponse}
+import connectors.DmsConnector
+import model.domain.SubmissionResponse
 import model.templates.{CTUTRMetadata, SubmissionViewModel}
-import model.{Envelope, Submission}
+import model.Submission
 import play.api.Logging
 import play.twirl.api.HtmlFormat
 import templates.html.CTUTRScheme
-import templates.xml.{pdfSubmissionMetadata, robotXml}
+import templates.xml.robotXml
 import uk.gov.hmrc.http.HeaderCarrier
+
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.{ExecutionContext, Future}
+import org.apache.pekko.util.ByteString
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import javax.inject.{Inject, Singleton}
-import scala.concurrent.{ExecutionContext, Future}
-import scala.io.Source
-
-trait EnvelopeStatus
-case object Closed extends EnvelopeStatus
-case object Open extends EnvelopeStatus
 
 @Singleton
 class SubmissionService @Inject()(
-                                   val fileUploadService: FileUploadService,
-                                   pdfService: PdfGeneratorService,
-                                   appConfig : MicroserviceAppConfig,
-                                   implicit val ec: ExecutionContext
-                                 ) extends Logging {
+                                   dmsConnector: DmsConnector,
+                                   pdfService: PdfGeneratorService
+                                 )(implicit val ec: ExecutionContext) extends Logging {
 
-  protected def fileName(envelopeId: String, fileType: String) =
-    s"$envelopeId-SubmissionCTUTR-${LocalDate.now().format(DateTimeFormatter.ofPattern("YYYYMMdd"))}-$fileType"
+  private def fileName(submissionReference: String, fileType: String): String =
+    s"$submissionReference-SubmissionCTUTR-${LocalDate.now().format(DateTimeFormatter.ofPattern("YYYYMMdd"))}-$fileType"
 
-  def submit(submission: Submission)(implicit hc: HeaderCarrier): Future[SubmissionResponse] = {
-
-    val metadata: CTUTRMetadata = CTUTRMetadata(appConfig, submission.companyDetails.companyReferenceNumber)
-
-    val handleUpload: Future[SubmissionResponse] = for {
-      pdf: Array[Byte] <- createPdf(submission)
-      envelopeId: String <- fileUploadService.createEnvelope()
-      envelope: Envelope <- fileUploadService.envelopeSummary(envelopeId)
-    } yield {
-      logger.info(s"[SubmissionService][submit] submission created $envelopeId")
-
-      envelope.status match {
-        case "OPEN" =>
-          fileUploadService.uploadFile(
-            pdf,
-            envelopeId,
-            fileName(envelopeId, "iform.pdf"),
-            MimeContentType.ApplicationPdf
-          )
-
-          fileUploadService.uploadFile(
-            createMetadata(metadata),
-            envelopeId,
-            fileName(envelopeId, "metadata.xml"),
-            MimeContentType.ApplicationXml
-          )
-
-          fileUploadService.uploadFile(
-            createRobotXml(submission, metadata),
-            envelopeId,
-            fileName(envelopeId, "robotic.xml"),
-            MimeContentType.ApplicationXml
-          )
-        case _ =>
-          logger.error(s"[SubmissionService][submit] Envelope status not OPEN for envelopeId: $envelopeId")
-          Future.failed(throw new RuntimeException())
-      }
-
-      SubmissionResponse(envelopeId, fileName(envelopeId, "iform.pdf"))
-    }
-
-    handleUpload.recoverWith {
-      case exception =>
-        Future.failed(new RuntimeException("Submit Failed", exception))
-    }
+  def submit(ctutrMetadata: CTUTRMetadata, submission: Submission)(implicit hc: HeaderCarrier): Future[SubmissionResponse] = {
+    val pdfFileName: String = fileName(ctutrMetadata.submissionReference, "iform.pdf")
+    val robotXmlFileName: String = fileName(ctutrMetadata.submissionReference, "robotic.xml")
+    for {
+      pdf: ByteString <- createPdf(submission)
+      robotXml: ByteString = createRobotXml(submission, ctutrMetadata)
+      dmsResponse: SubmissionResponse <- dmsConnector.postFileData(
+        ctutrMetadata,
+        pdf,
+        pdfFileName,
+        robotXml,
+        robotXmlFileName
+      )
+    } yield dmsResponse
   }
 
-  def createMetadata(metadata: CTUTRMetadata): Array[Byte] = {
-    pdfSubmissionMetadata(metadata).toString().getBytes
-  }
+  private def createRobotXml(submission: Submission, metadata: CTUTRMetadata): ByteString =
+    ByteString(
+      robotXml(metadata, SubmissionViewModel.apply(submission))
+        .toString()
+        .getBytes
+    )
 
-  def createRobotXml(submission: Submission, metadata: CTUTRMetadata): Array[Byte] = {
-    val viewModel = SubmissionViewModel.apply(submission)
-    robotXml(metadata, viewModel).toString().getBytes
-  }
-
-  def createPdf(submission: Submission)(implicit hc: HeaderCarrier): Future[Array[Byte]] = {
+  private def createPdf(submission: Submission)(implicit hc: HeaderCarrier): Future[ByteString] = {
     val viewModel: SubmissionViewModel = SubmissionViewModel.apply(submission)
     val pdfTemplate: HtmlFormat.Appendable = CTUTRScheme(viewModel)
-    val xlsTransformer: String = Source.fromResource("CTUTRScheme.xml").mkString
-    pdfService.render(pdfTemplate, xlsTransformer)
+    val xlsTransformer: String = scala.io.Source.fromResource("CTUTRScheme.xml").mkString
+    val renderedPdf: Future[Array[Byte]] = pdfService.render(pdfTemplate, xlsTransformer)
+    renderedPdf.map(ByteString(_))
+  }.recoverWith {
+    case e: Exception =>
+      throw new RuntimeException(s"[SubmissionService][createPdf] Error creating PDF: ${e.getMessage}")
   }
-
-  def callback(envelopeId: String)(implicit hc: HeaderCarrier): Future[String] = {
-    fileUploadService.envelopeSummary(envelopeId).flatMap {
-      envelope =>
-        envelope.status match {
-          case "OPEN" =>
-            envelope.files match {
-              case Some(files) if files.count(file => file.status == "AVAILABLE") == 3 =>
-                fileUploadService.closeEnvelope(envelopeId)
-              case _=>
-                logger.info("[SubmissionService][callback] incomplete wait for files")
-                Future.successful(envelopeId)
-            }
-          case _ =>
-            logger.error(s"[SubmissionService][callback] envelope: $envelopeId not open instead status: ${envelope.status}")
-            Future.successful(envelopeId)
-        }
-    }
-  }
-
 }

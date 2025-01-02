@@ -14,12 +14,19 @@
  * limitations under the License.
  */
 
-package model.domain
+package model.dms
 
-import play.api.libs.json.{OFormat, Json}
+import enumeratum.{Enum, EnumEntry, PlayJsonEnum}
 
-case class SubmissionResponse(id: String, filename: String)
+sealed abstract class SubmissionItemStatus extends EnumEntry
 
-object SubmissionResponse {
-  implicit val format: OFormat[SubmissionResponse] = Json.format[SubmissionResponse]
+object SubmissionItemStatus extends Enum[SubmissionItemStatus] with PlayJsonEnum[SubmissionItemStatus] {
+
+  case object Submitted extends SubmissionItemStatus
+  case object Forwarded extends SubmissionItemStatus
+  case object Processed extends SubmissionItemStatus
+  case object Failed extends SubmissionItemStatus
+  case object Completed extends SubmissionItemStatus
+  
+  override def values: IndexedSeq[SubmissionItemStatus] = findValues
 }

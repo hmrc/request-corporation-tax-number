@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,24 +25,16 @@ import java.time.format.DateTimeFormatter
 case class CTUTRMetadata(appConfig: MicroserviceAppConfig, customerId: String = "") {
 
   val xmlCreatedAt: String = now("dd/MM/yyyy HH:mm:ss")
-  val hmrcReceivedAt: String = now("dd/MM/yyyy HH:mm:ss")
   val submissionReference: String = createSubmissionRef()
 
-  val reconciliationId: String = s"$submissionReference-" + now("yyyyMMddHHmmss")
-  val fileFormat: String = "pdf"
-  val mimeType: String = "application/pdf"
-
   val casKey: String = ""
-  val submissionMark: String = ""
-  val attachmentCount: Int = 0
-  val numberOfPages: Int = 2
 
   lazy val formId: String = appConfig.formId
   lazy val businessArea: String = appConfig.businessArea
   lazy val classificationType: String = appConfig.queue
   lazy val source: String = appConfig.source
   lazy val target: String = appConfig.target
-  lazy val store: Boolean = appConfig.save
+  lazy val store: String = appConfig.save
 
   private def now(dateTimePattern: String) = LocalDateTime.now().format(DateTimeFormatter.ofPattern(dateTimePattern))
 

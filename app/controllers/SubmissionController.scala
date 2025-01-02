@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,9 +18,11 @@ package controllers
 
 import audit.{AuditService, CTUTRSubmission}
 import com.google.inject.Singleton
+import config.MicroserviceAppConfig
 
 import javax.inject.Inject
-import model.{CallbackRequest, Submission}
+import model.Submission
+import model.templates.CTUTRMetadata
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, ControllerComponents}
@@ -34,44 +36,33 @@ import utils.CorrelationIdHelper
 @Singleton
 class SubmissionController @Inject()( val submissionService: SubmissionService,
                                       auditService: AuditService,
-                                      cc: ControllerComponents
-                                    ) extends BackendController(cc) with Logging with CorrelationIdHelper {
+                                      cc: ControllerComponents,
+                                      appConfig : MicroserviceAppConfig
+                                    ) extends BackendController(cc)
+  with Logging
+  with CorrelationIdHelper {
 
-  implicit val ec: ExecutionContext = cc.executionContext
+    implicit val ec: ExecutionContext = cc.executionContext
 
-  def submit() : Action[Submission] = Action.async(parse.json[Submission]) {
-    implicit request =>
-      implicit val hc: HeaderCarrier = getOrCreateCorrelationID(request)
-      auditService.sendEvent(
-        CTUTRSubmission(
-          request.body.companyDetails.companyReferenceNumber,
-          request.body.companyDetails.companyName
-        )
-      )
-      logger.info(s"[SubmissionController][submit] processing submission")
-      submissionService.submit(request.body) map {
-        response =>
-          logger.info(s"[SubmissionController][submit] processed submission $response")
-          Ok(Json.toJson(response))
-      } recoverWith {
-        case e : Exception =>
-          logger.error(s"[SubmissionController][submit][exception returned when processing submission] ${e.getMessage}")
-          Future.successful(InternalServerError)
-      }
-  }
-
-  def fileUploadCallback(): Action[CallbackRequest] =
-    Action.async(parse.json[CallbackRequest]) {
+    def submit(): Action[Submission] = Action.async(parse.json[Submission]) {
       implicit request =>
-        logger.info(s"[SubmissionController][fileUploadCallback] processing callback ${request.body}")
-        if (request.body.status == "AVAILABLE") {
-          submissionService.callback(request.body.envelopeId).map {
-            _ =>
-              Ok
-          }
-        } else {
-          logger.info(s"[SubmissionController][fileUploadCallback] callback for ${request.body.fileId} had status: ${request.body.status}")
-          Future.successful(Ok)
+        implicit val hc: HeaderCarrier = getOrCreateCorrelationID(request)
+        auditService.sendEvent(
+          CTUTRSubmission(
+            request.body.companyDetails.companyReferenceNumber,
+            request.body.companyDetails.companyName
+          )
+        )
+        logger.info(s"[SubmissionController][submit] processing submission")
+        val ctutrMetadata: CTUTRMetadata = CTUTRMetadata(appConfig, request.body.companyDetails.companyReferenceNumber)
+        submissionService.submit(ctutrMetadata, request.body) map {
+          response =>
+            logger.info(s"[SubmissionController][submit] processed submission $response")
+            Ok(Json.toJson(response))
+        } recoverWith {
+          case e: Exception =>
+            logger.error(s"[SubmissionController][submit] Exception returned when processing submission: ${e.getMessage}")
+            Future.successful(InternalServerError)
         }
     }
-}
+  }
