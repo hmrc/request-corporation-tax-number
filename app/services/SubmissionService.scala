@@ -17,20 +17,21 @@
 package services
 
 import config.MicroserviceAppConfig
+import connectors.DmsConnector
 import model.domain.{MimeContentType, SubmissionResponse}
 import model.templates.{CTUTRMetadata, SubmissionViewModel}
 import model.{Envelope, Submission}
+import org.apache.pekko.NotUsed
 import play.api.Logging
 import play.twirl.api.HtmlFormat
 import templates.html.CTUTRScheme
 import templates.xml.{pdfSubmissionMetadata, robotXml}
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.io.Source
+import org.apache.pekko.stream.scaladsl.Source
+import org.apache.pekko.util.ByteString
 
 trait EnvelopeStatus
 case object Closed extends EnvelopeStatus
@@ -38,61 +39,19 @@ case object Open extends EnvelopeStatus
 
 @Singleton
 class SubmissionService @Inject()(
-                                   val fileUploadService: FileUploadService,
+                                   dmsConnector: DmsConnector,
                                    pdfService: PdfGeneratorService,
                                    appConfig : MicroserviceAppConfig,
                                    implicit val ec: ExecutionContext
                                  ) extends Logging {
 
-  protected def fileName(envelopeId: String, fileType: String) =
-    s"$envelopeId-SubmissionCTUTR-${LocalDate.now().format(DateTimeFormatter.ofPattern("YYYYMMdd"))}-$fileType"
-
-  def submit(submission: Submission)(implicit hc: HeaderCarrier): Future[SubmissionResponse] = {
-
-    val metadata: CTUTRMetadata = CTUTRMetadata(appConfig, submission.companyDetails.companyReferenceNumber)
-
-    val handleUpload: Future[SubmissionResponse] = for {
-      pdf: Array[Byte] <- createPdf(submission)
-      envelopeId: String <- fileUploadService.createEnvelope()
-      envelope: Envelope <- fileUploadService.envelopeSummary(envelopeId)
-    } yield {
-      logger.info(s"[SubmissionService][submit] submission created $envelopeId")
-
-      envelope.status match {
-        case "OPEN" =>
-          fileUploadService.uploadFile(
-            pdf,
-            envelopeId,
-            fileName(envelopeId, "iform.pdf"),
-            MimeContentType.ApplicationPdf
-          )
-
-          fileUploadService.uploadFile(
-            createMetadata(metadata),
-            envelopeId,
-            fileName(envelopeId, "metadata.xml"),
-            MimeContentType.ApplicationXml
-          )
-
-          fileUploadService.uploadFile(
-            createRobotXml(submission, metadata),
-            envelopeId,
-            fileName(envelopeId, "robotic.xml"),
-            MimeContentType.ApplicationXml
-          )
-        case _ =>
-          logger.error(s"[SubmissionService][submit] Envelope status not OPEN for envelopeId: $envelopeId")
-          Future.failed(throw new RuntimeException())
-      }
-
-      SubmissionResponse(envelopeId, fileName(envelopeId, "iform.pdf"))
-    }
-
-    handleUpload.recoverWith {
-      case exception =>
-        Future.failed(new RuntimeException("Submit Failed", exception))
-    }
-  }
+  // TODO: Is there a better way to return the fileName, can we parse it in>
+  def submitPdfToDms(submission: Submission, fileName: String)(implicit hc: HeaderCarrier): Future[HttpResponse] =
+    dmsConnector.postFileData(
+      createPdf(submission),
+      fileName,
+      MimeContentType.ApplicationPdf
+    )
 
   def createMetadata(metadata: CTUTRMetadata): Array[Byte] = {
     pdfSubmissionMetadata(metadata).toString().getBytes
@@ -103,30 +62,11 @@ class SubmissionService @Inject()(
     robotXml(metadata, viewModel).toString().getBytes
   }
 
-  def createPdf(submission: Submission)(implicit hc: HeaderCarrier): Future[Array[Byte]] = {
+  def createPdf(submission: Submission)(implicit hc: HeaderCarrier): Source[ByteString, NotUsed] = {
     val viewModel: SubmissionViewModel = SubmissionViewModel.apply(submission)
     val pdfTemplate: HtmlFormat.Appendable = CTUTRScheme(viewModel)
-    val xlsTransformer: String = Source.fromResource("CTUTRScheme.xml").mkString
-    pdfService.render(pdfTemplate, xlsTransformer)
-  }
-
-  def callback(envelopeId: String)(implicit hc: HeaderCarrier): Future[String] = {
-    fileUploadService.envelopeSummary(envelopeId).flatMap {
-      envelope =>
-        envelope.status match {
-          case "OPEN" =>
-            envelope.files match {
-              case Some(files) if files.count(file => file.status == "AVAILABLE") == 3 =>
-                fileUploadService.closeEnvelope(envelopeId)
-              case _=>
-                logger.info("[SubmissionService][callback] incomplete wait for files")
-                Future.successful(envelopeId)
-            }
-          case _ =>
-            logger.error(s"[SubmissionService][callback] envelope: $envelopeId not open instead status: ${envelope.status}")
-            Future.successful(envelopeId)
-        }
-    }
+    val xlsTransformer: String = scala.io.Source.fromResource("CTUTRScheme.xml").mkString
+    Source.future(pdfService.render(pdfTemplate, xlsTransformer).map(ByteString(_)))
   }
 
 }

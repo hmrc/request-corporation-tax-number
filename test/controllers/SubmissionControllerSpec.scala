@@ -64,7 +64,7 @@ class SubmissionControllerSpec extends TestFixture {
     "return Ok with a envelopeId status" when {
 
       "valid payload is submitted" in {
-        when(submissionController.submissionService.submit(any())(any())).thenReturn(Future.successful(submissionResponse))
+        when(submissionController.submissionService.submitPdfToDms(any())(any())).thenReturn(Future.successful(submissionResponse))
 
         val result = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         status(result) mustBe Status.OK
@@ -83,7 +83,7 @@ class SubmissionControllerSpec extends TestFixture {
       }
 
       "the submission service returns an error" in {
-        when(submissionController.submissionService.submit(any())(any())).thenReturn(Future.failed(new InternalServerException("failed to process submission")))
+        when(submissionController.submissionService.submitPdfToDms(any())(any())).thenReturn(Future.failed(new InternalServerException("failed to process submission")))
 
         val result = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         status(result) mustBe INTERNAL_SERVER_ERROR
