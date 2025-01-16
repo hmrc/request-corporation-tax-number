@@ -17,7 +17,7 @@ import sbt.Keys.scalacOptions
 import uk.gov.hmrc.DefaultBuildSettings.*
 import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
 
-scalaVersion := "2.13.13"
+scalaVersion := "2.13.14"
 
 val appName = "request-corporation-tax-number"
 
