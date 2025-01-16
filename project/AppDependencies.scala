@@ -19,13 +19,17 @@ import sbt.*
 object AppDependencies {
 
   private val bootstrapPlayVersion: String = "9.5.0"
+  val hmrcMongoVersion: String             = "2.2.0"
 
   private val compile = Seq(
     ws,
-    "uk.gov.hmrc"            %% "bootstrap-backend-play-30" % bootstrapPlayVersion,
-    "uk.gov.hmrc"            %% "domain-play-30"            % "10.0.0",
-    "org.apache.xmlgraphics" % "fop"                        % "2.10",
-    "net.sf.saxon"           % "Saxon-HE"                   % "12.5"
+    "uk.gov.hmrc"             %% "bootstrap-backend-play-30"    % bootstrapPlayVersion,
+    "uk.gov.hmrc"             %% "domain-play-30"               % "10.0.0",
+    "org.apache.xmlgraphics"  % "fop"                           % "2.10",
+    "net.sf.saxon"            % "Saxon-HE"                      % "12.5",
+    "uk.gov.hmrc.mongo"       %% "hmrc-mongo-play-30"           % hmrcMongoVersion,
+    "uk.gov.hmrc"             %% "internal-auth-client-play-30" % "3.0.0",
+    "com.beachape"            %% "enumeratum-play-json"         % "1.8.2"
   )
 
   private val test: Seq[ModuleID] = Seq(

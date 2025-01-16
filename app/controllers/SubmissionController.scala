@@ -18,9 +18,10 @@ package controllers
 
 import audit.{AuditService, CTUTRSubmission}
 import com.google.inject.Singleton
+import model.domain.SubmissionResponse
 
 import javax.inject.Inject
-import model.{CallbackRequest, Submission}
+import model.Submission
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, ControllerComponents}
@@ -28,8 +29,11 @@ import services.SubmissionService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import utils.CorrelationIdHelper
+
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 @Singleton
 class SubmissionController @Inject()( val submissionService: SubmissionService,
@@ -38,6 +42,10 @@ class SubmissionController @Inject()( val submissionService: SubmissionService,
                                     ) extends BackendController(cc) with Logging with CorrelationIdHelper {
 
   implicit val ec: ExecutionContext = cc.executionContext
+
+  // TODO: WE no longer have an envelope, what do we do here?
+  protected val pdfFileName: String =
+    s"SubmissionCTUTR-${LocalDate.now().format(DateTimeFormatter.ofPattern("YYYYMMdd"))}.pdf"
 
   def submit() : Action[Submission] = Action.async(parse.json[Submission]) {
     implicit request =>
@@ -49,29 +57,22 @@ class SubmissionController @Inject()( val submissionService: SubmissionService,
         )
       )
       logger.info(s"[SubmissionController][submit] processing submission")
-      submissionService.submit(request.body) map {
-        response =>
-          logger.info(s"[SubmissionController][submit] processed submission $response")
-          Ok(Json.toJson(response))
+      submissionService.submitPdfToDms(request.body, pdfFileName) map {
+        response: HttpResponse =>
+          response.status match {
+            case ACCEPTED => {
+              logger.info(s"[SubmissionController][submit] processed submission response status: ${response.status}")
+              val submissionResponse = SubmissionResponse(
+                "todoWhatShouldThisBe",
+                pdfFileName
+              )
+              Ok(Json.toJson(submissionResponse))
+            }
+          }
       } recoverWith {
         case e : Exception =>
           logger.error(s"[SubmissionController][submit][exception returned when processing submission] ${e.getMessage}")
           Future.successful(InternalServerError)
       }
   }
-
-  def fileUploadCallback(): Action[CallbackRequest] =
-    Action.async(parse.json[CallbackRequest]) {
-      implicit request =>
-        logger.info(s"[SubmissionController][fileUploadCallback] processing callback ${request.body}")
-        if (request.body.status == "AVAILABLE") {
-          submissionService.callback(request.body.envelopeId).map {
-            _ =>
-              Ok
-          }
-        } else {
-          logger.info(s"[SubmissionController][fileUploadCallback] callback for ${request.body.fileId} had status: ${request.body.status}")
-          Future.successful(Ok)
-        }
-    }
 }

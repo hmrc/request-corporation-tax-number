@@ -60,7 +60,7 @@ class SubmissionServiceSpec extends TestFixture {
 
         when(mockFileUploadService.envelopeSummary(any())(any())).thenReturn(Future.failed(new RuntimeException))
 
-        val results: Future[SubmissionResponse] = submissionService.submit(submission)
+        val results: Future[SubmissionResponse] = submissionService.submitPdfToDms(submission)
 
         whenReady(results.failed) {
           results =>
@@ -76,7 +76,7 @@ class SubmissionServiceSpec extends TestFixture {
 
         when(mockFileUploadService.envelopeSummary(any())(any())).thenReturn(Future.successful(Envelope("", Some(""), "OPEN", Some(Seq(File("", ""))))))
 
-        val results: Future[SubmissionResponse] = submissionService.submit(submission)
+        val results: Future[SubmissionResponse] = submissionService.submitPdfToDms(submission)
 
         whenReady(results.failed) {
           results =>
@@ -92,7 +92,7 @@ class SubmissionServiceSpec extends TestFixture {
 
         when(mockFileUploadService.envelopeSummary(any())(any())).thenReturn(Future.successful(Envelope("", Some(""), "OPEN", Some(Seq(File("", ""))))))
 
-        val results: Future[SubmissionResponse] = submissionService.submit(submission)
+        val results: Future[SubmissionResponse] = submissionService.submitPdfToDms(submission)
 
         whenReady(results.failed) {
           results =>
@@ -108,7 +108,7 @@ class SubmissionServiceSpec extends TestFixture {
 
         when(mockFileUploadService.envelopeSummary(any())(any())).thenReturn(Future.successful(Envelope("", Some(""), "CLOSED", Some(Seq(File("", ""))))))
 
-        val results: Future[SubmissionResponse] = submissionService.submit(submission)
+        val results: Future[SubmissionResponse] = submissionService.submitPdfToDms(submission)
 
         whenReady(results.failed) {
           results =>
@@ -130,7 +130,7 @@ class SubmissionServiceSpec extends TestFixture {
 
         when(mockFileUploadService.envelopeSummary(any())(any())).thenReturn(Future.successful(Envelope("", Some(""), "OPEN", Some(Seq(File("", ""))))))
 
-        whenReady(submissionService.submit(submission)) {
+        whenReady(submissionService.submitPdfToDms(submission)) {
           result =>
             verify(mockFileUploadService, atLeastOnce()).uploadFile(any(), any(), eqTo(s"1-SubmissionCTUTR-$formatToday-iform.pdf"), any())(any())
             verify(mockFileUploadService, atLeastOnce()).uploadFile(any(), any(), eqTo(s"1-SubmissionCTUTR-$formatToday-metadata.xml"), any())(any())
