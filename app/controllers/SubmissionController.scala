@@ -46,20 +46,24 @@ class SubmissionController @Inject()( val submissionService: SubmissionService,
 
     def submit(): Action[Submission] = Action.async(parse.json[Submission]) {
       implicit request =>
+
         implicit val hc: HeaderCarrier = getOrCreateCorrelationID(request)
+
         auditService.sendEvent(
           CTUTRSubmission(
             request.body.companyDetails.companyReferenceNumber,
             request.body.companyDetails.companyName
           )
         )
+
         logger.info(s"[SubmissionController][submit] processing submission")
         val ctutrMetadata: CTUTRMetadata = CTUTRMetadata(appConfig, request.body.companyDetails.companyReferenceNumber)
-        submissionService.submit(ctutrMetadata, request.body) map {
+
+        submissionService.submit(ctutrMetadata, request.body).map{
           response =>
             logger.info(s"[SubmissionController][submit] processed submission $response")
             Ok(Json.toJson(response))
-        } recoverWith {
+        }.recoverWith {
           case e: Exception =>
             logger.error(s"[SubmissionController][submit] Exception returned when processing submission: ${e.getMessage}")
             Future.successful(InternalServerError)

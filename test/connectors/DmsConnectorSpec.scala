@@ -16,62 +16,100 @@
 
 package connectors
 
-import helper.TestFixture
+import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder
 import model.domain.SubmissionResponse
 import model.templates.CTUTRMetadata
 import org.apache.pekko.util.ByteString
-import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.when
 import play.api.http.Status.{ACCEPTED, BAD_REQUEST, FORBIDDEN, UNAUTHORIZED}
-import uk.gov.hmrc.http.HttpResponse
-import uk.gov.hmrc.http.client.{HttpClientV2, RequestBuilder}
+import util.WireMockHelper
 
-import java.time.LocalDate
+import java.time.{Instant, LocalDate, LocalDateTime, ZoneOffset}
 import java.time.format.DateTimeFormatter
-import java.util.UUID
+import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.stubbing.StubMapping
+import config.MicroserviceAppConfig
+import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
+import org.scalatest.matchers.must.Matchers
+import org.scalatestplus.play.PlaySpec
+import play.api.libs.json.Json
+import play.api.test.Helpers.{AUTHORIZATION, USER_AGENT}
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+
+import java.time.temporal.ChronoUnit
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class DmsConnectorSpec extends TestFixture {
+class DmsConnectorSpec
+  extends PlaySpec
+    with ScalaFutures
+    with IntegrationPatience
+    with WireMockHelper
+    with Matchers {
 
-  val requestBuilder: RequestBuilder = mock[RequestBuilder]
-  val httpClient: HttpClientV2 = mock[HttpClientV2]
-  val dmsConnector = new DmsConnector(httpClient)(appConfig)
-
-  when(httpClient.post(any())(any())).thenReturn(requestBuilder)
-  when(requestBuilder.setHeader(any())).thenReturn(requestBuilder)
-  when(requestBuilder.withBody(any())(any(), any(), any())).thenReturn(requestBuilder)
+  implicit val hc: HeaderCarrier = HeaderCarrier()
 
   val today: LocalDate = LocalDate.now()
   val formatToday: String = today.format(DateTimeFormatter.ofPattern("yyyyMMdd"))
-  val submissionReference: String = UUID.randomUUID().toString
-  val pdfFileName = "test.pdf"
+  val pdfFileName = "CTUTR_example_04102024.pdf"
+  val roboticXmlFileName = "OMAUM9YP0R5G-SubmissionCTUTR-20250213-robotic.xml"
+
+  val url = "/dms-submission/submit"
+  val dateOfReceipt = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(
+    LocalDateTime.ofInstant(Instant.now().truncatedTo(ChronoUnit.SECONDS), ZoneOffset.UTC)
+  )
+
+  val pdf: Array[Byte] = "Some string of data".getBytes
+  val roboticXml: Array[Byte] = "Another string of data".getBytes
+
+  private lazy val connector: DmsConnector = app.injector.instanceOf[DmsConnector]
+
+  def defineDmsSubStub(ctutrMetadata: CTUTRMetadata, response: ResponseDefinitionBuilder): StubMapping =
+    server.stubFor(
+      post(urlMatching(url))
+        .withMultipartRequestBody(aMultipart().withName("submissionReference").withBody(containing(ctutrMetadata.submissionReference)))
+        .withMultipartRequestBody(aMultipart().withName("callbackUrl")
+          .withBody(containing("https://localhost:9201/request-corporation-tax-number/dms-submission/callback")))
+        .withMultipartRequestBody(aMultipart().withName("metadata.store").withBody(containing("true")))
+        .withMultipartRequestBody(aMultipart().withName("metadata.source").withBody(containing("CTUTR")))
+        .withMultipartRequestBody(aMultipart().withName("metadata.timeOfReceipt").withBody(containing(dateOfReceipt)))
+        .withMultipartRequestBody(aMultipart().withName("metadata.formId").withBody(containing("CTUTR")))
+        .withMultipartRequestBody(aMultipart().withName("metadata.customerId").withBody(containing("")))
+        .withMultipartRequestBody(aMultipart().withName("metadata.casKey").withBody(containing("")))
+        .withMultipartRequestBody(
+          aMultipart().withName("metadata.classificationType").withBody(containing("BT-CTS-CT UTR"))
+        )
+        .withMultipartRequestBody(aMultipart().withName("metadata.businessArea").withBody(containing("BT")))
+        .withMultipartRequestBody(aMultipart().withName("form").withBody(binaryEqualTo(pdf)))
+        .withMultipartRequestBody(aMultipart().withName("attachment").withBody(binaryEqualTo(roboticXml)))
+        .withHeader(AUTHORIZATION, containing("test-token"))
+        .withHeader(USER_AGENT, containing("request-corporation-tax-number"))
+        .willReturn(response)
+    )
 
   "postFileData" must {
 
-    "return a SubmissionResponse" when {
+    "must return a successful future when the store responds with ACCEPTED and a SubmissionResponse.Success" in {
 
-      "the request to dms-submission returns ACCEPTED" in {
-        val ctutrMetadata = CTUTRMetadata(appConfig, "customerId")
-        when(requestBuilder.execute[HttpResponse](any(), any())).thenReturn(
-          Future.successful(
-            HttpResponse(
-              status = ACCEPTED,
-              body = """{"id":"71378476-272e-48c4-ac8f-b18af8dbc8f4"}"""
-            )
-          )
-        )
-        val submissionResponse: Future[SubmissionResponse] = dmsConnector.postFileData(
-          ctutrMetadata,
-          ByteString("pdf"),
-          pdfFileName,
-          ByteString("pdf"),
-          "testRobot.xml"
-        )
-        whenReady(submissionResponse) {
-          submissionResponse: SubmissionResponse =>
-            submissionResponse mustBe SubmissionResponse(ctutrMetadata.submissionReference, pdfFileName)
-        }
-      }
+      val ctutrMetadata: CTUTRMetadata = CTUTRMetadata(new MicroserviceAppConfig(new ServicesConfig(app.configuration)))
+      val submissionResponse: SubmissionResponse = SubmissionResponse(ctutrMetadata.submissionReference, pdfFileName)
+      val stubbedResponse: ResponseDefinitionBuilder =
+        aResponse()
+          .withStatus(ACCEPTED)
+          .withBody(Json.toJson(submissionResponse).toString)
+
+      defineDmsSubStub(ctutrMetadata, stubbedResponse)
+
+      val response: SubmissionResponse = connector.postFileData(
+        ctutrMetadata = ctutrMetadata,
+        pdf = ByteString(pdf),
+        pdfFileName = pdfFileName,
+        robotXml = ByteString(roboticXml),
+        robotXmlFileName = roboticXmlFileName,
+        dateOfReceipt = dateOfReceipt
+      ).futureValue
+
+      response mustEqual submissionResponse
     }
 
     "return a RuntimeException" when {
@@ -80,22 +118,30 @@ class DmsConnectorSpec extends TestFixture {
         UNAUTHORIZED,
         FORBIDDEN
       ).foreach{ exception: Int =>
-        s"the call to DMS Submissions fails returning ${exception}" in {
-          when(requestBuilder.execute[HttpResponse](any(), any()))
-            .thenReturn(
-              Future.failed(new RuntimeException(s"Failed with status [$exception]"))
-            )
-          val submissionResponse: Future[SubmissionResponse] = dmsConnector.postFileData(
-            CTUTRMetadata(appConfig, "customerId"),
-            ByteString("pdf"),
-            pdfFileName,
-            ByteString("pdf"),
-            "testRobot.xml"
-          )
-          whenReady(submissionResponse.failed) {
+        s"the call to DMS Submissions fails returning $exception" in {
+
+          val ctutrMetadata: CTUTRMetadata = CTUTRMetadata(new MicroserviceAppConfig(new ServicesConfig(app.configuration)))
+          val stubbedResponse: ResponseDefinitionBuilder =
+            aResponse()
+              .withStatus(exception)
+              .withBody(s"Failed with status [$exception]")
+
+          defineDmsSubStub(ctutrMetadata, stubbedResponse)
+
+          val response: Future[Throwable] = connector.postFileData(
+            ctutrMetadata = ctutrMetadata,
+            pdf = ByteString(pdf),
+            pdfFileName = pdfFileName,
+            robotXml = ByteString(roboticXml),
+            robotXmlFileName = roboticXmlFileName,
+            dateOfReceipt = dateOfReceipt
+          ).failed
+
+          val expectedErrorMessage = s"Failed with status [$exception]"
+          whenReady(response) {
             result: Throwable =>
               result mustBe a[RuntimeException]
-              result.getMessage mustBe s"Failed with status [${exception}]"
+              result.getMessage mustBe expectedErrorMessage
           }
         }
       }

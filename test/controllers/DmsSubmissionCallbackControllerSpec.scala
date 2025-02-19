@@ -56,7 +56,7 @@ class DmsSubmissionCallbackControllerSpec
 
         when(mockStubBehaviour.stubAuth[Unit](any(), any())).thenReturn(Future.unit)
 
-        val request: FakeRequest[JsValue] = FakeRequest(POST, routes.DmsSubmissionCallbackController.callback.url)
+        val request: FakeRequest[JsValue] = FakeRequest(POST, routes.DmsSubmissionCallbackController.callback().url)
           .withHeaders(AUTHORIZATION -> "Some auth token")
           .withBody(Json.toJson(notification.copy(status = notificationsStatus)))
 
@@ -70,7 +70,7 @@ class DmsSubmissionCallbackControllerSpec
 
       when(mockStubBehaviour.stubAuth[Unit](any(), any())).thenReturn(Future.unit)
 
-      val request: FakeRequest[JsValue] = FakeRequest(POST, routes.DmsSubmissionCallbackController.callback.url)
+      val request: FakeRequest[JsValue] = FakeRequest(POST, routes.DmsSubmissionCallbackController.callback().url)
         .withHeaders(AUTHORIZATION -> "Some auth token")
         .withBody(Json.obj())
 
@@ -81,7 +81,7 @@ class DmsSubmissionCallbackControllerSpec
 
     "must fail for an unauthenticated user i.e. no Authorization header" in {
 
-      val request: FakeRequest[JsValue] = FakeRequest(POST, routes.DmsSubmissionCallbackController.callback.url)
+      val request: FakeRequest[JsValue] = FakeRequest(POST, routes.DmsSubmissionCallbackController.callback().url)
         .withBody(Json.toJson(notification))
 
       val result: Throwable = route(app, request).value.failed.futureValue
@@ -94,7 +94,7 @@ class DmsSubmissionCallbackControllerSpec
       when(mockStubBehaviour.stubAuth[Unit](any(), any()))
         .thenReturn(Future.failed(new RuntimeException()))
 
-      val request: FakeRequest[JsValue] = FakeRequest(POST, routes.DmsSubmissionCallbackController.callback.url)
+      val request: FakeRequest[JsValue] = FakeRequest(POST, routes.DmsSubmissionCallbackController.callback().url)
         .withHeaders(AUTHORIZATION -> "Some auth token")
         .withBody(Json.toJson(notification))
 
@@ -106,7 +106,7 @@ class DmsSubmissionCallbackControllerSpec
 
       when(mockStubBehaviour.stubAuth[Unit](any(), any())).thenReturn(Future.unit)
 
-      val request: FakeRequest[JsValue] = FakeRequest(POST, routes.DmsSubmissionCallbackController.callback.url)
+      val request: FakeRequest[JsValue] = FakeRequest(POST, routes.DmsSubmissionCallbackController.callback().url)
         .withHeaders(AUTHORIZATION -> "Some auth token")
         .withBody(Json.toJson(notification.copy(status = SubmissionItemStatus.Failed)))
 
@@ -124,7 +124,7 @@ class DmsSubmissionCallbackControllerSpec
         when(mockStubBehaviour.stubAuth[Unit](any(), any()))
           .thenReturn(Future.failed(response))
 
-        val request: FakeRequest[JsValue] = FakeRequest(POST, routes.DmsSubmissionCallbackController.callback.url)
+        val request: FakeRequest[JsValue] = FakeRequest(POST, routes.DmsSubmissionCallbackController.callback().url)
           .withHeaders(AUTHORIZATION -> "Some auth token")
           .withBody(Json.toJson(notification))
 

@@ -24,13 +24,11 @@ import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
 import play.api.Logging
 import play.api.http.Status.{ACCEPTED, BAD_REQUEST, FORBIDDEN, UNAUTHORIZED}
-import play.api.mvc.MultipartFormData
+import play.api.mvc.MultipartFormData._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
+import uk.gov.hmrc.http.HttpReads.Implicits._
 
-import java.time.{Instant, LocalDateTime, ZoneOffset}
-import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -39,40 +37,36 @@ class DmsConnector @Inject()(httpClient: HttpClientV2)(implicit appConfig: Micro
 
   private val internalAuthToken: String = appConfig.authToken
 
-  private val dateOfReceipt: String = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(
-    LocalDateTime.ofInstant(Instant.now().truncatedTo(ChronoUnit.SECONDS), ZoneOffset.UTC)
-  )
-
-  private def dataParts(ctutrMetadata: CTUTRMetadata): Seq[MultipartFormData.DataPart] = Seq(
-    MultipartFormData.DataPart("submissionReference", ctutrMetadata.submissionReference),
-    MultipartFormData.DataPart("callbackUrl", appConfig.dmsSubmissionCallbackUrl),
-    MultipartFormData.DataPart("metadata.store", ctutrMetadata.store),
-    MultipartFormData.DataPart("metadata.source", ctutrMetadata.source),
-    MultipartFormData.DataPart("metadata.timeOfReceipt", dateOfReceipt),
-    MultipartFormData.DataPart("metadata.formId", ctutrMetadata.formId),
-    MultipartFormData.DataPart("metadata.customerId", ctutrMetadata.customerId),
-    MultipartFormData.DataPart("metadata.casKey", ctutrMetadata.casKey),
-    MultipartFormData.DataPart("metadata.classificationType", ctutrMetadata.classificationType),
-    MultipartFormData.DataPart("metadata.businessArea", ctutrMetadata.businessArea)
-  )
-
-  private def mapMultipartFormData(submissionReference: String,
-                                   pdf: ByteString,
-                                   pdfFileName: String,
-                                   robotXml: ByteString,
-                                   robotXmlFileName: String)(implicit hc: HeaderCarrier): Seq[MultipartFormData.FilePart[Source[ByteString, NotUsed]]] =
-    Seq(
-      MultipartFormData.FilePart(
-        key = "form",
-        filename = pdfFileName,
-        contentType = Some("application/octet-stream"),
-        ref = Source.single(pdf)
-      ),
-      MultipartFormData.FilePart(
-        key = "attachment",
-        filename = robotXmlFileName,
-        contentType = Some("application/octet-stream"),
-        ref = Source.single(robotXml)
+  def constructMultipartFormData(ctutrMetadata: CTUTRMetadata,
+                                 pdf: ByteString,
+                                 pdfFileName: String,
+                                 robotXml: ByteString,
+                                 robotXmlFileName: String,
+                                 dateOfReceipt: String): Source[Part[Source[ByteString, _]], NotUsed] =
+    Source(
+      Seq(
+        DataPart("submissionReference", ctutrMetadata.submissionReference),
+        DataPart("callbackUrl", appConfig.dmsSubmissionCallbackUrl),
+        DataPart("metadata.store", ctutrMetadata.store),
+        DataPart("metadata.source", ctutrMetadata.source),
+        DataPart("metadata.timeOfReceipt", dateOfReceipt),
+        DataPart("metadata.formId", ctutrMetadata.formId),
+        DataPart("metadata.customerId", ctutrMetadata.customerId),
+        DataPart("metadata.casKey", ctutrMetadata.casKey),
+        DataPart("metadata.classificationType", ctutrMetadata.classificationType),
+        DataPart("metadata.businessArea", ctutrMetadata.businessArea),
+        FilePart(
+          key = "form",
+          filename = pdfFileName,
+          contentType = Some("application/octet-stream"),
+          ref = Source.single(pdf)
+        ),
+        FilePart(
+          key = "attachment",
+          filename = robotXmlFileName,
+          contentType = Some("application/octet-stream"),
+          ref = Source.single(robotXml)
+        )
       )
     )
 
@@ -80,40 +74,32 @@ class DmsConnector @Inject()(httpClient: HttpClientV2)(implicit appConfig: Micro
                    pdf: ByteString,
                    pdfFileName: String,
                    robotXml: ByteString,
-                   robotXmlFileName: String)
-                  (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[SubmissionResponse] = {
-    val dataPart: Seq[MultipartFormData.DataPart] = dataParts(ctutrMetadata)
-    val multiFormData: Seq[MultipartFormData.FilePart[Source[ByteString, NotUsed]]] =
-      mapMultipartFormData(ctutrMetadata.submissionReference, pdf, pdfFileName, robotXml, robotXmlFileName)
-    val body: Source[MultipartFormData.Part[Source[ByteString, _]], NotUsed] = Source(
-      dataPart ++ multiFormData
-    )
-    executeRequest(body)
-      .flatMap( response =>
+                   robotXmlFileName: String,
+                   dateOfReceipt: String)
+                  (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[SubmissionResponse] =
+    httpClient
+      .post(url"${appConfig.dmsSubmissionBaseUrl}/dms-submission/submit")
+      .setHeader("Authorization" -> internalAuthToken)
+      .withBody(
+        constructMultipartFormData(ctutrMetadata, pdf, pdfFileName, robotXml, robotXmlFileName, dateOfReceipt)
+      )
+      .execute[HttpResponse]
+      .flatMap{ response: HttpResponse =>
         response.status match {
           case ACCEPTED =>
             Future.successful(SubmissionResponse(ctutrMetadata.submissionReference, pdfFileName))
           case BAD_REQUEST =>
-            logger.error(s"[SubmissionService][submit]: dms connector returned bad request response ${response.body}")
+            logger.error(s"[SubmissionService][submit]: dms connector returned bad request response, body: ${response.body}")
             Future.failed(new RuntimeException(s"Failed with status [${response.status}]"))
           case UNAUTHORIZED =>
-            logger.error(s"[SubmissionService][submit]: dms connector returned unauthorized")
+            logger.error(s"[SubmissionService][submit]: dms connector returned unauthorized, body: ${response.body}")
             Future.failed(new RuntimeException(s"Failed with status [${response.status}]"))
           case FORBIDDEN =>
-            logger.error(s"[SubmissionService][submit]: dms connector returned forbidden")
+            logger.error(s"[SubmissionService][submit]: dms connector returned forbidden, body: ${response.body}")
             Future.failed(new RuntimeException(s"Failed with status [${response.status}]"))
           case _ =>
+            logger.error(s"[SubmissionService][submit]: dms connector returned an error, body: ${response.body}")
             Future.failed(new RuntimeException(s"Failed with status [${response.status}]"))
         }
-      )
-  }
-
-  private def executeRequest(body: Source[MultipartFormData.Part[Source[ByteString, _]], NotUsed])
-                            (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
-    httpClient
-      .post(url"${appConfig.dmsSubmissionBaseUrl}/dms-submission/submit")
-      .setHeader("Authorization" -> internalAuthToken)
-      .withBody(body)
-      .execute[HttpResponse]
-  }
+      }
 }

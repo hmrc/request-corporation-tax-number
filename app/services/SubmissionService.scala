@@ -30,8 +30,9 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import org.apache.pekko.util.ByteString
 
-import java.time.LocalDate
+import java.time.{Instant, LocalDate, LocalDateTime, ZoneOffset}
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 @Singleton
 class SubmissionService @Inject()(
@@ -45,6 +46,9 @@ class SubmissionService @Inject()(
   def submit(ctutrMetadata: CTUTRMetadata, submission: Submission)(implicit hc: HeaderCarrier): Future[SubmissionResponse] = {
     val pdfFileName: String = fileName(ctutrMetadata.submissionReference, "iform.pdf")
     val robotXmlFileName: String = fileName(ctutrMetadata.submissionReference, "robotic.xml")
+    val dateOfReceipt: String = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(
+      LocalDateTime.ofInstant(Instant.now().truncatedTo(ChronoUnit.SECONDS), ZoneOffset.UTC)
+    )
     for {
       pdf: ByteString <- createPdf(submission)
       robotXml: ByteString = createRobotXml(submission, ctutrMetadata)
@@ -53,7 +57,8 @@ class SubmissionService @Inject()(
         pdf,
         pdfFileName,
         robotXml,
-        robotXmlFileName
+        robotXmlFileName,
+        dateOfReceipt
       )
     } yield dmsResponse
   }
@@ -65,7 +70,7 @@ class SubmissionService @Inject()(
         .getBytes
     )
 
-  private def createPdf(submission: Submission)(implicit hc: HeaderCarrier): Future[ByteString] = {
+  private def createPdf(submission: Submission): Future[ByteString] = {
     val viewModel: SubmissionViewModel = SubmissionViewModel.apply(submission)
     val pdfTemplate: HtmlFormat.Appendable = CTUTRScheme(viewModel)
     val xlsTransformer: String = scala.io.Source.fromResource("CTUTRScheme.xml").mkString

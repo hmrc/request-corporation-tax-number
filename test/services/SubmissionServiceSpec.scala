@@ -68,7 +68,7 @@ class SubmissionServiceSpec extends TestFixture {
 
       "given valid inputs and the call to DMS Submissions is ACCEPTED" in {
         when(mockPdfService.render(any(), any())).thenReturn(Future.successful(pdfBytes))
-        when(mockDmsConnector.postFileData(any(), any(), any(), any(), any())(any(), any()))
+        when(mockDmsConnector.postFileData(any(), any(), any(), any(), any(), any())(any(), any()))
           .thenReturn(
             Future.successful(
               SubmissionResponse(defaultSubmissionReference, s"${defaultSubmissionReference}-SubmissionCTUTR-$formatToday-iform.pdf")
@@ -89,7 +89,7 @@ class SubmissionServiceSpec extends TestFixture {
       ).foreach{ exception: Int =>
         s"the call to DMS Submissions fails returning ${exception}" in {
           when(mockPdfService.render(any(), any())).thenReturn(Future.successful(pdfBytes))
-          when(mockDmsConnector.postFileData(any(), any(), any(), any(), any())(any(), any()))
+          when(mockDmsConnector.postFileData(any(), any(), any(), any(), any(), any())(any(), any()))
             .thenReturn(
               Future.failed(new RuntimeException(s"Failed with status [$exception]"))
             )

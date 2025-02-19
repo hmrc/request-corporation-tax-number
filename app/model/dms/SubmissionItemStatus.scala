@@ -22,11 +22,8 @@ sealed abstract class SubmissionItemStatus extends EnumEntry
 
 object SubmissionItemStatus extends Enum[SubmissionItemStatus] with PlayJsonEnum[SubmissionItemStatus] {
 
-  case object Submitted extends SubmissionItemStatus
-  case object Forwarded extends SubmissionItemStatus
   case object Processed extends SubmissionItemStatus
   case object Failed extends SubmissionItemStatus
-  case object Completed extends SubmissionItemStatus
-  
+
   override def values: IndexedSeq[SubmissionItemStatus] = findValues
 }
