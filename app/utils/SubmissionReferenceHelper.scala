@@ -19,5 +19,5 @@ package utils
 import scala.util.Random
 
 object SubmissionReferenceHelper { // scalastyle:off magic.number
-  def createSubmissionRef(): String = Random.alphanumeric.map(_.toUpper).take(12).mkString
+  def createSubmissionRef(refLength: Int = 12): String = Random.alphanumeric.map(_.toUpper).take(refLength).mkString
 }

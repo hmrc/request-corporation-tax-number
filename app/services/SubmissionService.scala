@@ -43,12 +43,14 @@ class SubmissionService @Inject()(
   private def fileName(submissionReference: String, fileType: String): String =
     s"$submissionReference-SubmissionCTUTR-${LocalDate.now().format(DateTimeFormatter.ofPattern("YYYYMMdd"))}-$fileType"
 
+  private def dateOfReceipt: String = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(
+    LocalDateTime.ofInstant(Instant.now().truncatedTo(ChronoUnit.SECONDS), ZoneOffset.UTC)
+  )
+
   def submit(ctutrMetadata: CTUTRMetadata, submission: Submission)(implicit hc: HeaderCarrier): Future[SubmissionResponse] = {
     val pdfFileName: String = fileName(ctutrMetadata.submissionReference, "iform.pdf")
     val robotXmlFileName: String = fileName(ctutrMetadata.submissionReference, "robotic.xml")
-    val dateOfReceipt: String = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(
-      LocalDateTime.ofInstant(Instant.now().truncatedTo(ChronoUnit.SECONDS), ZoneOffset.UTC)
-    )
+
     for {
       pdf: ByteString <- createPdf(submission)
       robotXml: ByteString = createRobotXml(submission, ctutrMetadata)
