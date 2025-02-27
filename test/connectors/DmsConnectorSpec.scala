@@ -20,7 +20,7 @@ import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder
 import model.domain.SubmissionResponse
 import model.templates.CTUTRMetadata
 import org.apache.pekko.util.ByteString
-import play.api.http.Status.{ACCEPTED, BAD_REQUEST, FORBIDDEN, UNAUTHORIZED}
+import play.api.http.Status.{ACCEPTED, BAD_REQUEST, FORBIDDEN, NOT_FOUND, UNAUTHORIZED}
 import util.WireMockHelper
 
 import java.time.{Instant, LocalDate, LocalDateTime, ZoneOffset}
@@ -89,7 +89,7 @@ class DmsConnectorSpec
 
   "postFileData" must {
 
-    "must return a successful future when the store responds with ACCEPTED and a SubmissionResponse.Success" in {
+    "return a successful future when the store responds with ACCEPTED and a SubmissionResponse.Success" in {
 
       val ctutrMetadata: CTUTRMetadata = CTUTRMetadata(new MicroserviceAppConfig(new ServicesConfig(app.configuration)))
       val submissionResponse: SubmissionResponse = SubmissionResponse(ctutrMetadata.submissionReference, pdfFileName)
@@ -116,15 +116,16 @@ class DmsConnectorSpec
       Seq(
         BAD_REQUEST,
         UNAUTHORIZED,
-        FORBIDDEN
-      ).foreach{ exception: Int =>
-        s"the call to DMS Submissions fails returning $exception" in {
+        FORBIDDEN,
+        NOT_FOUND
+      ).foreach { returnStatus: Int =>
+        s"the call to DMS Submissions fails returning $returnStatus" in {
 
           val ctutrMetadata: CTUTRMetadata = CTUTRMetadata(new MicroserviceAppConfig(new ServicesConfig(app.configuration)))
           val stubbedResponse: ResponseDefinitionBuilder =
             aResponse()
-              .withStatus(exception)
-              .withBody(s"Failed with status [$exception]")
+              .withStatus(returnStatus)
+              .withBody(s"Something went wrong [$returnStatus]")
 
           defineDmsSubStub(ctutrMetadata, stubbedResponse)
 
@@ -137,7 +138,7 @@ class DmsConnectorSpec
             dateOfReceipt = dateOfReceipt
           ).failed
 
-          val expectedErrorMessage = s"Failed with status [$exception]"
+          val expectedErrorMessage = s"Failed with status [$returnStatus]"
           whenReady(response) {
             result: Throwable =>
               result mustBe a[RuntimeException]
@@ -147,5 +148,4 @@ class DmsConnectorSpec
       }
     }
   }
-
 }

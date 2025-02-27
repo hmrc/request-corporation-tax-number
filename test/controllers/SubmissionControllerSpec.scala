@@ -76,7 +76,7 @@ class SubmissionControllerSpec extends TestFixture {
 
     "return a BAD_REQUEST http response" when {
 
-      "submit is called with payload that cannot be passed" in {
+      "submit is called with payload that cannot be parsed" in {
         val result = Helpers.call(submissionController.submit(), fakeRequestBadRequest)
         status(result) mustBe BAD_REQUEST
       }
@@ -102,14 +102,14 @@ class SubmissionControllerSpec extends TestFixture {
 
     "add HEADER_X_CORRELATION_ID to header when not in request" in {
       val hc: HeaderCarrier = submissionController.getOrCreateCorrelationID(fakeRequestValidDataset)
-      hc.headers(Seq(submissionController.HEADER_X_CORRELATION_ID)).nonEmpty
+      assert(hc.extraHeaders.map(_._1).contains(submissionController.HEADER_X_CORRELATION_ID))
     }
 
     "return original header if it contains HEADER_X_CORRELATION_ID already" in {
       val hc: HeaderCarrier = submissionController.getOrCreateCorrelationID(
         fakeRequestValidDataset.withHeaders((submissionController.HEADER_X_CORRELATION_ID, "1234"))
       )
-      hc.headers(Seq(submissionController.HEADER_X_CORRELATION_ID)).nonEmpty
+      assert(hc.headers(Seq(submissionController.HEADER_X_CORRELATION_ID)).contains((submissionController.HEADER_X_CORRELATION_ID, "1234")))
     }
   }
 }

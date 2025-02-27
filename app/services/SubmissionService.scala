@@ -50,9 +50,10 @@ class SubmissionService @Inject()(
   def submit(ctutrMetadata: CTUTRMetadata, submission: Submission)(implicit hc: HeaderCarrier): Future[SubmissionResponse] = {
     val pdfFileName: String = fileName(ctutrMetadata.submissionReference, "iform.pdf")
     val robotXmlFileName: String = fileName(ctutrMetadata.submissionReference, "robotic.xml")
-
+    val pdfTemplate: HtmlFormat.Appendable = CTUTRScheme(SubmissionViewModel.apply(submission))
+    val xlsTransformer: String = scala.io.Source.fromResource("CTUTRScheme.xml").mkString
     for {
-      pdf: ByteString <- createPdf(submission)
+      pdf: ByteString <- createPdf(pdfTemplate, xlsTransformer)
       robotXml: ByteString = createRobotXml(submission, ctutrMetadata)
       dmsResponse: SubmissionResponse <- dmsConnector.postFileData(
         ctutrMetadata,
@@ -72,14 +73,12 @@ class SubmissionService @Inject()(
         .getBytes
     )
 
-  private def createPdf(submission: Submission): Future[ByteString] = {
-    val viewModel: SubmissionViewModel = SubmissionViewModel.apply(submission)
-    val pdfTemplate: HtmlFormat.Appendable = CTUTRScheme(viewModel)
-    val xlsTransformer: String = scala.io.Source.fromResource("CTUTRScheme.xml").mkString
-    val renderedPdf: Future[Array[Byte]] = pdfService.render(pdfTemplate, xlsTransformer)
-    renderedPdf.map(ByteString(_))
-  }.recoverWith {
-    case e: Exception =>
-      throw new RuntimeException(s"[SubmissionService][createPdf] Error creating PDF: ${e.getMessage}")
-  }
+  private def createPdf(pdfTemplate: HtmlFormat.Appendable, xlsTransformer: String): Future[ByteString] =
+    pdfService
+      .render(pdfTemplate, xlsTransformer)
+      .map(ByteString(_))
+      .recoverWith {
+        case e: Exception =>
+          throw new RuntimeException(s"[SubmissionService][createPdf] Error creating PDF: ${e.getMessage}")
+      }
 }
