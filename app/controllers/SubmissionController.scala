@@ -34,39 +34,47 @@ import uk.gov.hmrc.http.HeaderCarrier
 import utils.CorrelationIdHelper
 
 @Singleton
-class SubmissionController @Inject()( val submissionService: SubmissionService,
-                                      auditService: AuditService,
-                                      cc: ControllerComponents,
-                                      appConfig : MicroserviceAppConfig
-                                    ) extends BackendController(cc)
-  with Logging
-  with CorrelationIdHelper {
+class SubmissionController @Inject() (
+    val submissionService: SubmissionService,
+    auditService: AuditService,
+    cc: ControllerComponents,
+    appConfig: MicroserviceAppConfig
+) extends BackendController(cc)
+    with Logging
+    with CorrelationIdHelper {
 
-    implicit val ec: ExecutionContext = cc.executionContext
+  implicit val ec: ExecutionContext = cc.executionContext
 
-    def submit(): Action[Submission] = Action.async(parse.json[Submission]) {
-      implicit request =>
+  def submit(): Action[Submission] = Action.async(parse.json[Submission]) {
+    implicit request =>
+      implicit val hc: HeaderCarrier = getOrCreateCorrelationID(request)
 
-        implicit val hc: HeaderCarrier = getOrCreateCorrelationID(request)
-
-        auditService.sendEvent(
-          CTUTRSubmission(
-            request.body.companyDetails.companyReferenceNumber,
-            request.body.companyDetails.companyName
-          )
+      auditService.sendEvent(
+        CTUTRSubmission(
+          request.body.companyDetails.companyReferenceNumber,
+          request.body.companyDetails.companyName
         )
+      )
 
-        logger.info(s"[SubmissionController][submit] processing submission")
-        val ctutrMetadata: CTUTRMetadata = CTUTRMetadata(appConfig, request.body.companyDetails.companyReferenceNumber)
+      logger.info(s"[SubmissionController][submit] processing submission")
+      val ctutrMetadata: CTUTRMetadata = CTUTRMetadata(
+        appConfig,
+        request.body.companyDetails.companyReferenceNumber
+      )
 
-        submissionService.submit(ctutrMetadata, request.body).map{
-          response =>
-            logger.info(s"[SubmissionController][submit] processed submission $response")
-            Ok(Json.toJson(response))
-        }.recoverWith {
-          case e: Exception =>
-            logger.error(s"[SubmissionController][submit] Exception returned when processing submission: ${e.getMessage}")
-            Future.successful(InternalServerError)
+      submissionService
+        .submit(ctutrMetadata, request.body)
+        .map { response =>
+          logger.info(
+            s"[SubmissionController][submit] processed submission $response"
+          )
+          Ok(Json.toJson(response))
         }
-    }
+        .recoverWith { case e: Exception =>
+          logger.error(
+            s"[SubmissionController][submit] Exception returned when processing submission: ${e.getMessage}"
+          )
+          Future.successful(InternalServerError)
+        }
   }
+}

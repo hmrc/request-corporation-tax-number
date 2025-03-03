@@ -25,11 +25,11 @@ import uk.gov.hmrc.internalauth.client._
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class DmsSubmissionCallbackController @Inject()(
-                                                 override val controllerComponents: ControllerComponents,
-                                                 auth: BackendAuthComponents
-                                               ) extends BackendBaseController
-  with Logging {
+class DmsSubmissionCallbackController @Inject() (
+    override val controllerComponents: ControllerComponents,
+    auth: BackendAuthComponents
+) extends BackendBaseController
+    with Logging {
 
   private val predicate = Predicate.Permission(
     resource = Resource(
@@ -41,23 +41,31 @@ class DmsSubmissionCallbackController @Inject()(
 
   private val authorised = auth.authorizedAction(predicate)
 
-  def callback: Action[NotificationRequest] = authorised(parse.json[NotificationRequest]) { request =>
-    val notification: NotificationRequest = request.body
+  /** Callback function for DMS submission service.
+    *
+    *  This function is exposed via the '/dms-submission/callback' endpoint and is called by the dms-submission service
+    *  to provide status updates on file submissions.
+    *  This dms-submission service always expects an Ok response from this function.
+    */
+  def callback: Action[NotificationRequest] =
+    authorised(parse.json[NotificationRequest]) { request =>
+      val notification: NotificationRequest = request.body
 
-    logger.info(
-      s"[DmsSubmissionCallbackController][callback] DMS notification received for ${notification.id}"
-    )
-
-    if (notification.status == SubmissionItemStatus.Failed) {
-      val failedReason = notification.failureReason.getOrElse("Error details not provided")
-      logger.error(
-        s"[DmsSubmissionCallbackController][callback] DMS notification received for ${notification.id} failed with error: $failedReason"
-      )
-    } else {
       logger.info(
-        s"[DmsSubmissionCallbackController][callback] DMS notification received for ${notification.id} with status ${notification.status}"
+        s"[DmsSubmissionCallbackController][callback] DMS notification received for ${notification.id}"
       )
+
+      if (notification.status == SubmissionItemStatus.Failed) {
+        val failedReason =
+          notification.failureReason.getOrElse("Error details not provided")
+        logger.error(
+          s"[DmsSubmissionCallbackController][callback] DMS notification received for ${notification.id} failed with error: $failedReason"
+        )
+      } else {
+        logger.info(
+          s"[DmsSubmissionCallbackController][callback] DMS notification received for ${notification.id} with status ${notification.status}"
+        )
+      }
+      Ok
     }
-    Ok
-  }
 }

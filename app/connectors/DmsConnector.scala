@@ -33,16 +33,20 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class DmsConnector @Inject()(httpClient: HttpClientV2)(implicit appConfig: MicroserviceAppConfig) extends Logging {
+class DmsConnector @Inject() (httpClient: HttpClientV2)(implicit
+    appConfig: MicroserviceAppConfig
+) extends Logging {
 
   private val internalAuthToken: String = appConfig.authToken
 
-  def constructMultipartFormData(ctutrMetadata: CTUTRMetadata,
-                                 pdf: ByteString,
-                                 pdfFileName: String,
-                                 robotXml: ByteString,
-                                 robotXmlFileName: String,
-                                 dateOfReceipt: String): Source[Part[Source[ByteString, _]], NotUsed] =
+  def constructMultipartFormData(
+      ctutrMetadata: CTUTRMetadata,
+      pdf: ByteString,
+      pdfFileName: String,
+      robotXml: ByteString,
+      robotXmlFileName: String,
+      dateOfReceipt: String
+  ): Source[Part[Source[ByteString, _]], NotUsed] =
     Source(
       Seq(
         DataPart("submissionReference", ctutrMetadata.submissionReference),
@@ -53,7 +57,10 @@ class DmsConnector @Inject()(httpClient: HttpClientV2)(implicit appConfig: Micro
         DataPart("metadata.formId", ctutrMetadata.formId),
         DataPart("metadata.customerId", ctutrMetadata.customerId),
         DataPart("metadata.casKey", ctutrMetadata.casKey),
-        DataPart("metadata.classificationType", ctutrMetadata.classificationType),
+        DataPart(
+          "metadata.classificationType",
+          ctutrMetadata.classificationType
+        ),
         DataPart("metadata.businessArea", ctutrMetadata.businessArea),
         FilePart(
           key = "form",
@@ -70,36 +77,65 @@ class DmsConnector @Inject()(httpClient: HttpClientV2)(implicit appConfig: Micro
       )
     )
 
-  def postFileData(ctutrMetadata: CTUTRMetadata,
-                   pdf: ByteString,
-                   pdfFileName: String,
-                   robotXml: ByteString,
-                   robotXmlFileName: String,
-                   dateOfReceipt: String)
-                  (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[SubmissionResponse] =
+  def postFileData(
+      ctutrMetadata: CTUTRMetadata,
+      pdf: ByteString,
+      pdfFileName: String,
+      robotXml: ByteString,
+      robotXmlFileName: String,
+      dateOfReceipt: String
+  )(implicit
+      hc: HeaderCarrier,
+      ec: ExecutionContext
+  ): Future[SubmissionResponse] =
     httpClient
       .post(url"${appConfig.dmsSubmissionBaseUrl}/dms-submission/submit")
       .setHeader("Authorization" -> internalAuthToken)
       .withBody(
-        constructMultipartFormData(ctutrMetadata, pdf, pdfFileName, robotXml, robotXmlFileName, dateOfReceipt)
+        constructMultipartFormData(
+          ctutrMetadata,
+          pdf,
+          pdfFileName,
+          robotXml,
+          robotXmlFileName,
+          dateOfReceipt
+        )
       )
       .execute[HttpResponse]
-      .flatMap{ response: HttpResponse =>
+      .flatMap { response: HttpResponse =>
         response.status match {
           case ACCEPTED =>
-            Future.successful(SubmissionResponse(ctutrMetadata.submissionReference, pdfFileName))
+            Future.successful(
+              SubmissionResponse(ctutrMetadata.submissionReference, pdfFileName)
+            )
           case BAD_REQUEST =>
-            logger.error(s"[SubmissionService][submit]: dms connector returned bad request response, body: ${response.body}")
-            Future.failed(new RuntimeException(s"Failed with status [${response.status}]"))
+            logger.error(
+              s"[SubmissionService][submit]: dms connector returned bad request response, body: ${response.body}"
+            )
+            Future.failed(
+              new RuntimeException(s"Failed with status [${response.status}]")
+            )
           case UNAUTHORIZED =>
-            logger.error(s"[SubmissionService][submit]: dms connector returned unauthorized, body: ${response.body}")
-            Future.failed(new RuntimeException(s"Failed with status [${response.status}]"))
+            logger.error(
+              s"[SubmissionService][submit]: dms connector returned unauthorized, body: ${response.body}"
+            )
+            Future.failed(
+              new RuntimeException(s"Failed with status [${response.status}]")
+            )
           case FORBIDDEN =>
-            logger.error(s"[SubmissionService][submit]: dms connector returned forbidden, body: ${response.body}")
-            Future.failed(new RuntimeException(s"Failed with status [${response.status}]"))
+            logger.error(
+              s"[SubmissionService][submit]: dms connector returned forbidden, body: ${response.body}"
+            )
+            Future.failed(
+              new RuntimeException(s"Failed with status [${response.status}]")
+            )
           case _ =>
-            logger.error(s"[SubmissionService][submit]: dms connector returned an error, body: ${response.body}")
-            Future.failed(new RuntimeException(s"Failed with status [${response.status}]"))
+            logger.error(
+              s"[SubmissionService][submit]: dms connector returned an error with status [${response.status}], body: ${response.body}"
+            )
+            Future.failed(
+              new RuntimeException(s"Failed with status [${response.status}]")
+            )
         }
       }
 }
