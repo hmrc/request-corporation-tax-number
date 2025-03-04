@@ -31,10 +31,8 @@ class MicroserviceAppConfig @Inject()(servicesConfig: ServicesConfig) {
   lazy val formId: String = loadConfig(s"pdf.ctutr.metadata.formId")
   lazy val source: String = loadConfig(s"pdf.ctutr.metadata.source")
   lazy val target: String = loadConfig(s"pdf.ctutr.metadata.target")
-  lazy val save: String = loadConfig(s"pdf.ctutr.metadata.save")
-  
+  lazy val save: String = servicesConfig.getBoolean(s"pdf.ctutr.metadata.save").toString
   lazy val authToken: String = servicesConfig.getString("internal-auth.token")
   lazy val dmsSubmissionBaseUrl: String = servicesConfig.baseUrl("dms-submission")
   lazy val dmsSubmissionCallbackUrl: String = loadConfig(s"microservice.services.dms-submission.callbackUrl")
-
 }
