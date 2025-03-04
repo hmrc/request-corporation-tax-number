@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,17 @@
  * limitations under the License.
  */
 
-package model
+package model.dms
 
-import play.api.libs.json.{Format, Json}
+import play.api.libs.json.{Json, OFormat}
 
-case class CallbackRequest(envelopeId: String, fileId: String, status: String, reason: Option[String] = None)
+final case class NotificationRequest(
+  id: String,
+  status: SubmissionItemStatus,
+  failureReason: Option[String]
+)
 
-object CallbackRequest {
-  implicit val formatFileUpload: Format[CallbackRequest] = Json.format[CallbackRequest]
+object NotificationRequest {
+
+  implicit val format: OFormat[NotificationRequest] = Json.format
 }
-
-

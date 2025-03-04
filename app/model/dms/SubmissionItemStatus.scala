@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,16 @@
  * limitations under the License.
  */
 
-package model
+package model.dms
 
-import play.api.libs.json.{Format, Json}
+import enumeratum.{Enum, EnumEntry, PlayJsonEnum}
 
-case class Envelope(id: String, callbackUrl: Option[String], status: String, files: Option[Seq[File]])
+sealed abstract class SubmissionItemStatus extends EnumEntry
 
-object Envelope {
+object SubmissionItemStatus extends Enum[SubmissionItemStatus] with PlayJsonEnum[SubmissionItemStatus] {
 
-  implicit val format: Format[Envelope] = Json.format[Envelope]
+  case object Processed extends SubmissionItemStatus
+  case object Failed extends SubmissionItemStatus
+
+  override def values: IndexedSeq[SubmissionItemStatus] = findValues
 }

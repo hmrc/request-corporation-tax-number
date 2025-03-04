@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,19 +60,13 @@ class PdfGeneratorService @Inject()(fopFactory: FopFactory, environment: Environ
       val view             = input.toString()
       val viewWithHtmlTags = "<html>" + view + "</html>"
 
-      try {
-        val source: StreamSource = new StreamSource(new StringReader(viewWithHtmlTags))
-        val result               = new SAXResult(fop.getDefaultHandler)
+      val source: StreamSource = new StreamSource(new StringReader(viewWithHtmlTags))
+      val result               = new SAXResult(fop.getDefaultHandler)
 
-        val transformerFactory = TransformerFactory.newInstance().asInstanceOf[SAXTransformerFactory]
-        transformerFactory.setURIResolver(this)
-        val transformer = transformerFactory.newTransformer(xslt)
-        transformer.transform(source, result)
-
-      } catch {
-        case e: Exception =>
-          throw new Exception(s"[PdfGeneratorService][render] Error rendering PDF: ${e.getMessage}")
-      }
+      val transformerFactory = TransformerFactory.newInstance().asInstanceOf[SAXTransformerFactory]
+      transformerFactory.setURIResolver(this)
+      val transformer = transformerFactory.newTransformer(xslt)
+      transformer.transform(source, result)
 
       out.toByteArray
     }
