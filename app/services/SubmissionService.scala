@@ -41,7 +41,7 @@ class SubmissionService @Inject()(
                                  )(implicit val ec: ExecutionContext) extends Logging {
 
   private def fileName(submissionReference: String, fileType: String): String =
-    s"$submissionReference-SubmissionCTUTR-${LocalDate.now().format(DateTimeFormatter.ofPattern("YYYYMMdd"))}-$fileType"
+    s"$submissionReference-${LocalDate.now().format(DateTimeFormatter.ofPattern("YYYYMMdd"))}-$fileType"
 
   private def dateOfReceipt: String = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(
     LocalDateTime.ofInstant(Instant.now().truncatedTo(ChronoUnit.SECONDS), ZoneOffset.UTC)
@@ -49,7 +49,7 @@ class SubmissionService @Inject()(
 
   def submit(ctutrMetadata: CTUTRMetadata, submission: Submission)(implicit hc: HeaderCarrier): Future[SubmissionResponse] = {
     val pdfFileName: String = fileName(ctutrMetadata.submissionReference, "iform.pdf")
-    val robotXmlFileName: String = fileName(ctutrMetadata.submissionReference, "robotic.xml")
+    val robotXmlFileName: String = fileName(s"${ctutrMetadata.submissionReference}-SubmissionCTUTR", "robotic.xml")
     val pdfTemplate: HtmlFormat.Appendable = CTUTRScheme(SubmissionViewModel.apply(submission))
     val xlsTransformer: String = scala.io.Source.fromResource("CTUTRScheme.xml").mkString
     for {
