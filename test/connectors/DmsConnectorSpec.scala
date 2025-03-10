@@ -64,6 +64,9 @@ class DmsConnectorSpec
 
   private lazy val connector: DmsConnector = app.injector.instanceOf[DmsConnector]
 
+  val appConfig = new MicroserviceAppConfig(new ServicesConfig(app.configuration))
+  val ctutrMetadata: CTUTRMetadata = CTUTRMetadata(appConfig)
+
   def defineDmsSubStub(ctutrMetadata: CTUTRMetadata, response: ResponseDefinitionBuilder): StubMapping =
     server.stubFor(
       post(urlMatching(url))
@@ -82,7 +85,7 @@ class DmsConnectorSpec
         .withMultipartRequestBody(aMultipart().withName("metadata.businessArea").withBody(containing("BT")))
         .withMultipartRequestBody(aMultipart().withName("form").withBody(binaryEqualTo(pdf)))
         .withMultipartRequestBody(aMultipart().withName("attachment").withBody(binaryEqualTo(roboticXml)))
-        .withHeader(AUTHORIZATION, containing("test-token"))
+        .withHeader(AUTHORIZATION, containing(ctutrMetadata.appConfig.authToken))
         .withHeader(USER_AGENT, containing("request-corporation-tax-number"))
         .willReturn(response)
     )
@@ -91,7 +94,6 @@ class DmsConnectorSpec
 
     "return a successful future when the store responds with ACCEPTED and a SubmissionResponse.Success" in {
 
-      val ctutrMetadata: CTUTRMetadata = CTUTRMetadata(new MicroserviceAppConfig(new ServicesConfig(app.configuration)))
       val submissionResponse: SubmissionResponse = SubmissionResponse(ctutrMetadata.submissionReference, pdfFileName)
       val stubbedResponse: ResponseDefinitionBuilder =
         aResponse()
@@ -121,7 +123,6 @@ class DmsConnectorSpec
       ).foreach { returnStatus: Int =>
         s"the call to DMS Submissions fails returning $returnStatus" in {
 
-          val ctutrMetadata: CTUTRMetadata = CTUTRMetadata(new MicroserviceAppConfig(new ServicesConfig(app.configuration)))
           val stubbedResponse: ResponseDefinitionBuilder =
             aResponse()
               .withStatus(returnStatus)

@@ -21,8 +21,19 @@ import play.api.inject.{Binding, Module => PlayModule}
 import play.api.{Configuration, Environment}
 
 class Module extends PlayModule {
-  override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] =
+
+  override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] = {
+
+    val authTokenInitialiserBinding: Binding[InternalAuthTokenInitialiser] =
+      if (configuration.get[Boolean]("internal-auth-token-initialiser.enabled")) {
+        bind[InternalAuthTokenInitialiser].to[InternalAuthTokenInitialiserImpl].eagerly()
+      } else {
+        bind[InternalAuthTokenInitialiser].to[NoOpInternalAuthTokenInitialiser].eagerly()
+      }
+
     Seq(
-      bind[FopFactory].toProvider[FopFactoryProvider].eagerly()
+      bind[FopFactory].toProvider[FopFactoryProvider].eagerly(),
+      authTokenInitialiserBinding
     )
+  }
 }
