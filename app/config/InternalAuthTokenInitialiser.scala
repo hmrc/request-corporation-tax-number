@@ -31,6 +31,7 @@ import org.apache.pekko.actor.ActorSystem
 
 import java.util.concurrent.TimeUnit
 
+// $COVERAGE-OFF$
 sealed abstract class Done
 object Done extends Done
 
@@ -156,3 +157,4 @@ class InternalAuthTokenInitialiserImpl @Inject() (
       .map(_.status == OK)
   }
 }
+// $COVERAGE-ON$

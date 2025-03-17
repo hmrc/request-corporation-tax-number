@@ -20,6 +20,7 @@ import org.apache.fop.apps.FopFactory
 import play.api.inject.{Binding, Module => PlayModule}
 import play.api.{Configuration, Environment}
 
+// $COVERAGE-OFF$
 class Module extends PlayModule {
 
   override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] = {
@@ -37,3 +38,4 @@ class Module extends PlayModule {
     )
   }
 }
+// $COVERAGE-ON$
