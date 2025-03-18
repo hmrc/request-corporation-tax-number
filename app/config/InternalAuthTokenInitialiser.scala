@@ -18,8 +18,7 @@ package config
 
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.{Await, ExecutionContext, Future}
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.{ExecutionContext, Future}
 import play.api.Logging
 import play.api.http.Status.{CREATED, OK}
 import play.api.libs.json.Json
@@ -29,19 +28,16 @@ import uk.gov.hmrc.http.client.HttpClientV2
 import play.api.libs.ws.writeableOf_JsValue
 import org.apache.pekko.actor.ActorSystem
 
-import java.util.concurrent.TimeUnit
-
-// $COVERAGE-OFF$
 sealed abstract class Done
 object Done extends Done
 
 abstract class InternalAuthTokenInitialiser {
-  val initialised: Future[Done]
+  def initialised(dmsSubmissionAttachmentGrantsToken: UUID): Future[Done]
 }
 
 @Singleton
 class NoOpInternalAuthTokenInitialiser @Inject() extends InternalAuthTokenInitialiser {
-  override val initialised: Future[Done] = Future.successful(Done)
+  override def initialised(dmsSubmissionAttachmentGrantsToken: UUID): Future[Done] = Future.successful(Done)
 }
 
 @Singleton
@@ -53,15 +49,11 @@ class InternalAuthTokenInitialiserImpl @Inject() (
   extends InternalAuthTokenInitialiser
     with Logging {
 
-  override val initialised: Future[Done] = setup()
+  override def initialised(dmsSubmissionAttachmentGrantsToken: UUID = UUID.randomUUID()): Future[Done] = setup(dmsSubmissionAttachmentGrantsToken)
 
-  actorSystem.scheduler.scheduleOnce(new FiniteDuration(30, TimeUnit.SECONDS)) {
-    Await.result(setup(), 30.seconds)
-  }
-
-  private def setup(): Future[Done] = for {
+  private def setup(dmsSubmissionAttachmentGrantsToken: UUID): Future[Done] = for {
     _ <- ensureAuthToken()
-    _ <- addDmsSubmissionAttachmentGrants()
+    _ <- addDmsSubmissionAttachmentGrants(dmsSubmissionAttachmentGrantsToken)
   } yield Done
 
   private def ensureAuthToken(): Future[Done] =
@@ -76,7 +68,6 @@ class InternalAuthTokenInitialiserImpl @Inject() (
 
   private def createClientAuthToken(): Future[Done] = {
     logger.info("[InternalAuthTokenInitialiser][createClientAuthToken] Initialising auth token")
-    logger.info(s"[InternalAuthTokenInitialiser][createClientAuthToken] uri: ${appConfig.internalAuthBaseUrl}/test-only/token")
     httpClient
       .post(url"${appConfig.internalAuthBaseUrl}/test-only/token")(HeaderCarrier())
       .withBody(
@@ -113,7 +104,7 @@ class InternalAuthTokenInitialiserImpl @Inject() (
       }
   }
 
-  private def addDmsSubmissionAttachmentGrants(): Future[Done] = {
+  private def addDmsSubmissionAttachmentGrants(dmsSubmissionAttachmentGrantsToken: UUID): Future[Done] = {
     logger.info(
       "[InternalAuthTokenInitialiser][addDmsSubmissionsAttachmentGrants] Initialising dms-submission grants"
     )
@@ -121,7 +112,7 @@ class InternalAuthTokenInitialiserImpl @Inject() (
       .post(url"${appConfig.internalAuthBaseUrl}/test-only/token")(HeaderCarrier())
       .withBody(
         Json.obj(
-          "token"       -> UUID.randomUUID(),
+          "token"       -> dmsSubmissionAttachmentGrantsToken,
           "principal"   -> "dms-submission",
           "permissions" -> Seq(
             Json.obj(
@@ -157,4 +148,3 @@ class InternalAuthTokenInitialiserImpl @Inject() (
       .map(_.status == OK)
   }
 }
-// $COVERAGE-ON$
