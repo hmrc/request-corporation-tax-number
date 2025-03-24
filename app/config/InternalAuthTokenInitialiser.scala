@@ -44,7 +44,6 @@ class NoOpInternalAuthTokenInitialiser @Inject() extends InternalAuthTokenInitia
 class InternalAuthTokenInitialiserImpl @Inject() (
                                                    appConfig: MicroserviceAppConfig,
                                                    httpClient: HttpClientV2,
-                                                   actorSystem: ActorSystem
                                                  )(implicit ec: ExecutionContext)
   extends InternalAuthTokenInitialiser
     with Logging {

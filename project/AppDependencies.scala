@@ -18,7 +18,7 @@ import sbt.*
 
 object AppDependencies {
 
-  private val bootstrapPlayVersion: String = "9.6.0"
+  private val bootstrapPlayVersion: String = "9.11.0"
 
   private val compile = Seq(
     ws,
@@ -26,7 +26,7 @@ object AppDependencies {
     "uk.gov.hmrc"             %% "domain-play-30"               % "10.0.0",
     "org.apache.xmlgraphics"  % "fop"                           % "2.10",
     "net.sf.saxon"            % "Saxon-HE"                      % "12.5",
-    "uk.gov.hmrc"             %% "internal-auth-client-play-30" % "3.0.0",
+    "uk.gov.hmrc"             %% "internal-auth-client-play-30" % "3.1.0",
     "com.beachape"            %% "enumeratum-play-json"         % "1.8.2"
   )
 
