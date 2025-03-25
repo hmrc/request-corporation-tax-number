@@ -21,7 +21,3 @@ import java.util.UUID
 class UUIDProvider {
   def randomUUID() : UUID =  UUID.randomUUID()
 }
-
-//class UUIDProviderImpl extends UUIDProvider {
-//  override def randomUUID(): UUID =
-//}
