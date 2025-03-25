@@ -18,6 +18,7 @@ package config
 
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
+import org.mockito.Mockito.{doReturn, spy, when}
 import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.must.Matchers
@@ -29,6 +30,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.Helpers.{AUTHORIZATION, running}
 import util.WireMockHelper
+import play.api.inject._
 
 import java.util.UUID
 
@@ -44,12 +46,18 @@ class InternalAuthTokenInitialiserSpec
   val dmsSubmissionAttachmentGrantsToken: UUID = UUID.fromString("73e63d8d-99c0-472f-bf38-e0f38c05d4aa")
   val authPath = "/test-only/token"
 
+  val uuidProvider = spy(new UUIDProvider)
+  doReturn(dmsSubmissionAttachmentGrantsToken).when(uuidProvider).randomUUID()
+
   def buildApp(authTokenInitialised: Boolean): Application = GuiceApplicationBuilder()
     .configure(
       "microservice.services.internal-auth.port" -> server.port(),
       "appName" -> appName,
       "internal-auth-token-initialiser.enabled" -> authTokenInitialised,
       "internal-auth.token" -> authToken
+    )
+    .overrides(
+      bind[UUIDProvider].toInstance(uuidProvider)
     )
     .build()
 
@@ -58,14 +66,14 @@ class InternalAuthTokenInitialiserSpec
     "principal" -> appName,
     "permissions" -> Seq(
       Json.obj(
-        "resourceType"     -> "dms-submission",
+        "resourceType" -> "dms-submission",
         "resourceLocation" -> "submit",
-        "actions"          -> List("WRITE")
+        "actions" -> List("WRITE")
       ),
       Json.obj(
-        "resourceType"     -> "object-store",
+        "resourceType" -> "object-store",
         "resourceLocation" -> "request-corporation-tax-number",
-        "actions"          -> List("READ", "WRITE")
+        "actions" -> List("READ", "WRITE")
       )
     )
   )
@@ -124,8 +132,6 @@ class InternalAuthTokenInitialiserSpec
 
       running(app) {
 
-        app.injector.instanceOf[InternalAuthTokenInitialiser].initialised(dmsSubmissionAttachmentGrantsToken).futureValue
-
         eventually(Timeout(Span(30, Seconds))) {
           server.verify(1,
             getRequestedFor(urlMatching(authPath))
@@ -156,8 +162,6 @@ class InternalAuthTokenInitialiserSpec
 
       running(app) {
 
-        app.injector.instanceOf[InternalAuthTokenInitialiser].initialised(dmsSubmissionAttachmentGrantsToken).futureValue
-
         server.verify(1,
           getRequestedFor(urlMatching(authPath))
             .withHeader(AUTHORIZATION, equalTo(authToken))
@@ -182,29 +186,22 @@ class InternalAuthTokenInitialiserSpec
       stubGetAuthToken(NOT_FOUND)
       stubCreateClientAuthToken(UNAUTHORIZED)
 
-      val app = buildApp(authTokenInitialised = true)
-
-      running(app) {
-
-        val exception = intercept[RuntimeException] {
-          app.injector.instanceOf[InternalAuthTokenInitialiser].initialised(dmsSubmissionAttachmentGrantsToken).futureValue
-        }
-
-        assert(exception.getMessage.contains("Unable to initialise internal-auth token"))
-
-        server.verify(1,
-          getRequestedFor(urlMatching(authPath))
-            .withHeader(AUTHORIZATION, equalTo(authToken))
-        )
-
-        server.verify(1,
-          postRequestedFor(urlMatching(authPath))
-            .withRequestBody(equalToJson(Json.stringify(Json.toJson(createClientAuthTokenJsonRequest))))
-        )
-
+      val exception = intercept[RuntimeException] {
+        buildApp(authTokenInitialised = true)
       }
-    }
 
+      server.verify(1,
+        getRequestedFor(urlMatching(authPath))
+          .withHeader(AUTHORIZATION, equalTo(authToken))
+      )
+
+      server.verify(1,
+        postRequestedFor(urlMatching(authPath))
+          .withRequestBody(equalToJson(Json.stringify(Json.toJson(createClientAuthTokenJsonRequest))))
+      )
+
+      assert(exception.getMessage.contains("Unable to initialise internal-auth token"))
+    }
 
     "throw a runtime exception when addDmsSubmissionAttachmentGrants returns a status other than CREATED" in {
 
@@ -212,29 +209,23 @@ class InternalAuthTokenInitialiserSpec
       stubCreateClientAuthToken(CREATED)
       stubAddDmsSubmissionAttachmentGrants(UNAUTHORIZED)
 
-      val app = buildApp(authTokenInitialised = true)
-
-      running(app) {
-
-        val exception = intercept[RuntimeException] {
-          app.injector.instanceOf[InternalAuthTokenInitialiser].initialised(dmsSubmissionAttachmentGrantsToken).futureValue
-        }
-
-        assert(exception.getMessage.contains("Unable to add dms-submission grants"))
-
-        server.verify(1,
-          getRequestedFor(urlMatching(authPath))
-            .withHeader(AUTHORIZATION, equalTo(authToken))
-        )
-
-        server.verify(1,
-          postRequestedFor(urlMatching(authPath))
-            .withRequestBody(equalToJson(Json.stringify(Json.toJson(createClientAuthTokenJsonRequest))))
-        )
-
+      val exception = intercept[RuntimeException] {
+        buildApp(authTokenInitialised = true)
       }
 
+      assert(exception.getMessage.contains("Unable to add dms-submission grants"))
+
+      server.verify(1,
+        getRequestedFor(urlMatching(authPath))
+          .withHeader(AUTHORIZATION, equalTo(authToken))
+      )
+
+      server.verify(1,
+        postRequestedFor(urlMatching(authPath))
+          .withRequestBody(equalToJson(Json.stringify(Json.toJson(createClientAuthTokenJsonRequest))))
+      )
     }
+
 
   }
 
@@ -243,8 +234,6 @@ class InternalAuthTokenInitialiserSpec
     "not make the relevant calls to internal-auth" in {
 
       val app = buildApp(authTokenInitialised = false)
-
-      app.injector.instanceOf[InternalAuthTokenInitialiser].initialised(UUID.randomUUID()).futureValue
 
       server.verify(0,
         getRequestedFor(urlMatching(authPath))

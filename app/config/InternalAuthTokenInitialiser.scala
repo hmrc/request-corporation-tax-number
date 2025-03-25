@@ -18,7 +18,7 @@ package config
 
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import play.api.Logging
 import play.api.http.Status.{CREATED, OK}
 import play.api.libs.json.Json
@@ -26,29 +26,33 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 import uk.gov.hmrc.http.HttpReads.Implicits.readRaw
 import uk.gov.hmrc.http.client.HttpClientV2
 import play.api.libs.ws.writeableOf_JsValue
-import org.apache.pekko.actor.ActorSystem
+
+import scala.concurrent.duration.DurationInt
 
 sealed abstract class Done
+
 object Done extends Done
 
 abstract class InternalAuthTokenInitialiser {
-  def initialised(dmsSubmissionAttachmentGrantsToken: UUID): Future[Done]
+  val initialised: Future[Done]
 }
 
 @Singleton
 class NoOpInternalAuthTokenInitialiser @Inject() extends InternalAuthTokenInitialiser {
-  override def initialised(dmsSubmissionAttachmentGrantsToken: UUID): Future[Done] = Future.successful(Done)
+  val initialised: Future[Done] = Future.successful(Done)
 }
 
 @Singleton
-class InternalAuthTokenInitialiserImpl @Inject() (
-                                                   appConfig: MicroserviceAppConfig,
-                                                   httpClient: HttpClientV2,
-                                                 )(implicit ec: ExecutionContext)
+class InternalAuthTokenInitialiserImpl @Inject()(
+                                                  appConfig: MicroserviceAppConfig,
+                                                  httpClient: HttpClientV2,
+                                                  uuidProvider: UUIDProvider
+                                                )(implicit ec: ExecutionContext)
   extends InternalAuthTokenInitialiser
     with Logging {
 
-  override def initialised(dmsSubmissionAttachmentGrantsToken: UUID = UUID.randomUUID()): Future[Done] = setup(dmsSubmissionAttachmentGrantsToken)
+  val initialised: Future[Done] = setup(uuidProvider.randomUUID())
+  Await.result(initialised, 30.seconds)
 
   private def setup(dmsSubmissionAttachmentGrantsToken: UUID): Future[Done] = for {
     _ <- ensureAuthToken()
@@ -67,22 +71,23 @@ class InternalAuthTokenInitialiserImpl @Inject() (
 
   private def createClientAuthToken(): Future[Done] = {
     logger.info("[InternalAuthTokenInitialiser][createClientAuthToken] Initialising auth token")
+
     httpClient
       .post(url"${appConfig.internalAuthBaseUrl}/test-only/token")(HeaderCarrier())
       .withBody(
         Json.obj(
-          "token"       -> appConfig.authToken,
-          "principal"   -> appConfig.appName,
+          "token" -> appConfig.authToken,
+          "principal" -> appConfig.appName,
           "permissions" -> Seq(
             Json.obj(
-              "resourceType"     -> "dms-submission",
+              "resourceType" -> "dms-submission",
               "resourceLocation" -> "submit",
-              "actions"          -> List("WRITE")
+              "actions" -> List("WRITE")
             ),
             Json.obj(
-              "resourceType"     -> "object-store",
+              "resourceType" -> "object-store",
               "resourceLocation" -> "request-corporation-tax-number",
-              "actions"          -> List("READ", "WRITE")
+              "actions" -> List("READ", "WRITE")
             )
           )
         )
@@ -93,11 +98,13 @@ class InternalAuthTokenInitialiserImpl @Inject() (
           logger.info(
             "[InternalAuthTokenInitialiser][createClientAuthToken] Auth token initialised"
           )
+
           Future.successful(Done)
         } else {
           logger.error(
             s"[InternalAuthTokenInitialiser][createClientAuthToken] Unable to initialise internal-auth token. response.body : ${response.body}"
           )
+
           Future.failed(new RuntimeException("Unable to initialise internal-auth token"))
         }
       }
@@ -107,17 +114,18 @@ class InternalAuthTokenInitialiserImpl @Inject() (
     logger.info(
       "[InternalAuthTokenInitialiser][addDmsSubmissionsAttachmentGrants] Initialising dms-submission grants"
     )
+
     httpClient
       .post(url"${appConfig.internalAuthBaseUrl}/test-only/token")(HeaderCarrier())
       .withBody(
         Json.obj(
-          "token"       -> dmsSubmissionAttachmentGrantsToken,
-          "principal"   -> "dms-submission",
+          "token" -> dmsSubmissionAttachmentGrantsToken,
+          "principal" -> "dms-submission",
           "permissions" -> Seq(
             Json.obj(
-              "resourceType"     -> "request-corporation-tax-number",
+              "resourceType" -> "request-corporation-tax-number",
               "resourceLocation" -> "dms/callback",
-              "actions"          -> List("WRITE")
+              "actions" -> List("WRITE")
             )
           )
         )
@@ -128,11 +136,13 @@ class InternalAuthTokenInitialiserImpl @Inject() (
           logger.info(
             "[InternalAuthTokenInitialiser][addDmsSubmissionAttachmentGrants] dms-submission grants added"
           )
+
           Future.successful(Done)
         } else {
           logger.error(
             "[InternalAuthTokenInitialiser][addDmsSubmissionAttachmentGrants] Unable to add dms-submission grants"
           )
+
           Future.failed(new RuntimeException("Unable to add dms-submission grants"))
         }
       }
@@ -140,6 +150,7 @@ class InternalAuthTokenInitialiserImpl @Inject() (
 
   private def authTokenIsValid: Future[Boolean] = {
     logger.info("[InternalAuthTokenInitialiser][authTokenIsValid] Checking auth token")
+
     httpClient
       .get(url"${appConfig.internalAuthBaseUrl}/test-only/token")(HeaderCarrier())
       .setHeader("Authorization" -> appConfig.authToken)
