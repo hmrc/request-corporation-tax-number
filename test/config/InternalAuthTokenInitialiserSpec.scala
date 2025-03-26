@@ -49,17 +49,18 @@ class InternalAuthTokenInitialiserSpec
   val uuidProvider = spy(new UUIDProvider)
   doReturn(dmsSubmissionAttachmentGrantsToken).when(uuidProvider).randomUUID()
 
-  def buildApp(authTokenInitialised: Boolean): Application = GuiceApplicationBuilder()
-    .configure(
-      "microservice.services.internal-auth.port" -> server.port(),
-      "appName" -> appName,
-      "internal-auth-token-initialiser.enabled" -> authTokenInitialised,
-      "internal-auth.token" -> authToken
-    )
-    .overrides(
-      bind[UUIDProvider].toInstance(uuidProvider)
-    )
-    .build()
+  def buildApp(authTokenInitialised: Boolean): Application =
+    GuiceApplicationBuilder()
+      .configure(
+        "microservice.services.internal-auth.port" -> server.port(),
+        "appName" -> appName,
+        "internal-auth-token-initialiser.enabled" -> authTokenInitialised,
+        "internal-auth.token" -> authToken
+      )
+      .overrides(
+        bind[UUIDProvider].toInstance(uuidProvider)
+      )
+      .build()
 
   val createClientAuthTokenJsonRequest: JsObject = Json.obj(
     "token" -> authToken,

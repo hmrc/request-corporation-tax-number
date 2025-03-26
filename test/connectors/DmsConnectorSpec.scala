@@ -17,26 +17,25 @@
 package connectors
 
 import com.github.tomakehurst.wiremock.client.ResponseDefinitionBuilder
-import model.domain.SubmissionResponse
-import model.templates.CTUTRMetadata
-import org.apache.pekko.util.ByteString
-import play.api.http.Status.{ACCEPTED, BAD_REQUEST, FORBIDDEN, NOT_FOUND, UNAUTHORIZED}
-import util.WireMockHelper
-
-import java.time.{Instant, LocalDate, LocalDateTime, ZoneOffset}
-import java.time.format.DateTimeFormatter
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import config.MicroserviceAppConfig
+import model.domain.SubmissionResponse
+import model.templates.CTUTRMetadata
+import org.apache.pekko.util.ByteString
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.play.PlaySpec
+import play.api.http.Status._
 import play.api.libs.json.Json
 import play.api.test.Helpers.{AUTHORIZATION, USER_AGENT}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import util.WireMockHelper
 
+import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import java.time.{Instant, LocalDate, LocalDateTime, ZoneOffset}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 

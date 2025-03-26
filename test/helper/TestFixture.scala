@@ -63,6 +63,7 @@ trait TestFixture
     BackendAuthComponentsStub(mockStubBehaviour)(stubControllerComponents(), implicitly)
 
   val app: Application = new GuiceApplicationBuilder()
+    .configure("internal-auth-token-initialiser.enabled" -> "false")
     .overrides(
       bind[BackendAuthComponents].toInstance(stubBackendAuthComponents)
     )
