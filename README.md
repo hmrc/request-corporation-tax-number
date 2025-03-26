@@ -4,18 +4,18 @@ CT UTR backend microservice.
 
 This service is also known as Ask for a copy of your Corporation Tax UTR
 
-|Repositories|Link|
-|------------|----|
-|Frontend|https://github.com/hmrc/request-corporation-tax-number-frontend|
-|Stub|https://github.com/hmrc/request-corporation-tax-number-stubs|
-|Acceptance tests|https://github.com/hmrc/request-corporation-tax-number-journey-tests|
-|Performance tests|https://github.com/hmrc/request-corporation-tax-number-performance-test|
+| Repositories      | Link                                                                    |
+|-------------------|-------------------------------------------------------------------------|
+| Frontend          | https://github.com/hmrc/request-corporation-tax-number-frontend         |
+| Stub              | https://github.com/hmrc/request-corporation-tax-number-stubs            |
+| Acceptance tests  | https://github.com/hmrc/request-corporation-tax-number-journey-tests    |
+| Performance tests | https://github.com/hmrc/request-corporation-tax-number-performance-test |
 
 ### Dependencies
 
-| Service        |Link|
-|----------------|----|
-| DMS Submission |https://github.com/hmrc/dms-submission|
+| Service        | Link                                   |
+|----------------|----------------------------------------|
+| DMS Submission | https://github.com/hmrc/dms-submission |
 
 ## Running the service locally
 
@@ -44,9 +44,9 @@ sbt run
 
 Port number is `9201` but is defaulted to that in build.sbt
 
-| Url | Description                           |
-|-------|---------------------------------------|
-| /submission | The frontend submits to this endpoint |
+| Url                      | Description                           |
+|--------------------------|---------------------------------------|
+| /submission              | The frontend submits to this endpoint |
 | /dms-submission/callback | Callback endpoint for dms submission  |
 
 ## Testing the Service
