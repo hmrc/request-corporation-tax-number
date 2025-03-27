@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +20,22 @@ import org.apache.fop.apps.FopFactory
 import play.api.inject.{Binding, Module => PlayModule}
 import play.api.{Configuration, Environment}
 
+// $COVERAGE-OFF$
 class Module extends PlayModule {
-  override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] =
+
+  override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] = {
+
+    val authTokenInitialiserBinding: Binding[InternalAuthTokenInitialiser] =
+      if (configuration.get[Boolean]("internal-auth-token-initialiser.enabled")) {
+        bind[InternalAuthTokenInitialiser].to[InternalAuthTokenInitialiserImpl].eagerly()
+      } else {
+        bind[InternalAuthTokenInitialiser].to[NoOpInternalAuthTokenInitialiser].eagerly()
+      }
+
     Seq(
-      bind[FopFactory].toProvider[FopFactoryProvider].eagerly()
+      bind[FopFactory].toProvider[FopFactoryProvider].eagerly(),
+      authTokenInitialiserBinding
     )
+  }
 }
+// $COVERAGE-ON$

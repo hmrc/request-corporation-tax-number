@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,21 +19,29 @@ package config
 import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import scala.concurrent.duration.{Duration, FiniteDuration}
+
 @Singleton
 class MicroserviceAppConfig @Inject()(servicesConfig: ServicesConfig) {
 
   private def loadConfig(key: String) = servicesConfig.getString(key)
 
   lazy val appName: String = servicesConfig.getString("appName")
-  lazy val fileUploadUrl: String = servicesConfig.baseUrl("file-upload")
-  lazy val fileUploadFrontendUrl: String = servicesConfig.baseUrl("file-upload-frontend")
-  lazy val fileUploadCallbackUrl: String = loadConfig(s"microservice.services.file-upload.callbackUrl")
 
-  lazy val businessArea : String = loadConfig(s"pdf.ctutr.metadata.businessArea")
-  lazy val queue : String = loadConfig(s"pdf.ctutr.metadata.queue")
-  lazy val formId : String = loadConfig(s"pdf.ctutr.metadata.formId")
-  lazy val source : String = loadConfig(s"pdf.ctutr.metadata.source")
-  lazy val target : String = loadConfig(s"pdf.ctutr.metadata.target")
-  lazy val save : Boolean = servicesConfig.getBoolean(s"pdf.ctutr.save")
+  // pdf parameters
+  lazy val businessArea: String = loadConfig(s"pdf.ctutr.metadata.businessArea")
+  lazy val queue: String = loadConfig(s"pdf.ctutr.metadata.queue")
+  lazy val formId: String = loadConfig(s"pdf.ctutr.metadata.formId")
+  lazy val source: String = loadConfig(s"pdf.ctutr.metadata.source")
+  lazy val target: String = loadConfig(s"pdf.ctutr.metadata.target")
+  lazy val save: String = servicesConfig.getBoolean(s"pdf.ctutr.metadata.save").toString
+
+  // DMS Submission parameters
+  lazy val dmsSubmissionBaseUrl: String = servicesConfig.baseUrl("dms-submission")
+  lazy val dmsSubmissionCallbackUrl: String = loadConfig(s"microservice.services.dms-submission.callbackUrl")
+
+  // internal Auth parameters
+  lazy val authToken: String = servicesConfig.getString("internal-auth.token")
+  lazy val internalAuthBaseUrl: String = servicesConfig.baseUrl("internal-auth")
 
 }

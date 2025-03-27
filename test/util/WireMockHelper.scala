@@ -34,8 +34,8 @@ trait WireMockHelper extends BeforeAndAfterAll with BeforeAndAfterEach with Guic
   override implicit lazy val app: Application =
     new GuiceApplicationBuilder()
       .configure(
-        "microservice.services.file-upload.port" -> testPort,
-        "microservice.services.file-upload-frontend.port" -> testPort
+        "microservice.services.dms-submission.port" -> testPort,
+        "internal-auth-token-initialiser.enabled" -> "false"
       )
       .build()
 

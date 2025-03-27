@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,16 @@
  * limitations under the License.
  */
 
-package model.domain
+package model.dms
 
-sealed trait MimeContentType {
-  def description: String
-}
+import enumeratum.{Enum, EnumEntry, PlayJsonEnum}
 
-object MimeContentType {
-  case object ApplicationPdf extends MimeContentType { val description = "application/pdf" }
-  case object ApplicationXml extends MimeContentType { val description = "application/xml" }
+sealed abstract class SubmissionItemStatus extends EnumEntry
+
+object SubmissionItemStatus extends Enum[SubmissionItemStatus] with PlayJsonEnum[SubmissionItemStatus] {
+
+  case object Processed extends SubmissionItemStatus
+  case object Failed extends SubmissionItemStatus
+
+  override def values: IndexedSeq[SubmissionItemStatus] = findValues
 }
