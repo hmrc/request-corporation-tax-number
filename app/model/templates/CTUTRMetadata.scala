@@ -35,6 +35,6 @@ case class CTUTRMetadata(appConfig: MicroserviceAppConfig, customerId: String = 
   lazy val source: String = appConfig.source
   lazy val store: String = appConfig.save
 
-  private def now(dateTimePattern: String) = LocalDateTime.now().format(DateTimeFormatter.ofPattern(dateTimePattern))
+  private def now(dateTimePattern: String): String = LocalDateTime.now().format(DateTimeFormatter.ofPattern(dateTimePattern))
 
 }

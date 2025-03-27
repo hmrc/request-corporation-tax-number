@@ -52,6 +52,7 @@ class SubmissionService @Inject()(
     val robotXmlFileName: String = fileName(s"${ctutrMetadata.submissionReference}-SubmissionCTUTR", "robotic.xml")
     val pdfTemplate: HtmlFormat.Appendable = CTUTRScheme(SubmissionViewModel.apply(submission))
     val xlsTransformer: String = scala.io.Source.fromResource("CTUTRScheme.xml").mkString
+
     for {
       pdf: ByteString <- createPdf(pdfTemplate, xlsTransformer)
       robotXml: ByteString = createRobotXml(submission, ctutrMetadata)
