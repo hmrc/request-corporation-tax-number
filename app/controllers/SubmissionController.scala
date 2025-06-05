@@ -21,18 +21,23 @@ import com.google.inject.Singleton
 
 import javax.inject.Inject
 import model.{CallbackRequest, Submission}
+import org.bson.types.ObjectId
+import org.mongodb.scala.result.InsertOneResult
 import play.api.Logging
 import play.api.libs.json.Json
-import play.api.mvc.{Action, ControllerComponents}
+import play.api.mvc.{Action, ControllerComponents, Request}
+import repositories.SubmissionMongoRepository
 import services.SubmissionService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.http.HeaderCarrier
 import utils.CorrelationIdHelper
+import com.mongodb.MongoException
 
 @Singleton
 class SubmissionController @Inject()( val submissionService: SubmissionService,
+                                      val submissionMongoRepository: SubmissionMongoRepository,
                                       auditService: AuditService,
                                       cc: ControllerComponents
                                     ) extends BackendController(cc) with Logging with CorrelationIdHelper {
@@ -40,7 +45,7 @@ class SubmissionController @Inject()( val submissionService: SubmissionService,
   implicit val ec: ExecutionContext = cc.executionContext
 
   def submit() : Action[Submission] = Action.async(parse.json[Submission]) {
-    implicit request =>
+    implicit request: Request[Submission] =>
       implicit val hc: HeaderCarrier = getOrCreateCorrelationID(request)
       auditService.sendEvent(
         CTUTRSubmission(
@@ -49,11 +54,28 @@ class SubmissionController @Inject()( val submissionService: SubmissionService,
         )
       )
       logger.info(s"[SubmissionController][submit] processing submission")
+
+      // NOTE: Store submission in submissions collection
+      for {
+        insertResult: InsertOneResult <- submissionMongoRepository.storeSubmission(request.body)
+      } yield (
+        if (insertResult.wasAcknowledged()){
+          val submissionId: ObjectId = insertResult.getInsertedId.asObjectId().getValue
+          logger.info(s"[SubmissionController][submit] Successfully stored submission. mongo submissionId: ${submissionId}")
+        } else {
+          logger.info(s"[SubmissionController][submit] Failed to store submission.")
+          throw new MongoException("Failed to store submission")
+        }
+      )
+
       submissionService.submit(request.body) map {
         response =>
           logger.info(s"[SubmissionController][submit] processed submission $response")
           Ok(Json.toJson(response))
       } recoverWith {
+        case mongoWriteException: MongoException =>
+          logger.error(s"[SubmissionController][submit][exception returned when processing submission] ${mongoWriteException.getMessage}")
+          Future.successful(InternalServerError)
         case e : Exception =>
           logger.error(s"[SubmissionController][submit][exception returned when processing submission] ${e.getMessage}")
           Future.successful(InternalServerError)

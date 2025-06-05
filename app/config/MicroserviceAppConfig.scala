@@ -36,4 +36,5 @@ class MicroserviceAppConfig @Inject()(servicesConfig: ServicesConfig) {
   lazy val target : String = loadConfig(s"pdf.ctutr.metadata.target")
   lazy val save : Boolean = servicesConfig.getBoolean(s"pdf.ctutr.save")
 
+  lazy val submissionCollectionName: String = servicesConfig.getString("mongodb.submission-collection-name")
 }

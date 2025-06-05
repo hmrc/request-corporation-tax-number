@@ -19,14 +19,18 @@ package controllers
 import helper.TestFixture
 import model.CallbackRequest
 import model.domain.SubmissionResponse
+import org.bson.{BsonObjectId, BsonType, BsonValue}
 import org.mockito.Mockito._
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import play.api.http.Status
 import play.api.libs.json.Json
-import play.api.test.Helpers.{contentAsJson, _}
+import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest, Helpers}
 import uk.gov.hmrc.http.InternalServerException
+import org.bson.types.ObjectId
+import org.mongodb.scala.result.InsertOneResult
 
+import java.util.Date
 import scala.concurrent.Future
 
 class SubmissionControllerSpec extends TestFixture {
@@ -57,15 +61,25 @@ class SubmissionControllerSpec extends TestFixture {
   val fakeRequestBadRequest = FakeRequest("POST", "/submit").withJsonBody(invalidDataset)
 
   val submissionResponse: SubmissionResponse = SubmissionResponse("12345", "12345-SubmissionCTUTR-20171023-iform.pdf")
-  val submissionController = new SubmissionController(mockSubmissionService, mockAuditService, stubCC)
+  val submissionController = new SubmissionController(mockSubmissionService, mockSubmissionMongoRepository, mockAuditService, stubCC)
 
-  "SubmissionController" must {
+  val successfulInsertOneResult: InsertOneResult = new InsertOneResult() {
+    override def wasAcknowledged(): Boolean = true
+    override def getInsertedId: BsonValue = new BsonObjectId
+  }
+
+  val unsuccessfulInsertOneResult: InsertOneResult = new InsertOneResult() {
+    override def wasAcknowledged(): Boolean = false
+    override def getInsertedId: BsonValue = new BsonObjectId
+  }
+
+  "SubmissionController submit method" must {
 
     "return Ok with a envelopeId status" when {
 
       "valid payload is submitted" in {
         when(submissionController.submissionService.submit(any())(any())).thenReturn(Future.successful(submissionResponse))
-
+        when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(Future.successful(successfulInsertOneResult))
         val result = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         status(result) mustBe Status.OK
         contentAsJson(result).as[SubmissionResponse].id mustBe "12345"
@@ -77,14 +91,21 @@ class SubmissionControllerSpec extends TestFixture {
     "return a non success http response" when {
 
       "submit fails to parse invalid payload" in {
-
+        when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(Future.successful(successfulInsertOneResult))
         val result = Helpers.call(submissionController.submit(), fakeRequestBadRequest)
         status(result) mustBe BAD_REQUEST
       }
 
       "the submission service returns an error" in {
+        when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(Future.successful(successfulInsertOneResult))
         when(submissionController.submissionService.submit(any())(any())).thenReturn(Future.failed(new InternalServerException("failed to process submission")))
 
+        val result = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
+        status(result) mustBe INTERNAL_SERVER_ERROR
+      }
+
+      "the submission fails to be saved to mongo" in {
+        when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(Future.successful(unsuccessfulInsertOneResult))
         val result = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         status(result) mustBe INTERNAL_SERVER_ERROR
       }
