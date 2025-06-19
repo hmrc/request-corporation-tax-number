@@ -20,7 +20,7 @@ import com.google.inject.Singleton
 import com.mongodb.client.model.IndexModel
 import config.MicroserviceAppConfig
 import org.bson.types.ObjectId
-import model.{FlatSubmission, Submission}
+import model.MongoSubmission
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
@@ -32,23 +32,23 @@ import org.mongodb.scala.result.InsertOneResult
 @Singleton
 class SubmissionMongoRepository @Inject()(appConfig: MicroserviceAppConfig, mc: MongoComponent)
                                          (implicit ec: ExecutionContext)
-  extends PlayMongoRepository[FlatSubmission](
+  extends PlayMongoRepository[MongoSubmission](
     mongoComponent = mc,
     collectionName = appConfig.submissionCollectionName,
-    domainFormat = FlatSubmission.formats,
+    domainFormat = MongoSubmission.formats,
     indexes = Seq.empty[IndexModel]
   ) {
 
-  def storeSubmission(doc: Submission): Future[InsertOneResult] =
+  def storeSubmission(doc: MongoSubmission): Future[InsertOneResult] =
     collection
-      .insertOne(FlatSubmission.fromSubmission(doc))
+      .insertOne(doc)
       .toFuture()
 
-  def getOneSubmission(id: ObjectId): Future[Seq[FlatSubmission]] =
+  def getOneSubmission(id: String): Future[Seq[MongoSubmission]] =
     collection
       .find(
         BsonDocument(
-          "_id" -> id
+          "_id" -> new ObjectId(id)
         )
       )
       .toFuture()

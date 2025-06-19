@@ -44,6 +44,11 @@ class SubmissionServiceSpec extends TestFixture {
     )
   )
 
+  val mongoSubmission: MongoSubmission = MongoSubmission(
+    submission = submission,
+    metadata = CTUTRMetadata(appConfig)
+  )
+
   val today = LocalDate.now()
   val formatToday: String = today.format(DateTimeFormatter.ofPattern("yyyyMMdd"))
 
@@ -58,7 +63,7 @@ class SubmissionServiceSpec extends TestFixture {
 
         when(mockFileUploadService.envelopeSummary(any())(any())).thenReturn(Future.failed(new RuntimeException))
 
-        val results: Future[SubmissionResponse] = submissionService.submit(submission)
+        val results: Future[SubmissionResponse] = submissionService.submit(mongoSubmission)
 
         whenReady(results.failed) {
           results =>
@@ -74,7 +79,7 @@ class SubmissionServiceSpec extends TestFixture {
 
         when(mockFileUploadService.envelopeSummary(any())(any())).thenReturn(Future.successful(Envelope("", Some(""), "OPEN", Some(Seq(File("", ""))))))
 
-        val results: Future[SubmissionResponse] = submissionService.submit(submission)
+        val results: Future[SubmissionResponse] = submissionService.submit(mongoSubmission)
 
         whenReady(results.failed) {
           results =>
@@ -90,7 +95,7 @@ class SubmissionServiceSpec extends TestFixture {
 
         when(mockFileUploadService.envelopeSummary(any())(any())).thenReturn(Future.successful(Envelope("", Some(""), "OPEN", Some(Seq(File("", ""))))))
 
-        val results: Future[SubmissionResponse] = submissionService.submit(submission)
+        val results: Future[SubmissionResponse] = submissionService.submit(mongoSubmission)
 
         whenReady(results.failed) {
           results =>
@@ -106,7 +111,7 @@ class SubmissionServiceSpec extends TestFixture {
 
         when(mockFileUploadService.envelopeSummary(any())(any())).thenReturn(Future.successful(Envelope("", Some(""), "CLOSED", Some(Seq(File("", ""))))))
 
-        val results: Future[SubmissionResponse] = submissionService.submit(submission)
+        val results: Future[SubmissionResponse] = submissionService.submit(mongoSubmission)
 
         whenReady(results.failed) {
           results =>
@@ -128,7 +133,7 @@ class SubmissionServiceSpec extends TestFixture {
 
         when(mockFileUploadService.envelopeSummary(any())(any())).thenReturn(Future.successful(Envelope("", Some(""), "OPEN", Some(Seq(File("", ""))))))
 
-        whenReady(submissionService.submit(submission)) {
+        whenReady(submissionService.submit(mongoSubmission)) {
           result =>
             verify(mockFileUploadService, atLeastOnce()).uploadFile(any(), any(), eqTo(s"1-SubmissionCTUTR-$formatToday-iform.pdf"), any())(any())
             verify(mockFileUploadService, atLeastOnce()).uploadFile(any(), any(), eqTo(s"1-SubmissionCTUTR-$formatToday-metadata.xml"), any())(any())
@@ -195,7 +200,7 @@ class SubmissionServiceSpec extends TestFixture {
 
         val metadata = CTUTRMetadata(appConfig)
         val pdfSubmissionMetadata = submissionService.createMetadata(metadata)
-        val robotXml = submissionService.createRobotXml(submission, metadata)
+        val robotXml = submissionService.createRobotXml(mongoSubmission, metadata)
 
         val pdfMetadataDoc = Jsoup.parse(pdfSubmissionMetadata.mkString("Array(", ", ", ")"), "", Parser.xmlParser)
         val robotXmlDoc = Jsoup.parse(robotXml.mkString("Array(", ", ", ")"), "", Parser.xmlParser)

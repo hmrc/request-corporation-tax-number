@@ -17,7 +17,8 @@
 package repositories
 
 import helper.TestFixture
-import model.{CompanyDetails, FlatSubmission, Submission}
+import model.templates.CTUTRMetadata
+import model.{CompanyDetails, MongoSubmission, Submission}
 import org.mongodb.scala.result.InsertOneResult
 import org.scalatest.BeforeAndAfterEach
 import uk.gov.hmrc.mongo.test.MongoSupport
@@ -39,40 +40,42 @@ class SubmissionMongoRepositorySpec extends TestFixture with MongoSupport with B
     "12345"
   )
   val submission: Submission = new Submission(companyDetails)
+  val metadata: CTUTRMetadata = new CTUTRMetadata(appConfig)
+  val mongoSubmission: MongoSubmission = MongoSubmission(submission, metadata)
 
   "SubmissionMongoRepository" must {
 
     "read and write a valid Submission" in {
-      val expectedFlatSubmission = FlatSubmission.fromSubmission(submission)
-      val storedSubmissions: Future[Seq[FlatSubmission]] = for {
-        insertOneResult: InsertOneResult <- submissionMongoRepository.storeSubmission(submission)
-        storedSubs <- submissionMongoRepository.getOneSubmission(insertOneResult.getInsertedId.asObjectId().getValue)
+      val storedSubmissions: Future[Seq[MongoSubmission]] = for {
+        insertOneResult: InsertOneResult <- submissionMongoRepository.storeSubmission(mongoSubmission)
+        storedSubs <- submissionMongoRepository.getOneSubmission(insertOneResult.getInsertedId.asObjectId().getValue.toString)
       } yield (storedSubs)
-      Await.result(storedSubmissions, 30.seconds) must contain(expectedFlatSubmission)
+      Await.result(storedSubmissions, 30.seconds) must contain(mongoSubmission)
       Await.result(mongoDatabase.getCollection(appConfig.submissionCollectionName).countDocuments().toFuture(), 30.seconds) mustBe(1)
     }
 
     "read and write multiple valid Submission" in {
-      val secondSubmission = new Submission(companyDetails.copy(companyName = "secondSub"))
-      val thirdSubmission = new Submission(companyDetails.copy(companyName = "thirdSub"))
-      val forthSubmission = new Submission(companyDetails.copy(companyName = "forthSub"))
 
-      val expectedFlatSubmissions: Seq[FlatSubmission] = Seq(
-        FlatSubmission.fromSubmission(submission),
-        FlatSubmission.fromSubmission(secondSubmission),
-        FlatSubmission.fromSubmission(thirdSubmission),
-        FlatSubmission.fromSubmission(forthSubmission)
+      val secondSubmission = MongoSubmission(Submission(companyDetails.copy(companyName = "secondSub")), metadata)
+      val thirdSubmission = MongoSubmission(Submission(companyDetails.copy(companyName = "thirdSub")), metadata)
+      val forthSubmission = MongoSubmission(Submission(companyDetails.copy(companyName = "forthSub")), metadata)
+
+      val expectedFlatSubmissions: Seq[MongoSubmission] = Seq(
+        mongoSubmission,
+        secondSubmission,
+        thirdSubmission,
+        forthSubmission
       )
 
-      val storedSubmission: Future[Seq[FlatSubmission]] = for {
-        firstInsertOneResult: InsertOneResult <- submissionMongoRepository.storeSubmission(submission)
+      val storedSubmission: Future[Seq[MongoSubmission]] = for {
+        firstInsertOneResult: InsertOneResult <- submissionMongoRepository.storeSubmission(mongoSubmission)
         secondInsertOneResult: InsertOneResult <- submissionMongoRepository.storeSubmission(secondSubmission)
         thirdInsertOneResult: InsertOneResult <- submissionMongoRepository.storeSubmission(thirdSubmission)
         forthInsertOneResult: InsertOneResult <- submissionMongoRepository.storeSubmission(forthSubmission)
-        firstRetrievedSub: Seq[FlatSubmission] <- submissionMongoRepository.getOneSubmission(firstInsertOneResult.getInsertedId.asObjectId().getValue)
-        secondRetrievedSub: Seq[FlatSubmission] <- submissionMongoRepository.getOneSubmission(secondInsertOneResult.getInsertedId.asObjectId().getValue)
-        thirdRetrievedSub: Seq[FlatSubmission] <- submissionMongoRepository.getOneSubmission(thirdInsertOneResult.getInsertedId.asObjectId().getValue)
-        forthRetrievedSub: Seq[FlatSubmission] <- submissionMongoRepository.getOneSubmission(forthInsertOneResult.getInsertedId.asObjectId().getValue)
+        firstRetrievedSub: Seq[MongoSubmission] <- submissionMongoRepository.getOneSubmission(firstInsertOneResult.getInsertedId.asObjectId().getValue.toString)
+        secondRetrievedSub: Seq[MongoSubmission] <- submissionMongoRepository.getOneSubmission(secondInsertOneResult.getInsertedId.asObjectId().getValue.toString)
+        thirdRetrievedSub: Seq[MongoSubmission] <- submissionMongoRepository.getOneSubmission(thirdInsertOneResult.getInsertedId.asObjectId().getValue.toString)
+        forthRetrievedSub: Seq[MongoSubmission] <- submissionMongoRepository.getOneSubmission(forthInsertOneResult.getInsertedId.asObjectId().getValue.toString)
       } yield (Seq(firstRetrievedSub, secondRetrievedSub, thirdRetrievedSub, forthRetrievedSub).flatten)
 
       Await.result(storedSubmission, 30.seconds) must contain theSameElementsAs(expectedFlatSubmissions)

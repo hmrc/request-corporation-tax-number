@@ -17,42 +17,34 @@
 package controllers
 
 import helper.TestFixture
-import model.CallbackRequest
+import model.{CallbackRequest, MongoSubmission}
 import model.domain.SubmissionResponse
 import org.bson.{BsonObjectId, BsonType, BsonValue}
 import org.mockito.Mockito._
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import play.api.http.Status
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest, Helpers}
 import uk.gov.hmrc.http.InternalServerException
 import org.bson.types.ObjectId
 import org.mongodb.scala.result.InsertOneResult
+import uk.gov.hmrc.play.audit.http.connector.AuditResult
 
+import java.time.LocalDateTime
 import java.util.Date
 import scala.concurrent.Future
 
 class SubmissionControllerSpec extends TestFixture {
 
-  val validDataset = Json.parse(
+  val objectId = "684ffb301ec3e3567ca327fb"
+
+  val validDataset: JsValue = Json.parse(s"\"${objectId}\"")
+
+  val invalidDataset: JsValue = Json.parse(
     """
       |{
-      |   "companyDetails": {
-      |     "companyName": "Big Company",
-      |     "companyReferenceNumber": "AB123123"
-      |   }
-      |}
-      |""".stripMargin)
-
-
-  val invalidDataset = Json.parse(
-    """
-      |{
-      |   "companyDetails": {
-      |     "company": "Bad Company",
-      |     "reference": "XX123123"
-      |   }
+      |   "NOT_AN_ID": "1234"
       |}
       |""".stripMargin)
 
@@ -68,6 +60,13 @@ class SubmissionControllerSpec extends TestFixture {
     override def getInsertedId: BsonValue = new BsonObjectId
   }
 
+  val mongoSubmission: MongoSubmission = MongoSubmission(
+    companyName = "Big Company",
+    companyReferenceNumber = "AB123123",
+    time = LocalDateTime.now(),
+    submissionReference = "submission-123"
+  )
+
   val unsuccessfulInsertOneResult: InsertOneResult = new InsertOneResult() {
     override def wasAcknowledged(): Boolean = false
     override def getInsertedId: BsonValue = new BsonObjectId
@@ -78,8 +77,10 @@ class SubmissionControllerSpec extends TestFixture {
     "return Ok with a envelopeId status" when {
 
       "valid payload is submitted" in {
+        when(mockSubmissionMongoRepository.getOneSubmission(eqTo(objectId))).thenReturn(Future.successful(Seq(mongoSubmission)))
         when(submissionController.submissionService.submit(any())(any())).thenReturn(Future.successful(submissionResponse))
-        when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(Future.successful(successfulInsertOneResult))
+        when(submissionController.auditSubmission(any(), any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+
         val result = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         status(result) mustBe Status.OK
         contentAsJson(result).as[SubmissionResponse].id mustBe "12345"
@@ -91,21 +92,15 @@ class SubmissionControllerSpec extends TestFixture {
     "return a non success http response" when {
 
       "submit fails to parse invalid payload" in {
-        when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(Future.successful(successfulInsertOneResult))
         val result = Helpers.call(submissionController.submit(), fakeRequestBadRequest)
         status(result) mustBe BAD_REQUEST
       }
 
       "the submission service returns an error" in {
-        when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(Future.successful(successfulInsertOneResult))
+        when(mockSubmissionMongoRepository.getOneSubmission(eqTo(objectId))).thenReturn(Future.successful(Seq(mongoSubmission)))
+        when(submissionController.auditSubmission(any(), any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(submissionController.submissionService.submit(any())(any())).thenReturn(Future.failed(new InternalServerException("failed to process submission")))
 
-        val result = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
-        status(result) mustBe INTERNAL_SERVER_ERROR
-      }
-
-      "the submission fails to be saved to mongo" in {
-        when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(Future.successful(unsuccessfulInsertOneResult))
         val result = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         status(result) mustBe INTERNAL_SERVER_ERROR
       }

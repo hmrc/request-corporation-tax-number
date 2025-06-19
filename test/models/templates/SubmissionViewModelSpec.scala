@@ -17,28 +17,26 @@
 package models.templates
 
 import helper.TestFixture
-import model.Submission
+import model.MongoSubmission
 import model.templates.SubmissionViewModel
-import org.mockito.Mockito.when
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 class SubmissionViewModelSpec extends TestFixture {
 
-  val time = LocalDateTime.parse("Tuesday 31 October 2017 15:18:12", DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy HH:mm:ss"))
-
   "SubmissionViewModel" must {
 
     "instantiate when provided an submission with valid data" in {
-      val submission = mock[Submission]
-      when(submission.companyDetails).thenReturn(model.CompanyDetails(
-        companyName = "Big Company",
-        companyReferenceNumber = "AB123123"
-      ))
-      when(submission.time).thenReturn(time)
 
-      SubmissionViewModel.apply(submission) mustBe SubmissionViewModel(
+      val mongoSubmission = new MongoSubmission(
+        companyName = "Big Company",
+        companyReferenceNumber = "AB123123",
+        time = LocalDateTime.parse("Tuesday 31 October 2017 15:18:12", DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy HH:mm:ss")),
+        submissionReference = ""
+      )
+
+      SubmissionViewModel.apply(mongoSubmission) mustBe SubmissionViewModel(
         company = model.CompanyDetails(
           companyName = "Big Company",
           companyReferenceNumber = "AB123123"

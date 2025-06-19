@@ -16,22 +16,33 @@
 
 package model
 
+import model.templates.CTUTRMetadata
+import org.bson.types.ObjectId
 import play.api.libs.json.{Format, Json}
 
 import java.time.LocalDateTime
 
-case class FlatSubmission (
+case class MongoSubmission(
                             companyName: String,
                             companyReferenceNumber: String,
-                            time: LocalDateTime
-                          )
+                            time: LocalDateTime,
+                            submissionReference: String
+                          ){
 
-object FlatSubmission {
-  implicit val formats: Format[FlatSubmission] = Json.format[FlatSubmission]
+  val companyDetails: CompanyDetails = CompanyDetails(
+    companyName,
+    companyReferenceNumber
+  )
+}
 
-  def fromSubmission(submission: Submission): FlatSubmission = new FlatSubmission(
+object MongoSubmission {
+  implicit val formats: Format[MongoSubmission] = Json.format[MongoSubmission]
+
+  def apply(submission: Submission,
+            metadata: CTUTRMetadata): MongoSubmission = new MongoSubmission(
     submission.companyDetails.companyName,
     submission.companyDetails.companyReferenceNumber,
-    submission.time
+    LocalDateTime.now(),
+    metadata.submissionReference
   )
 }

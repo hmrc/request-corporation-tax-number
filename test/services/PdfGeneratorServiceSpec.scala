@@ -17,11 +17,10 @@
 package services
 
 import helper.TestFixture
-import model.templates.SubmissionViewModel
-import model.Submission
+import model.{CompanyDetails, MongoSubmission, Submission}
+import model.templates.{CTUTRMetadata, SubmissionViewModel}
 import org.apache.fop.apps.FopFactory
 import play.api.Environment
-import templates.html.CTUTRScheme
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -31,7 +30,7 @@ import scala.io.Source
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.PDFTextStripper
 import org.apache.pdfbox.Loader
-import org.mockito.Mockito.when
+import templates.html.CTUTRScheme
 
 class PdfGeneratorServiceSpec extends TestFixture {
 
@@ -54,14 +53,14 @@ class PdfGeneratorServiceSpec extends TestFixture {
 
       "generate the expected pdf" in {
 
-        val submission: Submission = mock[Submission]
-        when(submission.companyDetails).thenReturn(model.CompanyDetails(
+        val mongoSubmission: MongoSubmission = MongoSubmission(
           companyName = "company",
-          companyReferenceNumber = "00000200"
-        ))
-        when(submission.time).thenReturn(time)
+          companyReferenceNumber = "00000200",
+          time = time,
+          submissionReference = ""
+        )
 
-        val submissionViewModel: SubmissionViewModel = SubmissionViewModel(submission)
+        val submissionViewModel: SubmissionViewModel = SubmissionViewModel(mongoSubmission)
 
         val response = pdfService.render(
           CTUTRScheme(submissionViewModel),
