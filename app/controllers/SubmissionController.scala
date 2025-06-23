@@ -20,12 +20,10 @@ import audit.{AuditService, CTUTRSubmission}
 import com.google.inject.Singleton
 
 import javax.inject.Inject
-import model.{CallbackRequest, CompanyDetails, MongoSubmission, Submission}
-import org.bson.types.ObjectId
-import org.mongodb.scala.result.InsertOneResult
+import model.{CallbackRequest, MongoSubmission}
 import play.api.Logging
 import play.api.libs.json.Json
-import play.api.mvc.{Action, ControllerComponents, Request, Result}
+import play.api.mvc.{Action, ControllerComponents, Request}
 import repositories.SubmissionMongoRepository
 import services.SubmissionService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -33,9 +31,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.http.HeaderCarrier
 import utils.CorrelationIdHelper
-import com.mongodb.MongoException
 import model.domain.SubmissionResponse
-import model.templates.CTUTRMetadata
 import uk.gov.hmrc.play.audit.http.connector.AuditResult
 
 @Singleton

@@ -24,10 +24,10 @@ import play.api.mvc.Result
 import repositories.SubmissionMongoRepository
 
 import javax.inject.Inject
-import play.api.mvc.Results.{Created, InternalServerError, Ok}
+import play.api.mvc.Results.{Created, InternalServerError}
 
 import scala.concurrent.{ExecutionContext, Future}
-import com.mongodb.{DuplicateKeyException, MongoException}
+import com.mongodb.MongoException
 import config.MicroserviceAppConfig
 import model.templates.CTUTRMetadata
 

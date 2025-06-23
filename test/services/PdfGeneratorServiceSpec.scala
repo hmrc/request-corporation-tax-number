@@ -17,8 +17,8 @@
 package services
 
 import helper.TestFixture
-import model.{CompanyDetails, MongoSubmission, Submission}
-import model.templates.{CTUTRMetadata, SubmissionViewModel}
+import model.MongoSubmission
+import model.templates.SubmissionViewModel
 import org.apache.fop.apps.FopFactory
 import play.api.Environment
 

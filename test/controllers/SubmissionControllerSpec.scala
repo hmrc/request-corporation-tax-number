@@ -27,12 +27,10 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest, Helpers}
 import uk.gov.hmrc.http.InternalServerException
-import org.bson.types.ObjectId
 import org.mongodb.scala.result.InsertOneResult
 import uk.gov.hmrc.play.audit.http.connector.AuditResult
 
 import java.time.LocalDateTime
-import java.util.Date
 import scala.concurrent.Future
 
 class SubmissionControllerSpec extends TestFixture {

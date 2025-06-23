@@ -19,7 +19,7 @@ package services
 import config.MicroserviceAppConfig
 import model.domain.{MimeContentType, SubmissionResponse}
 import model.templates.{CTUTRMetadata, SubmissionViewModel}
-import model.{CompanyDetails, Envelope, MongoSubmission, Submission}
+import model.{Envelope, MongoSubmission, Submission}
 import play.api.Logging
 import play.twirl.api.HtmlFormat
 import templates.html.CTUTRScheme

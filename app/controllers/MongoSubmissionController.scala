@@ -19,11 +19,11 @@ package controllers
 import javax.inject.Inject
 import model.Submission
 import play.api.mvc.{Action, ControllerComponents, Request}
-import services.{MongoSubmissionService, SubmissionService}
+import services.MongoSubmissionService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-class MongoSubmissionController @Inject()( val mongoSubmissionService: MongoSubmissionService,
-                                           cc: ControllerComponents
+class MongoSubmissionController @Inject()(val mongoSubmissionService: MongoSubmissionService,
+                                          cc: ControllerComponents
                                          ) extends BackendController(cc){
 
   def storeSubmission(): Action[Submission] = Action.async(parse.json[Submission]) {

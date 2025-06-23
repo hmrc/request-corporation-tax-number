@@ -17,7 +17,6 @@
 package model
 
 import model.templates.CTUTRMetadata
-import org.bson.types.ObjectId
 import play.api.libs.json.{Format, Json}
 
 import java.time.LocalDateTime
