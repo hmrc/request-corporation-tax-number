@@ -34,7 +34,7 @@ object AppDependencies {
     "org.scalatest"                %% "scalatest"                   % "3.2.19",
     "org.scalatestplus"            %% "scalacheck-1-17"             % "3.2.18.0",
     "org.scalatestplus"            %% "mockito-5-10"                % "3.2.18.0",
-    "org.wiremock"                 %  "wiremock-standalone"         % "3.13.1",
+    "org.wiremock"                 %  "wiremock-standalone"         % "3.9.2",
     "org.jsoup"                    %  "jsoup"                       % "1.21.1",
     "com.fasterxml.jackson.module" %% "jackson-module-scala"        % "2.19.1",
     "com.vladsch.flexmark"         %  "flexmark-all"                % "0.64.8",
