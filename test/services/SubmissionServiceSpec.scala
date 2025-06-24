@@ -24,8 +24,6 @@ import org.jsoup.Jsoup
 import org.jsoup.parser.Parser
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
-
-import java.nio.file.{Files, Paths}
 import java.time._
 import java.time.format.DateTimeFormatter
 import scala.concurrent.duration._

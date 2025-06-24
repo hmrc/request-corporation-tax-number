@@ -28,7 +28,6 @@ import java.time.format.DateTimeFormatter
 import scala.concurrent.duration._
 import scala.concurrent.Await
 import scala.io.Source
-import scala.language.postfixOps
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.PDFTextStripper
 import org.apache.pdfbox.Loader
