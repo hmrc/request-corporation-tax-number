@@ -16,20 +16,18 @@
 
 package services
 
-import com.mongodb.{DuplicateKeyException, MongoException, MongoInternalException, WriteConcernResult}
+import com.mongodb.{DuplicateKeyException, MongoException, ServerAddress, WriteConcernResult}
 import helper.TestFixture
 import model.{CompanyDetails, Submission}
-import model.domain.SubmissionResponse
 import org.bson.types.ObjectId
 import org.bson.{BsonObjectId, BsonValue}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
+import org.mongodb.scala.bson.BsonDocument
 import org.mongodb.scala.result.InsertOneResult
 import play.api.http.Status
-import play.api.libs.json.Json
 import play.api.mvc.Result
 import play.api.test.Helpers._
-import play.api.test.{FakeRequest, Helpers}
 
 import scala.concurrent.Future
 
@@ -68,6 +66,19 @@ class MongoSubmissionServiceSpec extends TestFixture {
     }
 
     "return an internal server error" when {
+
+      "the storesubmission method returns a DuplicateKeyException" in {
+
+        when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(Future.failed(
+          new DuplicateKeyException(
+            BsonDocument(),
+            new ServerAddress(),
+            mock[WriteConcernResult]
+          )
+        ))
+        val result: Future[Result] = mongoSubmissionService.storeSubmission(submission)
+        status(result) mustBe Status.INTERNAL_SERVER_ERROR
+      }
 
       "the storesubmission method returns a MongoException" in {
         when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(Future.failed(new MongoException("Error writing to Mongo!!")))
