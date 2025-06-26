@@ -18,15 +18,15 @@ import sbt.*
 
 object AppDependencies {
 
-  private val bootstrapPlayVersion: String = "9.6.0"
+  private val bootstrapPlayVersion: String = "9.13.0"
 
   private val compile = Seq(
     ws,
     "uk.gov.hmrc"            %% "bootstrap-backend-play-30" % bootstrapPlayVersion,
-    "uk.gov.hmrc"            %% "domain-play-30"            % "10.0.0",
-    "org.apache.xmlgraphics" % "fop"                        % "2.10",
-    "net.sf.saxon"           % "Saxon-HE"                   % "12.5",
-    "commons-io"             % "commons-io"                 % "2.18.0"
+    "uk.gov.hmrc"            %% "domain-play-30"            % "11.0.0",
+    "org.apache.xmlgraphics" % "fop"                        % "2.11",
+    "net.sf.saxon"           % "Saxon-HE"                   % "12.7",
+    "commons-io"             % "commons-io"                 % "2.19.0"
   )
 
   private val test: Seq[ModuleID] = Seq(
@@ -35,8 +35,8 @@ object AppDependencies {
     "org.scalatestplus"            %% "scalacheck-1-17"             % "3.2.18.0",
     "org.scalatestplus"            %% "mockito-5-10"                % "3.2.18.0",
     "org.wiremock"                 %  "wiremock-standalone"         % "3.9.2",
-    "org.jsoup"                    %  "jsoup"                       % "1.18.3",
-    "com.fasterxml.jackson.module" %% "jackson-module-scala"        % "2.18.2",
+    "org.jsoup"                    %  "jsoup"                       % "1.21.1",
+    "com.fasterxml.jackson.module" %% "jackson-module-scala"        % "2.19.1",
     "com.vladsch.flexmark"         %  "flexmark-all"                % "0.64.8",
     "org.apache.pdfbox"            %  "pdfbox"                      % "3.0.3"
   ).map(_ % Test)
