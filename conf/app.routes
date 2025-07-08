@@ -1,6 +1,4 @@
 # microservice specific routes
 
-POST /store-submission      @controllers.MongoSubmissionController.storeSubmission()
-
 POST /submission            @controllers.SubmissionController.submit()
 POST /file-upload/callback  @controllers.SubmissionController.fileUploadCallback()

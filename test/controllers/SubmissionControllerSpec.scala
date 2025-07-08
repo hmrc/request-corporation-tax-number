@@ -16,6 +16,7 @@
 
 package controllers
 
+import com.mongodb.MongoException
 import helper.TestFixture
 import model.{CallbackRequest, MongoSubmission}
 import model.domain.SubmissionResponse
@@ -28,6 +29,7 @@ import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest, Helpers}
 import uk.gov.hmrc.http.InternalServerException
 import org.mongodb.scala.result.InsertOneResult
+import play.api.mvc.Results.Created
 import uk.gov.hmrc.play.audit.http.connector.AuditResult
 
 import java.time.LocalDateTime
@@ -35,14 +37,24 @@ import scala.concurrent.Future
 
 class SubmissionControllerSpec extends TestFixture {
 
-  val objectId = "684ffb301ec3e3567ca327fb"
-
-  val validDataset: JsValue = Json.parse(s"\"${objectId}\"")
-
-  val invalidDataset: JsValue = Json.parse(
+  val validDataset = Json.parse(
     """
       |{
-      |   "NOT_AN_ID": "1234"
+      |   "companyDetails": {
+      |     "companyName": "Big Company",
+      |     "companyReferenceNumber": "AB123123"
+      |   }
+      |}
+      |""".stripMargin)
+
+
+  val invalidDataset = Json.parse(
+    """
+      |{
+      |   "companyDetails": {
+      |     "company": "Bad Company",
+      |     "reference": "XX123123"
+      |   }
       |}
       |""".stripMargin)
 
@@ -51,7 +63,7 @@ class SubmissionControllerSpec extends TestFixture {
   val fakeRequestBadRequest = FakeRequest("POST", "/submit").withJsonBody(invalidDataset)
 
   val submissionResponse: SubmissionResponse = SubmissionResponse("12345", "12345-SubmissionCTUTR-20171023-iform.pdf")
-  val submissionController = new SubmissionController(mockSubmissionService, mockSubmissionMongoRepository, mockAuditService, stubCC)
+  val submissionController = new SubmissionController(mockMongoSubmissionService, mockSubmissionService, mockSubmissionMongoRepository, mockAuditService, appConfig, stubCC)
 
   val successfulInsertOneResult: InsertOneResult = new InsertOneResult() {
     override def wasAcknowledged(): Boolean = true
@@ -75,7 +87,7 @@ class SubmissionControllerSpec extends TestFixture {
     "return Ok with a envelopeId status" when {
 
       "valid payload is submitted" in {
-        when(mockSubmissionMongoRepository.getOneSubmission(eqTo(objectId))).thenReturn(Future.successful(Seq(mongoSubmission)))
+        when(mockMongoSubmissionService.storeSubmission(any())).thenReturn(Future.successful("1234"))
         when(submissionController.submissionService.submit(any())(any())).thenReturn(Future.successful(submissionResponse))
         when(submissionController.auditSubmission(any(), any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
 
@@ -95,10 +107,22 @@ class SubmissionControllerSpec extends TestFixture {
       }
 
       "the submission service returns an error" in {
-        when(mockSubmissionMongoRepository.getOneSubmission(eqTo(objectId))).thenReturn(Future.successful(Seq(mongoSubmission)))
+        when(mockMongoSubmissionService.storeSubmission(any())).thenReturn(Future.successful("1234"))
         when(submissionController.auditSubmission(any(), any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
         when(submissionController.submissionService.submit(any())(any())).thenReturn(Future.failed(new InternalServerException("failed to process submission")))
 
+        val result = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
+        status(result) mustBe INTERNAL_SERVER_ERROR
+      }
+
+      "storing the submission in mongo db fails throwing a MongoException" in {
+        when(mockMongoSubmissionService.storeSubmission(any())).thenReturn(Future.failed(new MongoException("There was an error!!")))
+        val result = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
+        status(result) mustBe INTERNAL_SERVER_ERROR
+      }
+
+      "storing the submission in mongo db fails throwing a NullPointerException" in {
+        when(mockMongoSubmissionService.storeSubmission(any())).thenReturn(Future.failed(new NullPointerException("There was an error!!")))
         val result = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         status(result) mustBe INTERNAL_SERVER_ERROR
       }

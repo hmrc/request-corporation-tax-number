@@ -18,53 +18,63 @@ package controllers
 
 import audit.{AuditService, CTUTRSubmission}
 import com.google.inject.Singleton
+import com.mongodb.MongoException
+import config.MicroserviceAppConfig
 
 import javax.inject.Inject
-import model.{CallbackRequest, MongoSubmission}
+import model.{CallbackRequest, MongoSubmission, Submission}
 import play.api.Logging
-import play.api.libs.json.Json
-import play.api.mvc.{Action, ControllerComponents, Request}
+import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.{Action, ControllerComponents, Request, Result}
 import repositories.SubmissionMongoRepository
-import services.SubmissionService
+import services.{MongoSubmissionService, SubmissionService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.http.HeaderCarrier
 import utils.CorrelationIdHelper
 import model.domain.SubmissionResponse
+import model.templates.CTUTRMetadata
 import uk.gov.hmrc.play.audit.http.connector.AuditResult
 
 @Singleton
-class SubmissionController @Inject()( val submissionService: SubmissionService,
-                                      val submissionMongoRepository: SubmissionMongoRepository,
-                                      auditService: AuditService,
-                                      cc: ControllerComponents
+class SubmissionController @Inject()(val mongoSubmissionService: MongoSubmissionService,
+                                     val submissionService: SubmissionService,
+                                     val submissionMongoRepository: SubmissionMongoRepository,
+                                     auditService: AuditService,
+                                     appConfig : MicroserviceAppConfig,
+                                     cc: ControllerComponents
                                     ) extends BackendController(cc) with Logging with CorrelationIdHelper {
 
   implicit val ec: ExecutionContext = cc.executionContext
 
-  def submit() : Action[String] = Action.async(parse.json[String]) {
-    implicit request: Request[String] =>
+  def submit() : Action[Submission] = Action.async(parse.json[Submission]) {
+    implicit request: Request[Submission] =>
       implicit val hc: HeaderCarrier = getOrCreateCorrelationID(request)
 
       logger.info(s"[SubmissionController][submit] processing submission")
 
+      val metadata: CTUTRMetadata = CTUTRMetadata(appConfig, request.body.companyDetails.companyReferenceNumber)
+      val mongoSubmission: MongoSubmission = MongoSubmission(request.body, metadata)
       (for {
-        storedSubmission: MongoSubmission <- submissionMongoRepository.getOneSubmission(request.body).map(_.head)
-        _ <- auditSubmission(storedSubmission.companyName, storedSubmission.companyReferenceNumber)
-        submitResult: SubmissionResponse <- submissionService.submit(storedSubmission)
+        _ <- mongoSubmissionService.storeSubmission(mongoSubmission)
+        _ <- auditSubmission(mongoSubmission.companyName, mongoSubmission.companyReferenceNumber)
+        submitResult: SubmissionResponse <- submissionService.submit(mongoSubmission)
       } yield {
         logger.info(s"[SubmissionController][submit] processed submission $submitResult")
         Ok(Json.toJson(submitResult))
       }).recoverWith {
-        case e : Exception =>
+        case e: MongoException =>
+          logger.error(s"[MongoSubmissionService][storeSubmission] MongoException returned when saving submission to Mongo, Error: ${e.getMessage}")
+          Future.successful(InternalServerError)
+        case e: Exception =>
           logger.error(s"[SubmissionController][submit][exception returned when processing submission] ${e.getMessage}")
           Future.successful(InternalServerError)
       }
   }
 
   def auditSubmission(companyReferenceNumber: String, companyName: String)
-                     (implicit hc: HeaderCarrier, request: Request[String]): Future[AuditResult] =
+                     (implicit hc: HeaderCarrier, request: Request[Submission]): Future[AuditResult] =
     auditService.sendEvent(
       CTUTRSubmission(
         companyReferenceNumber,

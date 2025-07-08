@@ -19,7 +19,7 @@ package services
 import model.{MongoSubmission, Submission}
 import org.mongodb.scala.result.InsertOneResult
 import play.api.Logging
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Result
 import repositories.SubmissionMongoRepository
 
@@ -30,31 +30,33 @@ import scala.concurrent.{ExecutionContext, Future}
 import com.mongodb.MongoException
 import config.MicroserviceAppConfig
 import model.templates.CTUTRMetadata
+import org.mongodb.scala.DuplicateKeyException
 
 class MongoSubmissionService @Inject()(
                                        val submissionMongoRepository: SubmissionMongoRepository,
                                        appConfig : MicroserviceAppConfig
                                       )(implicit ec: ExecutionContext) extends Logging {
 
-  def storeSubmission(submission: Submission): Future[Result] = {
-    val metadata: CTUTRMetadata = CTUTRMetadata(appConfig, submission.companyDetails.companyReferenceNumber)
-    val mongoSubmission: MongoSubmission = MongoSubmission(submission, metadata)
-
+  def storeSubmission(submission: MongoSubmission): Future[String] = {
     logger.info(s"[MongoSubmissionService][storeSubmission] Initialising storing of submission...")
-
-    for {
-      insertResult: InsertOneResult <- submissionMongoRepository.storeSubmission(mongoSubmission)
+    (for {
+      insertResult: InsertOneResult <- submissionMongoRepository.storeSubmission(submission)
     } yield {
-      val mongoSubmissionId: String = insertResult.getInsertedId.asObjectId().getValue.toString
-      logger.info(s"[MongoSubmissionService][storeSubmission] Successfully stored submission. SubmissionId: ${mongoSubmissionId}")
-      Created(Json.toJson(mongoSubmissionId))
+      if (insertResult.wasAcknowledged()) {
+        val mongoSubmissionId: String = insertResult.getInsertedId.asObjectId().getValue.toString
+        logger.info(s"[MongoSubmissionService][storeSubmission] Successfully stored submission. SubmissionId: ${mongoSubmissionId}")
+        mongoSubmissionId
+      }
+      else {
+        throw new MongoException("Insert was unsuccessful, insertOneResult was not acknowledged.")
+      }
+    }).recoverWith {
+      case e: NullPointerException =>
+        logger.error(s"[MongoSubmissionService][storeSubmission] NullPointerException returned when saving submission to Mongo, Error: ${e.getMessage}")
+        throw new MongoException("Insert was unsuccessful, received null pointer.")
+      case e: DuplicateKeyException =>
+        logger.error(s"[MongoSubmissionService][storeSubmission] DuplicateKeyException returned when saving submission to Mongo, Error: ${e.getMessage}")
+        throw new MongoException("Insert was unsuccessful, received duplicate key exception.")
     }
-  }.recoverWith {
-    case e: MongoException =>
-      logger.error(s"[MongoSubmissionService][storeSubmission] MongoException returned when saving submission to Mongo, Error: ${e.getMessage}")
-      Future.successful(InternalServerError)
-    case e: NullPointerException =>
-      logger.error(s"[MongoSubmissionService][storeSubmission] NullPointerException returned when saving submission to Mongo, Error: ${e.getMessage}")
-      Future.successful(InternalServerError)
   }
 }

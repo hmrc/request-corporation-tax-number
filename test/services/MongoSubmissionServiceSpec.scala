@@ -18,38 +18,57 @@ package services
 
 import com.mongodb.{DuplicateKeyException, MongoException, ServerAddress, WriteConcernResult}
 import helper.TestFixture
-import model.{CompanyDetails, Submission}
+import model.templates.CTUTRMetadata
+import model.{CompanyDetails, MongoSubmission, Submission}
 import org.bson.types.ObjectId
 import org.bson.{BsonObjectId, BsonValue}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
-import org.mongodb.scala.bson.BsonDocument
+import org.mongodb.scala.bson.{BsonDocument, BsonString}
 import org.mongodb.scala.result.InsertOneResult
-import play.api.http.Status
-import play.api.mvc.Result
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import play.api.test.Helpers._
 
+import java.time.LocalDateTime
 import scala.concurrent.Future
 
 class MongoSubmissionServiceSpec extends TestFixture {
 
   val mongoSubmissionService = new MongoSubmissionService(mockSubmissionMongoRepository, appConfig)
 
+  val successfulInsertId = "6863ef672674b7459d411159"
+
   val successfulInsertOneResult: InsertOneResult = new InsertOneResult() {
     override def wasAcknowledged(): Boolean = true
-    override def getInsertedId: BsonValue = new BsonObjectId
+    override def getInsertedId: BsonValue = new BsonObjectId(new ObjectId(successfulInsertId))
   }
 
   val unsuccessfulInsertOneResult: InsertOneResult = new InsertOneResult() {
-    override def wasAcknowledged(): Boolean = false
+    override def wasAcknowledged(): Boolean = true
     override def getInsertedId: BsonValue = null // if _id is not available this will return null
   }
 
+  val notAcknowledgedInsertOneResult: InsertOneResult = new InsertOneResult() {
+    override def wasAcknowledged(): Boolean = false
+    override def getInsertedId: BsonValue = new BsonObjectId(new ObjectId(successfulInsertId))
+  }
+
   val submission: Submission = Submission(
-    CompanyDetails(
-      "Big Company",
-      "AB123123"
+    companyDetails = CompanyDetails(
+      companyName = "Big Company",
+      companyReferenceNumber = "AB123123"
     )
+  )
+
+  val metadata: CTUTRMetadata = CTUTRMetadata(
+    appConfig = appConfig,
+    customerId = "testCustomer",
+    metadataCreatedAt = LocalDateTime.of(2025, 6, 10, 10, 10)
+  )
+
+  val mongoSubmission: MongoSubmission = MongoSubmission(
+    submission = submission,
+    metadata = metadata
   )
 
   "MongoSubmissionService submit method" must {
@@ -58,9 +77,9 @@ class MongoSubmissionServiceSpec extends TestFixture {
 
       "a valid submission is parsed to storeSubmission" in {
         when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(Future.successful(successfulInsertOneResult))
-        val result: Future[Result] = mongoSubmissionService.storeSubmission(submission)
-        status(result) mustBe Status.CREATED
-        assert(ObjectId.isValid(contentAsJson(result).as[String]))
+        val result: String = await(mongoSubmissionService.storeSubmission(mongoSubmission))
+        assert(ObjectId.isValid(result))
+        result mustBe successfulInsertId
       }
 
     }
@@ -68,28 +87,31 @@ class MongoSubmissionServiceSpec extends TestFixture {
     "return an internal server error" when {
 
       "the storesubmission method returns a DuplicateKeyException" in {
-
-        when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(Future.failed(
-          new DuplicateKeyException(
-            BsonDocument(),
-            new ServerAddress(),
-            mock[WriteConcernResult]
-          )
-        ))
-        val result: Future[Result] = mongoSubmissionService.storeSubmission(submission)
-        status(result) mustBe Status.INTERNAL_SERVER_ERROR
+        when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(
+          Future.failed(new DuplicateKeyException(BsonDocument(), new ServerAddress(), WriteConcernResult.acknowledged(1, true, BsonString("Got a duplicate key!"))))
+        )
+        mongoSubmissionService.storeSubmission(mongoSubmission).failed.futureValue shouldBe a [MongoException]
       }
 
-      "the storesubmission method returns a MongoException" in {
-        when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(Future.failed(new MongoException("Error writing to Mongo!!")))
-        val result: Future[Result] = mongoSubmissionService.storeSubmission(submission)
-        status(result) mustBe Status.INTERNAL_SERVER_ERROR
+      "the storeSubmission method returns a MongoException" in {
+        when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(
+          Future.failed(new MongoException("Error writing to Mongo!!"))
+        )
+        mongoSubmissionService.storeSubmission(mongoSubmission).failed.futureValue shouldBe a [MongoException]
       }
 
       "extracting the objectId returns null" in {
-        when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(Future.successful(unsuccessfulInsertOneResult))
-        val result: Future[Result] = mongoSubmissionService.storeSubmission(submission)
-        status(result) mustBe Status.INTERNAL_SERVER_ERROR
+        when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(
+          Future.successful(unsuccessfulInsertOneResult)
+        )
+        mongoSubmissionService.storeSubmission(mongoSubmission).failed.futureValue shouldBe a [MongoException]
+      }
+
+      "the storesubmission result was not acknowledged returns a MongoException" in {
+        when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(
+          Future.successful(notAcknowledgedInsertOneResult)
+        )
+        mongoSubmissionService.storeSubmission(mongoSubmission).failed.futureValue shouldBe a [MongoException]
       }
     }
   }
