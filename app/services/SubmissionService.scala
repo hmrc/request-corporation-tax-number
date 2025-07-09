@@ -48,10 +48,8 @@ class SubmissionService @Inject()(
     s"$envelopeId-SubmissionCTUTR-${LocalDate.now().format(DateTimeFormatter.ofPattern("YYYYMMdd"))}-$fileType"
 
   def submit(storedSubmission: MongoSubmission)(implicit hc: HeaderCarrier): Future[SubmissionResponse] = {
-    val submission: Submission = Submission(
-      companyDetails = storedSubmission.companyDetails
-    )
-    val metadata: CTUTRMetadata = CTUTRMetadata(appConfig, submission.companyDetails.companyReferenceNumber, storedSubmission.time) // TODO: Check is this time the same as metadataCreatedAt???
+    val submission: Submission = storedSubmission.submission
+    val metadata: CTUTRMetadata = storedSubmission.metadata(appConfig)
 
     val handleUpload: Future[SubmissionResponse] = for {
       pdf: Array[Byte] <- createPdf(storedSubmission)
@@ -101,12 +99,12 @@ class SubmissionService @Inject()(
   }
 
   def createRobotXml(submission: MongoSubmission, metadata: CTUTRMetadata): Array[Byte] = {
-    val viewModel = SubmissionViewModel.apply(submission)
+    val viewModel = SubmissionViewModel(submission)
     robotXml(metadata, viewModel).toString().getBytes
   }
 
   def createPdf(submission: MongoSubmission)(implicit hc: HeaderCarrier): Future[Array[Byte]] = {
-    val viewModel: SubmissionViewModel = SubmissionViewModel.apply(submission)
+    val viewModel: SubmissionViewModel = SubmissionViewModel(submission)
     val pdfTemplate: HtmlFormat.Appendable = CTUTRScheme(viewModel)
     val xlsTransformer: String = Source.fromResource("CTUTRScheme.xml").mkString
     pdfService.render(pdfTemplate, xlsTransformer)

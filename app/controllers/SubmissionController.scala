@@ -24,8 +24,8 @@ import config.MicroserviceAppConfig
 import javax.inject.Inject
 import model.{CallbackRequest, MongoSubmission, Submission}
 import play.api.Logging
-import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{Action, ControllerComponents, Request, Result}
+import play.api.libs.json.Json
+import play.api.mvc.{Action, ControllerComponents, Request}
 import repositories.SubmissionMongoRepository
 import services.{MongoSubmissionService, SubmissionService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -58,7 +58,7 @@ class SubmissionController @Inject()(val mongoSubmissionService: MongoSubmission
       val mongoSubmission: MongoSubmission = MongoSubmission(request.body, metadata)
       (for {
         _ <- mongoSubmissionService.storeSubmission(mongoSubmission)
-        _ <- auditSubmission(mongoSubmission.companyName, mongoSubmission.companyReferenceNumber)
+        _ <- auditSubmission(mongoSubmission)
         submitResult: SubmissionResponse <- submissionService.submit(mongoSubmission)
       } yield {
         logger.info(s"[SubmissionController][submit] processed submission $submitResult")
@@ -73,12 +73,12 @@ class SubmissionController @Inject()(val mongoSubmissionService: MongoSubmission
       }
   }
 
-  def auditSubmission(companyReferenceNumber: String, companyName: String)
+  def auditSubmission(mongoSubmission: MongoSubmission)
                      (implicit hc: HeaderCarrier, request: Request[Submission]): Future[AuditResult] =
     auditService.sendEvent(
       CTUTRSubmission(
-        companyReferenceNumber,
-        companyName
+        mongoSubmission.companyDetails.companyReferenceNumber,
+        mongoSubmission.companyDetails.companyName
       )
     )
 

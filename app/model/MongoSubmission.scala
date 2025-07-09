@@ -16,6 +16,7 @@
 
 package model
 
+import config.MicroserviceAppConfig
 import model.templates.CTUTRMetadata
 import play.api.libs.json.{Format, Json}
 
@@ -25,12 +26,21 @@ case class MongoSubmission(
                             companyName: String,
                             companyReferenceNumber: String,
                             time: LocalDateTime,
-                            submissionReference: String
+                            submissionReference: String,
+                            customerId: String
                           ){
 
   val companyDetails: CompanyDetails = CompanyDetails(
     companyName,
     companyReferenceNumber
+  )
+
+  val submission: Submission = Submission(companyDetails)
+
+  def metadata(appConfig: MicroserviceAppConfig): CTUTRMetadata = CTUTRMetadata(
+    appConfig,
+    customerId,
+    time
   )
 }
 
@@ -41,7 +51,8 @@ object MongoSubmission {
             metadata: CTUTRMetadata): MongoSubmission = new MongoSubmission(
     submission.companyDetails.companyName,
     submission.companyDetails.companyReferenceNumber,
-    LocalDateTime.now(),
-    metadata.submissionReference
+    metadata.metadataCreatedAt,
+    metadata.submissionReference,
+    metadata.customerId
   )
 }
