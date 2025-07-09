@@ -29,15 +29,17 @@ import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest, Helpers}
 import uk.gov.hmrc.http.InternalServerException
 import org.mongodb.scala.result.InsertOneResult
+import play.api.mvc.{AnyContentAsJson, Result}
 import play.api.mvc.Results.Created
 import uk.gov.hmrc.play.audit.http.connector.AuditResult
 
 import java.time.LocalDateTime
-import scala.concurrent.Future
+import scala.concurrent.duration.Duration.Inf
+import scala.concurrent.{Await, Future}
 
 class SubmissionControllerSpec extends TestFixture {
 
-  val validDataset = Json.parse(
+  val validDataset: JsValue = Json.parse(
     """
       |{
       |   "companyDetails": {
@@ -48,7 +50,7 @@ class SubmissionControllerSpec extends TestFixture {
       |""".stripMargin)
 
 
-  val invalidDataset = Json.parse(
+  val invalidDataset: JsValue = Json.parse(
     """
       |{
       |   "companyDetails": {
@@ -58,45 +60,28 @@ class SubmissionControllerSpec extends TestFixture {
       |}
       |""".stripMargin)
 
-  val fakeRequestValidDataset = FakeRequest("POST", "/submit").withJsonBody(validDataset)
+  val fakeRequestValidDataset: FakeRequest[AnyContentAsJson] = FakeRequest("POST", "/submit").withJsonBody(validDataset)
 
-  val fakeRequestBadRequest = FakeRequest("POST", "/submit").withJsonBody(invalidDataset)
+  val fakeRequestBadRequest: FakeRequest[AnyContentAsJson] = FakeRequest("POST", "/submit").withJsonBody(invalidDataset)
 
-  val submissionResponse: SubmissionResponse = SubmissionResponse("12345", "12345-SubmissionCTUTR-20171023-iform.pdf")
-  val submissionController = new SubmissionController(mockMongoSubmissionService, mockSubmissionService, mockSubmissionMongoRepository, mockAuditService, appConfig, stubCC)
-
-  val successfulInsertOneResult: InsertOneResult = new InsertOneResult() {
-    override def wasAcknowledged(): Boolean = true
-    override def getInsertedId: BsonValue = new BsonObjectId
-  }
-
-  val mongoSubmission: MongoSubmission = MongoSubmission(
-    companyName = "Big Company",
-    companyReferenceNumber = "AB123123",
-    time = LocalDateTime.now(),
-    submissionReference = "submission-123"
-  )
-
-  val unsuccessfulInsertOneResult: InsertOneResult = new InsertOneResult() {
-    override def wasAcknowledged(): Boolean = false
-    override def getInsertedId: BsonValue = new BsonObjectId
-  }
+  val submissionController: SubmissionController =
+    new SubmissionController(mockMongoSubmissionService, mockSubmissionService, mockSubmissionMongoRepository, mockAuditService, appConfig, stubCC)
 
   "SubmissionController submit method" must {
 
     "return Ok with a envelopeId status" when {
-
       "valid payload is submitted" in {
         when(mockMongoSubmissionService.storeSubmission(any())).thenReturn(Future.successful("1234"))
-        when(submissionController.submissionService.submit(any())(any())).thenReturn(Future.successful(submissionResponse))
-        when(submissionController.auditSubmission(any(), any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
+        when(mockSubmissionService.submit(any())(any()))
+          .thenReturn(Future.successful(SubmissionResponse("12345", "12345-SubmissionCTUTR-20171023-iform.pdf")))
+        when(mockAuditService.sendEvent(any())(any(), any(), any())).thenReturn(Future.successful(AuditResult.Success))
 
-        val result = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
+        val result: Future[Result] = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
+        val test: Result = Await.result(result, Inf)
         status(result) mustBe Status.OK
         contentAsJson(result).as[SubmissionResponse].id mustBe "12345"
         contentAsJson(result).as[SubmissionResponse].filename mustBe "12345-SubmissionCTUTR-20171023-iform.pdf"
       }
-
     }
 
     "return a non success http response" when {
@@ -108,8 +93,7 @@ class SubmissionControllerSpec extends TestFixture {
 
       "the submission service returns an error" in {
         when(mockMongoSubmissionService.storeSubmission(any())).thenReturn(Future.successful("1234"))
-        when(submissionController.auditSubmission(any(), any())(any(), any())).thenReturn(Future.successful(AuditResult.Success))
-        when(submissionController.submissionService.submit(any())(any())).thenReturn(Future.failed(new InternalServerException("failed to process submission")))
+        when(mockSubmissionService.submit(any())(any())).thenReturn(Future.failed(new InternalServerException("failed to process submission")))
 
         val result = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         status(result) mustBe INTERNAL_SERVER_ERROR

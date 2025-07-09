@@ -16,20 +16,16 @@
 
 package services
 
-import model.{MongoSubmission, Submission}
+import model.MongoSubmission
 import org.mongodb.scala.result.InsertOneResult
 import play.api.Logging
-import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.Result
 import repositories.SubmissionMongoRepository
 
 import javax.inject.Inject
-import play.api.mvc.Results.{Created, InternalServerError}
 
 import scala.concurrent.{ExecutionContext, Future}
 import com.mongodb.MongoException
 import config.MicroserviceAppConfig
-import model.templates.CTUTRMetadata
 import org.mongodb.scala.DuplicateKeyException
 
 class MongoSubmissionService @Inject()(

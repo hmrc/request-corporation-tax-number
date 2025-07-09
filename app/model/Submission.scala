@@ -18,8 +18,6 @@ package model
 
 import play.api.libs.json._
 
-import java.time.LocalDateTime
-
 case class Submission(companyDetails: CompanyDetails)
 
 object Submission {

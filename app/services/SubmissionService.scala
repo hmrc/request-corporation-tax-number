@@ -103,7 +103,7 @@ class SubmissionService @Inject()(
     robotXml(metadata, viewModel).toString().getBytes
   }
 
-  def createPdf(submission: MongoSubmission)(implicit hc: HeaderCarrier): Future[Array[Byte]] = {
+  def createPdf(submission: MongoSubmission): Future[Array[Byte]] = {
     val viewModel: SubmissionViewModel = SubmissionViewModel(submission)
     val pdfTemplate: HtmlFormat.Appendable = CTUTRScheme(viewModel)
     val xlsTransformer: String = Source.fromResource("CTUTRScheme.xml").mkString

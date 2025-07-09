@@ -53,7 +53,6 @@ class SubmissionController @Inject()(val mongoSubmissionService: MongoSubmission
       implicit val hc: HeaderCarrier = getOrCreateCorrelationID(request)
 
       logger.info(s"[SubmissionController][submit] processing submission")
-
       val metadata: CTUTRMetadata = CTUTRMetadata(appConfig, request.body.companyDetails.companyReferenceNumber)
       val mongoSubmission: MongoSubmission = MongoSubmission(request.body, metadata)
       (for {
@@ -74,7 +73,7 @@ class SubmissionController @Inject()(val mongoSubmissionService: MongoSubmission
   }
 
   def auditSubmission(mongoSubmission: MongoSubmission)
-                     (implicit hc: HeaderCarrier, request: Request[Submission]): Future[AuditResult] =
+                     (implicit request: Request[Submission]): Future[AuditResult] =
     auditService.sendEvent(
       CTUTRSubmission(
         mongoSubmission.companyDetails.companyReferenceNumber,

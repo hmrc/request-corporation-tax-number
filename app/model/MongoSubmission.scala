@@ -27,7 +27,7 @@ case class MongoSubmission(
                             companyReferenceNumber: String,
                             time: LocalDateTime,
                             submissionReference: String,
-                            customerId: String
+                            customerId: String = ""
                           ){
 
   val companyDetails: CompanyDetails = CompanyDetails(
