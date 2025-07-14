@@ -35,4 +35,5 @@ class MicroserviceAppConfig @Inject()(servicesConfig: ServicesConfig) {
   lazy val source : String = loadConfig(s"pdf.ctutr.metadata.source")
   lazy val target : String = loadConfig(s"pdf.ctutr.metadata.target")
   lazy val save : Boolean = servicesConfig.getBoolean(s"pdf.ctutr.save")
+
 }
