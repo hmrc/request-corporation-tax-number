@@ -16,10 +16,9 @@
 
 package services
 
-import config.MicroserviceAppConfig
 import model.domain.{MimeContentType, SubmissionResponse}
 import model.templates.{CTUTRMetadata, SubmissionViewModel}
-import model.{Envelope, MongoSubmission, Submission}
+import model.{Envelope, Submission}
 import play.api.Logging
 import play.twirl.api.HtmlFormat
 import templates.html.CTUTRScheme
@@ -40,19 +39,16 @@ case object Open extends EnvelopeStatus
 class SubmissionService @Inject()(
                                    val fileUploadService: FileUploadService,
                                    pdfService: PdfGeneratorService,
-                                   appConfig : MicroserviceAppConfig,
                                    implicit val ec: ExecutionContext
                                  ) extends Logging {
 
   protected def fileName(envelopeId: String, fileType: String) =
     s"$envelopeId-SubmissionCTUTR-${LocalDate.now().format(DateTimeFormatter.ofPattern("YYYYMMdd"))}-$fileType"
 
-  def submit(storedSubmission: MongoSubmission)(implicit hc: HeaderCarrier): Future[SubmissionResponse] = {
-    val submission: Submission = storedSubmission.submission
-    val metadata: CTUTRMetadata = storedSubmission.metadata(appConfig)
+  def submit(submission: Submission, metadata: CTUTRMetadata)(implicit hc: HeaderCarrier): Future[SubmissionResponse] = {
 
     val handleUpload: Future[SubmissionResponse] = for {
-      pdf: Array[Byte] <- createPdf(storedSubmission)
+      pdf: Array[Byte] <- createPdf(submission, metadata)
       envelopeId: String <- fileUploadService.createEnvelope()
       envelope: Envelope <- fileUploadService.envelopeSummary(envelopeId)
     } yield {
@@ -75,7 +71,7 @@ class SubmissionService @Inject()(
           )
 
           fileUploadService.uploadFile(
-            createRobotXml(storedSubmission, metadata),
+            createRobotXml(submission, metadata),
             envelopeId,
             fileName(envelopeId, "robotic.xml"),
             MimeContentType.ApplicationXml
@@ -98,13 +94,13 @@ class SubmissionService @Inject()(
     pdfSubmissionMetadata(metadata).toString().getBytes
   }
 
-  def createRobotXml(submission: MongoSubmission, metadata: CTUTRMetadata): Array[Byte] = {
-    val viewModel = SubmissionViewModel(submission)
+  def createRobotXml(submission: Submission, metadata: CTUTRMetadata): Array[Byte] = {
+    val viewModel = SubmissionViewModel(submission, metadata)
     robotXml(metadata, viewModel).toString().getBytes
   }
 
-  def createPdf(submission: MongoSubmission): Future[Array[Byte]] = {
-    val viewModel: SubmissionViewModel = SubmissionViewModel(submission)
+  def createPdf(submission: Submission, metadata: CTUTRMetadata): Future[Array[Byte]] = {
+    val viewModel: SubmissionViewModel = SubmissionViewModel(submission, metadata)
     val pdfTemplate: HtmlFormat.Appendable = CTUTRScheme(viewModel)
     val xlsTransformer: String = Source.fromResource("CTUTRScheme.xml").mkString
     pdfService.render(pdfTemplate, xlsTransformer)

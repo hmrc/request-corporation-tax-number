@@ -16,16 +16,16 @@
 
 package services
 
-import model.MongoSubmission
+import model.{MongoSubmission, Submission}
 import org.mongodb.scala.result.InsertOneResult
 import play.api.Logging
 import repositories.SubmissionMongoRepository
 
 import javax.inject.Inject
-
 import scala.concurrent.{ExecutionContext, Future}
 import com.mongodb.MongoException
 import config.MicroserviceAppConfig
+import model.templates.CTUTRMetadata
 import org.mongodb.scala.DuplicateKeyException
 
 class MongoSubmissionService @Inject()(
@@ -33,10 +33,11 @@ class MongoSubmissionService @Inject()(
                                        appConfig : MicroserviceAppConfig
                                       )(implicit ec: ExecutionContext) extends Logging {
 
-  def storeSubmission(submission: MongoSubmission): Future[String] = {
+  def storeSubmission(submission: Submission, metadata: CTUTRMetadata): Future[String] = {
     logger.info(s"[MongoSubmissionService][storeSubmission] Initialising storing of submission...")
+    val mongoSubmission: MongoSubmission = MongoSubmission(submission, metadata)
     (for {
-      insertResult: InsertOneResult <- submissionMongoRepository.storeSubmission(submission)
+      insertResult: InsertOneResult <- submissionMongoRepository.storeSubmission(mongoSubmission)
     } yield {
       if (insertResult.wasAcknowledged()) {
         val mongoSubmissionId: String = insertResult.getInsertedId.asObjectId().getValue.toString

@@ -16,7 +16,7 @@
 
 package model.templates
 
-import model.{CompanyDetails, MongoSubmission}
+import model.{CompanyDetails, Submission}
 
 import java.time.format.DateTimeFormatter
 
@@ -24,10 +24,10 @@ case class SubmissionViewModel(company: CompanyDetails, timeStamp: String)
 
 object SubmissionViewModel {
 
-  def apply(submission: MongoSubmission) : SubmissionViewModel = {
+  def apply(submission: Submission, metadata: CTUTRMetadata) : SubmissionViewModel = {
 
-    val timestamp = s"${submission.time.format(DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy"))}" +
-      s" at ${submission.time.format(DateTimeFormatter.ofPattern("HH:mm:ss"))}"
+    val timestamp = s"${metadata.metadataCreatedAt.format(DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy"))}" +
+      s" at ${metadata.metadataCreatedAt.format(DateTimeFormatter.ofPattern("HH:mm:ss"))}"
 
     SubmissionViewModel(
       company = submission.companyDetails,

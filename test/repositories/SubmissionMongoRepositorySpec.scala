@@ -51,7 +51,7 @@ class SubmissionMongoRepositorySpec extends TestFixture with MongoSupport with B
         storedSubs <- submissionMongoRepository.getOneSubmission(insertOneResult.getInsertedId.asObjectId().getValue.toString)
       } yield (storedSubs)
       Await.result(storedSubmissions, 30.seconds) must contain(mongoSubmission)
-      Await.result(mongoDatabase.getCollection(appConfig.submissionCollectionName).countDocuments().toFuture(), 30.seconds) mustBe(1)
+      Await.result(mongoDatabase.getCollection("submissions").countDocuments().toFuture(), 30.seconds) mustBe(1)
     }
 
     "read and write multiple valid Submission" in {
@@ -79,7 +79,7 @@ class SubmissionMongoRepositorySpec extends TestFixture with MongoSupport with B
       } yield (Seq(firstRetrievedSub, secondRetrievedSub, thirdRetrievedSub, forthRetrievedSub).flatten)
 
       Await.result(storedSubmission, 30.seconds) must contain theSameElementsAs(expectedFlatSubmissions)
-      Await.result(mongoDatabase.getCollection(appConfig.submissionCollectionName).countDocuments().toFuture(), 30.seconds) mustBe(4)
+      Await.result(mongoDatabase.getCollection("submissions").countDocuments().toFuture(), 30.seconds) mustBe(4)
     }
   }
 }

@@ -17,8 +17,8 @@
 package services
 
 import helper.TestFixture
-import model.MongoSubmission
-import model.templates.SubmissionViewModel
+import model.{CompanyDetails, MongoSubmission, Submission}
+import model.templates.{CTUTRMetadata, SubmissionViewModel}
 import org.apache.fop.apps.FopFactory
 import play.api.Environment
 
@@ -53,14 +53,19 @@ class PdfGeneratorServiceSpec extends TestFixture {
 
       "generate the expected pdf" in {
 
-        val mongoSubmission: MongoSubmission = MongoSubmission(
-          companyName = "company",
-          companyReferenceNumber = "00000200",
-          time = time,
-          submissionReference = ""
+        val submission: Submission = Submission(
+          companyDetails = CompanyDetails(
+            companyName = "company",
+            companyReferenceNumber = "00000200"
+          )
         )
 
-        val submissionViewModel: SubmissionViewModel = SubmissionViewModel(mongoSubmission)
+        val metadata: CTUTRMetadata = CTUTRMetadata(
+          appConfig = appConfig,
+          metadataCreatedAt = time
+        )
+
+        val submissionViewModel: SubmissionViewModel = SubmissionViewModel(submission, metadata)
 
         val response = pdfService.render(
           CTUTRScheme(submissionViewModel),

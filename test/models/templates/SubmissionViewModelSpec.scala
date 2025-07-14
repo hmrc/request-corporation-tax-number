@@ -17,8 +17,8 @@
 package models.templates
 
 import helper.TestFixture
-import model.MongoSubmission
-import model.templates.SubmissionViewModel
+import model.{CompanyDetails, MongoSubmission, Submission}
+import model.templates.{CTUTRMetadata, SubmissionViewModel}
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -29,14 +29,19 @@ class SubmissionViewModelSpec extends TestFixture {
 
     "instantiate when provided an submission with valid data" in {
 
-      val mongoSubmission = new MongoSubmission(
-        companyName = "Big Company",
-        companyReferenceNumber = "AB123123",
-        time = LocalDateTime.parse("Tuesday 31 October 2017 15:18:12", DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy HH:mm:ss")),
-        submissionReference = ""
+      val submission: Submission = Submission(
+        companyDetails = CompanyDetails(
+          companyName = "Big Company",
+          companyReferenceNumber = "AB123123"
+        )
       )
 
-      SubmissionViewModel.apply(mongoSubmission) mustBe SubmissionViewModel(
+      val metadata: CTUTRMetadata = CTUTRMetadata(
+        appConfig = appConfig,
+        metadataCreatedAt = LocalDateTime.parse("Tuesday 31 October 2017 15:18:12", DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy HH:mm:ss"))
+      )
+
+      SubmissionViewModel.apply(submission, metadata) mustBe SubmissionViewModel(
         company = model.CompanyDetails(
           companyName = "Big Company",
           companyReferenceNumber = "AB123123"

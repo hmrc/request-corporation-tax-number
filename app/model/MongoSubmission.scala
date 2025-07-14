@@ -28,21 +28,7 @@ case class MongoSubmission(
                             time: LocalDateTime,
                             submissionReference: String,
                             customerId: String = ""
-                          ){
-
-  val companyDetails: CompanyDetails = CompanyDetails(
-    companyName,
-    companyReferenceNumber
-  )
-
-  val submission: Submission = Submission(companyDetails)
-
-  def metadata(appConfig: MicroserviceAppConfig): CTUTRMetadata = CTUTRMetadata(
-    appConfig,
-    customerId,
-    time
-  )
-}
+                          )
 
 object MongoSubmission {
   implicit val formats: Format[MongoSubmission] = Json.format[MongoSubmission]

@@ -22,7 +22,7 @@ import com.mongodb.MongoException
 import config.MicroserviceAppConfig
 
 import javax.inject.Inject
-import model.{CallbackRequest, MongoSubmission, Submission}
+import model.{CallbackRequest, CompanyDetails, Submission}
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.mvc.{Action, ControllerComponents, Request}
@@ -54,11 +54,10 @@ class SubmissionController @Inject()(val mongoSubmissionService: MongoSubmission
 
       logger.info(s"[SubmissionController][submit] processing submission")
       val metadata: CTUTRMetadata = CTUTRMetadata(appConfig, request.body.companyDetails.companyReferenceNumber)
-      val mongoSubmission: MongoSubmission = MongoSubmission(request.body, metadata)
+      auditSubmission(request.body.companyDetails)
       (for {
-        _ <- mongoSubmissionService.storeSubmission(mongoSubmission)
-        _ <- auditSubmission(mongoSubmission)
-        submitResult: SubmissionResponse <- submissionService.submit(mongoSubmission)
+        _ <- mongoSubmissionService.storeSubmission(request.body, metadata)
+        submitResult: SubmissionResponse <- submissionService.submit(request.body, metadata)
       } yield {
         logger.info(s"[SubmissionController][submit] processed submission $submitResult")
         Ok(Json.toJson(submitResult))
@@ -72,12 +71,12 @@ class SubmissionController @Inject()(val mongoSubmissionService: MongoSubmission
       }
   }
 
-  def auditSubmission(mongoSubmission: MongoSubmission)
+  def auditSubmission(companyDetails: CompanyDetails)
                      (implicit request: Request[Submission]): Future[AuditResult] =
     auditService.sendEvent(
       CTUTRSubmission(
-        mongoSubmission.companyDetails.companyReferenceNumber,
-        mongoSubmission.companyDetails.companyName
+        companyDetails.companyReferenceNumber,
+        companyDetails.companyName
       )
     )
 

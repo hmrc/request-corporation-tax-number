@@ -66,18 +66,13 @@ class MongoSubmissionServiceSpec extends TestFixture {
     metadataCreatedAt = LocalDateTime.of(2025, 6, 10, 10, 10)
   )
 
-  val mongoSubmission: MongoSubmission = MongoSubmission(
-    submission = submission,
-    metadata = metadata
-  )
-
   "MongoSubmissionService submit method" must {
 
     "return Ok with an objectId" when {
 
       "a valid submission is parsed to storeSubmission" in {
         when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(Future.successful(successfulInsertOneResult))
-        val result: String = await(mongoSubmissionService.storeSubmission(mongoSubmission))
+        val result: String = await(mongoSubmissionService.storeSubmission(submission, metadata))
         assert(ObjectId.isValid(result))
         result mustBe successfulInsertId
       }
@@ -90,28 +85,28 @@ class MongoSubmissionServiceSpec extends TestFixture {
         when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(
           Future.failed(new DuplicateKeyException(BsonDocument(), new ServerAddress(), WriteConcernResult.acknowledged(1, true, BsonString("Got a duplicate key!"))))
         )
-        mongoSubmissionService.storeSubmission(mongoSubmission).failed.futureValue shouldBe a [MongoException]
+        mongoSubmissionService.storeSubmission(submission, metadata).failed.futureValue shouldBe a [MongoException]
       }
 
       "the storeSubmission method returns a MongoException" in {
         when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(
           Future.failed(new MongoException("Error writing to Mongo!!"))
         )
-        mongoSubmissionService.storeSubmission(mongoSubmission).failed.futureValue shouldBe a [MongoException]
+        mongoSubmissionService.storeSubmission(submission, metadata).failed.futureValue shouldBe a [MongoException]
       }
 
       "extracting the objectId returns null" in {
         when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(
           Future.successful(unsuccessfulInsertOneResult)
         )
-        mongoSubmissionService.storeSubmission(mongoSubmission).failed.futureValue shouldBe a [MongoException]
+        mongoSubmissionService.storeSubmission(submission, metadata).failed.futureValue shouldBe a [MongoException]
       }
 
       "the storesubmission result was not acknowledged returns a MongoException" in {
         when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(
           Future.successful(notAcknowledgedInsertOneResult)
         )
-        mongoSubmissionService.storeSubmission(mongoSubmission).failed.futureValue shouldBe a [MongoException]
+        mongoSubmissionService.storeSubmission(submission, metadata).failed.futureValue shouldBe a [MongoException]
       }
     }
   }

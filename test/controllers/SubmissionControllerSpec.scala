@@ -20,7 +20,6 @@ import com.mongodb.MongoException
 import helper.TestFixture
 import model.{CallbackRequest, MongoSubmission}
 import model.domain.SubmissionResponse
-import org.bson.{BsonObjectId, BsonType, BsonValue}
 import org.mockito.Mockito._
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import play.api.http.Status
@@ -28,12 +27,9 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.test.Helpers._
 import play.api.test.{FakeHeaders, FakeRequest, Helpers}
 import uk.gov.hmrc.http.InternalServerException
-import org.mongodb.scala.result.InsertOneResult
 import play.api.mvc.{AnyContentAsJson, Result}
-import play.api.mvc.Results.Created
 import uk.gov.hmrc.play.audit.http.connector.AuditResult
 
-import java.time.LocalDateTime
 import scala.concurrent.duration.Duration.Inf
 import scala.concurrent.{Await, Future}
 
@@ -71,8 +67,8 @@ class SubmissionControllerSpec extends TestFixture {
 
     "return Ok with a envelopeId status" when {
       "valid payload is submitted" in {
-        when(mockMongoSubmissionService.storeSubmission(any())).thenReturn(Future.successful("1234"))
-        when(mockSubmissionService.submit(any())(any()))
+        when(mockMongoSubmissionService.storeSubmission(any(), any())).thenReturn(Future.successful("1234"))
+        when(mockSubmissionService.submit(any(), any())(any()))
           .thenReturn(Future.successful(SubmissionResponse("12345", "12345-SubmissionCTUTR-20171023-iform.pdf")))
         when(mockAuditService.sendEvent(any())(any(), any(), any())).thenReturn(Future.successful(AuditResult.Success))
 
@@ -92,21 +88,21 @@ class SubmissionControllerSpec extends TestFixture {
       }
 
       "the submission service returns an error" in {
-        when(mockMongoSubmissionService.storeSubmission(any())).thenReturn(Future.successful("1234"))
-        when(mockSubmissionService.submit(any())(any())).thenReturn(Future.failed(new InternalServerException("failed to process submission")))
+        when(mockMongoSubmissionService.storeSubmission(any(), any())).thenReturn(Future.successful("1234"))
+        when(mockSubmissionService.submit(any(), any())(any())).thenReturn(Future.failed(new InternalServerException("failed to process submission")))
 
         val result = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         status(result) mustBe INTERNAL_SERVER_ERROR
       }
 
       "storing the submission in mongo db fails throwing a MongoException" in {
-        when(mockMongoSubmissionService.storeSubmission(any())).thenReturn(Future.failed(new MongoException("There was an error!!")))
+        when(mockMongoSubmissionService.storeSubmission(any(), any())).thenReturn(Future.failed(new MongoException("There was an error!!")))
         val result = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         status(result) mustBe INTERNAL_SERVER_ERROR
       }
 
       "storing the submission in mongo db fails throwing a NullPointerException" in {
-        when(mockMongoSubmissionService.storeSubmission(any())).thenReturn(Future.failed(new NullPointerException("There was an error!!")))
+        when(mockMongoSubmissionService.storeSubmission(any(), any())).thenReturn(Future.failed(new NullPointerException("There was an error!!")))
         val result = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         status(result) mustBe INTERNAL_SERVER_ERROR
       }

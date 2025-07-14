@@ -34,7 +34,7 @@ class SubmissionMongoRepository @Inject()(appConfig: MicroserviceAppConfig, mc: 
                                          (implicit ec: ExecutionContext)
   extends PlayMongoRepository[MongoSubmission](
     mongoComponent = mc,
-    collectionName = appConfig.submissionCollectionName,
+    collectionName = "submissions",
     domainFormat = MongoSubmission.formats,
     indexes = Seq.empty[IndexModel]
   ) {
