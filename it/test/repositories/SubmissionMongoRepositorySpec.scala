@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+package repositories
+
 import helper.TestFixture
 import model.templates.CTUTRMetadata
 import model.{CompanyDetails, MongoSubmission, Submission}

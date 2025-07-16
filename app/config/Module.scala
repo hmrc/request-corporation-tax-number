@@ -23,6 +23,6 @@ import play.api.{Configuration, Environment}
 class Module extends PlayModule {
   override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] =
     Seq(
-      bind[FopFactory].toProvider[FopFactoryProvider]
+      bind[FopFactory].toProvider[FopFactoryProvider].eagerly()
     )
 }
