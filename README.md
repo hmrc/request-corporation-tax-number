@@ -54,7 +54,17 @@ Port number is `9201` but is defaulted to that in build.sbt
 
 This service uses [sbt-scoverage](https://github.com/scoverage/sbt-scoverage) to provide test coverage reports.
 
-Run this script before raising a PR to ensure your code changes pass the Jenkins pipeline. This runs all the unit tests with scalastyle and checks for dependency updates:
+To run unit tests:
+```
+sbt test
+```
+
+To run integration tests (requires a local version of mongo to be running):
+```
+sbt it/test
+```
+
+Run this script before raising a PR to ensure your code changes pass the Jenkins pipeline. This runs all the unit tests and integration tests with scalastyle and checks for dependency updates (requires mongo to be running locally):
 
 ```
 ./run_all_tests.sh

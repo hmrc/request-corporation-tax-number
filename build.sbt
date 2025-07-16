@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 import sbt.Keys.scalacOptions
+import uk.gov.hmrc.DefaultBuildSettings
 import uk.gov.hmrc.DefaultBuildSettings.*
 import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
 
-scalaVersion := "2.13.16"
-
 val appName = "request-corporation-tax-number"
+
+ThisBuild / majorVersion := 1
+ThisBuild / scalaVersion := "2.13.16"
 
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
@@ -30,7 +32,6 @@ lazy val microservice = Project(appName, file("."))
     libraryDependencies ++= AppDependencies(),
     retrieveManaged := true,
     PlayKeys.playDefaultPort := 9201,
-    majorVersion := 1,
     coverageExcludedFiles := "<empty>;Reverse.*;.*filters.*;.*handlers.*;.*components.*;.*models.*;.*repositories.*;" +
       ".*BuildInfo.*;.*javascript.*;.*Routes.*;.*GuiceInjector;.*.template.scala;",
     coverageMinimumBranchTotal := 80,
@@ -48,5 +49,11 @@ lazy val microservice = Project(appName, file("."))
     Compile / unmanagedResourceDirectories += baseDirectory.value / "app" / "templates" / "fop",
     Test / unmanagedResourceDirectories += baseDirectory.value / "app" / "templates" / "fop"
   )
+
+lazy val it = project
+  .enablePlugins(PlayScala)
+  .dependsOn(microservice % "test->test")
+  .settings(DefaultBuildSettings.itSettings())
+  .settings(Test / fork := true)
 
 addCommandAlias("scalastyleAll", "all scalastyle Test/scalastyle")

@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package repositories
-
 import helper.TestFixture
 import model.templates.CTUTRMetadata
 import model.{CompanyDetails, MongoSubmission, Submission}
 import org.mongodb.scala.result.InsertOneResult
 import org.scalatest.BeforeAndAfterEach
+import repositories.SubmissionMongoRepository
 import uk.gov.hmrc.mongo.test.MongoSupport
 
 import scala.concurrent.{Await, Future}
@@ -58,25 +57,25 @@ class SubmissionMongoRepositorySpec extends TestFixture with MongoSupport with B
 
       val secondSubmission = MongoSubmission(Submission(companyDetails.copy(companyName = "secondSub")), metadata)
       val thirdSubmission = MongoSubmission(Submission(companyDetails.copy(companyName = "thirdSub")), metadata)
-      val forthSubmission = MongoSubmission(Submission(companyDetails.copy(companyName = "forthSub")), metadata)
+      val fourthSubmission = MongoSubmission(Submission(companyDetails.copy(companyName = "fourthSub")), metadata)
 
       val expectedFlatSubmissions: Seq[MongoSubmission] = Seq(
         mongoSubmission,
         secondSubmission,
         thirdSubmission,
-        forthSubmission
+        fourthSubmission
       )
 
       val storedSubmission: Future[Seq[MongoSubmission]] = for {
         firstInsertOneResult: InsertOneResult <- submissionMongoRepository.storeSubmission(mongoSubmission)
         secondInsertOneResult: InsertOneResult <- submissionMongoRepository.storeSubmission(secondSubmission)
         thirdInsertOneResult: InsertOneResult <- submissionMongoRepository.storeSubmission(thirdSubmission)
-        forthInsertOneResult: InsertOneResult <- submissionMongoRepository.storeSubmission(forthSubmission)
+        fourthInsertOneResult: InsertOneResult <- submissionMongoRepository.storeSubmission(fourthSubmission)
         firstRetrievedSub: Seq[MongoSubmission] <- submissionMongoRepository.getOneSubmission(firstInsertOneResult.getInsertedId.asObjectId().getValue.toString)
         secondRetrievedSub: Seq[MongoSubmission] <- submissionMongoRepository.getOneSubmission(secondInsertOneResult.getInsertedId.asObjectId().getValue.toString)
         thirdRetrievedSub: Seq[MongoSubmission] <- submissionMongoRepository.getOneSubmission(thirdInsertOneResult.getInsertedId.asObjectId().getValue.toString)
-        forthRetrievedSub: Seq[MongoSubmission] <- submissionMongoRepository.getOneSubmission(forthInsertOneResult.getInsertedId.asObjectId().getValue.toString)
-      } yield (Seq(firstRetrievedSub, secondRetrievedSub, thirdRetrievedSub, forthRetrievedSub).flatten)
+        fourthRetrievedSub: Seq[MongoSubmission] <- submissionMongoRepository.getOneSubmission(fourthInsertOneResult.getInsertedId.asObjectId().getValue.toString)
+      } yield (Seq(firstRetrievedSub, secondRetrievedSub, thirdRetrievedSub, fourthRetrievedSub).flatten)
 
       Await.result(storedSubmission, 30.seconds) must contain theSameElementsAs(expectedFlatSubmissions)
       Await.result(mongoDatabase.getCollection("submissions").countDocuments().toFuture(), 30.seconds) mustBe(4)
