@@ -53,7 +53,10 @@ lazy val microservice = Project(appName, file("."))
 lazy val it = project
   .enablePlugins(PlayScala)
   .dependsOn(microservice % "test->test")
-  .settings(DefaultBuildSettings.itSettings())
-  .settings(Test / fork := true)
+  .settings(
+    DefaultBuildSettings.itSettings(),
+    Test / fork := true,
+    Test / javaOptions += s"-Duser.dir=${(ThisBuild / baseDirectory).value.getAbsolutePath}"
+  )
 
 addCommandAlias("scalastyleAll", "all scalastyle Test/scalastyle")
