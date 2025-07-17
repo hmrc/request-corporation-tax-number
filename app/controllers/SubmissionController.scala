@@ -56,7 +56,12 @@ class SubmissionController @Inject()(val mongoSubmissionService: MongoSubmission
       val metadata: CTUTRMetadata = CTUTRMetadata(appConfig, request.body.companyDetails.companyReferenceNumber)
       auditSubmission(request.body.companyDetails)
       (for {
-        _ <- mongoSubmissionService.storeSubmission(request.body, metadata)
+        _ <- if (appConfig.storeSubmissionEnabled) {
+          mongoSubmissionService.storeSubmission(request.body, metadata)
+        }
+        else {
+          Future.successful(())
+        }
         submitResult: SubmissionResponse <- submissionService.submit(request.body, metadata)
       } yield {
         logger.info(s"[SubmissionController][submit] processed submission $submitResult")
