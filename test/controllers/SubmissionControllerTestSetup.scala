@@ -18,12 +18,20 @@ package controllers
 
 import config.MicroserviceAppConfig
 import helper.TestFixture
+import model.{CompanyDetails, Submission}
 import model.domain.SubmissionResponse
-import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import model.templates.CTUTRMetadata
+import org.mockito.ArgumentMatchers.{any, argThat, eq => eqTo}
 import org.mockito.Mockito.when
+import org.mockito.stubbing.OngoingStubbing
+import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.AnyContentAsJson
+import play.api.test.FakeRequest
 import uk.gov.hmrc.play.audit.http.connector.AuditResult
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
+import java.time.{Clock, Instant, LocalDateTime, ZoneOffset}
+import java.time.format.DateTimeFormatter
 import scala.concurrent.Future
 
 case class SubmissionControllerTestSetup(storeSubmissionEnabled: Boolean) extends TestFixture {
@@ -31,13 +39,68 @@ case class SubmissionControllerTestSetup(storeSubmissionEnabled: Boolean) extend
   val servicesConfig: ServicesConfig = mock[ServicesConfig]
   val appConfigWithMockedServiceConfig = new MicroserviceAppConfig(servicesConfig)
 
+  val fixedClock: Clock = Clock.fixed(Instant.parse("2020-01-01T00:00:00Z"), ZoneOffset.UTC)
+
   val submissionController: SubmissionController =
-    new SubmissionController(mockMongoSubmissionService, mockSubmissionService, mockSubmissionMongoRepository, mockAuditService, appConfigWithMockedServiceConfig, stubCC)
+    new SubmissionController(
+      mockMongoSubmissionService,
+      mockSubmissionService,
+      mockSubmissionMongoRepository,
+      fixedClock,
+      mockAuditService,
+      appConfigWithMockedServiceConfig,
+      stubCC
+    )
+
+  val createdAt: LocalDateTime = LocalDateTime.parse("Friday 04 October 2024 12:17:18", DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy HH:mm:ss"))
+  val validSubmission: Submission = Submission(companyDetails = CompanyDetails("Big Company", "AB123123"))
+  val expectedCTUTRMetadata: CTUTRMetadata = CTUTRMetadata(appConfig, "AB123123", fixedClock)
 
   when(servicesConfig.getBoolean(eqTo("mongodb.store-submission-enabled"))).thenReturn(storeSubmissionEnabled)
 
-  when(mockSubmissionService.submit(any(), any())(any()))
+  when(mockSubmissionService.submit(eqTo(validSubmission), any())(any()))
     .thenReturn(Future.successful(SubmissionResponse("12345", "12345-SubmissionCTUTR-20171023-iform.pdf")))
   when(mockAuditService.sendEvent(any())(any(), any(), any())).thenReturn(Future.successful(AuditResult.Success))
+
+  val validDataset: JsValue = Json.parse(
+    """
+      |{
+      |   "companyDetails": {
+      |     "companyName": "Big Company",
+      |     "companyReferenceNumber": "AB123123"
+      |   }
+      |}
+      |""".stripMargin)
+
+
+  val invalidDataset: JsValue = Json.parse(
+    """
+      |{
+      |   "companyDetails": {
+      |     "company": "Bad Company",
+      |     "reference": "XX123123"
+      |   }
+      |}
+      |""".stripMargin)
+
+  val fakeRequestValidDataset: FakeRequest[AnyContentAsJson] = FakeRequest("POST", "/submit").withJsonBody(validDataset)
+
+  val fakeRequestBadRequest: FakeRequest[AnyContentAsJson] = FakeRequest("POST", "/submit").withJsonBody(invalidDataset)
+
+  def stubStoreSubmission(eitherToReturnAsFuture: Either[Exception, String]): OngoingStubbing[Future[String]] = {
+
+    val storeSubmissionFuture: Future[String] = eitherToReturnAsFuture match {
+      case Left(exception) => Future.failed(exception)
+      case Right(objectId) => Future.successful(objectId)
+    }
+
+    when(mockMongoSubmissionService.storeSubmission(
+      eqTo(validSubmission),
+      argThat { metadata: CTUTRMetadata =>
+        metadata.customerId == expectedCTUTRMetadata.customerId &&
+          metadata.clock == expectedCTUTRMetadata.clock
+      }
+    )).thenReturn(storeSubmissionFuture)
+  }
 
 }

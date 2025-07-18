@@ -19,7 +19,7 @@ package services
 import com.mongodb.{DuplicateKeyException, MongoException, ServerAddress, WriteConcernResult}
 import helper.TestFixture
 import model.templates.CTUTRMetadata
-import model.{CompanyDetails, MongoSubmission, Submission}
+import model.{CompanyDetails, Submission}
 import org.bson.types.ObjectId
 import org.bson.{BsonObjectId, BsonValue}
 import org.mockito.ArgumentMatchers.any
@@ -29,7 +29,7 @@ import org.mongodb.scala.result.InsertOneResult
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import play.api.test.Helpers._
 
-import java.time.LocalDateTime
+import java.time.{Clock, Instant, LocalDateTime, ZoneOffset}
 import scala.concurrent.Future
 
 class MongoSubmissionServiceSpec extends TestFixture {
@@ -60,10 +60,12 @@ class MongoSubmissionServiceSpec extends TestFixture {
     )
   )
 
+  val fixedClock: Clock = Clock.fixed(Instant.parse("2025-06-10T10:10:00Z"), ZoneOffset.UTC)
+
   val metadata: CTUTRMetadata = CTUTRMetadata(
     appConfig = appConfig,
     customerId = "testCustomer",
-    metadataCreatedAt = LocalDateTime.of(2025, 6, 10, 10, 10)
+    clock = fixedClock
   )
 
   "MongoSubmissionService submit method" must {

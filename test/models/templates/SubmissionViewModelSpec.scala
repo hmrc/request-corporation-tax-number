@@ -17,11 +17,10 @@
 package models.templates
 
 import helper.TestFixture
-import model.{CompanyDetails, MongoSubmission, Submission}
+import model.{CompanyDetails, Submission}
 import model.templates.{CTUTRMetadata, SubmissionViewModel}
 
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import java.time.{Clock, Instant, ZoneOffset}
 
 class SubmissionViewModelSpec extends TestFixture {
 
@@ -38,7 +37,8 @@ class SubmissionViewModelSpec extends TestFixture {
 
       val metadata: CTUTRMetadata = CTUTRMetadata(
         appConfig = appConfig,
-        metadataCreatedAt = LocalDateTime.parse("Tuesday 31 October 2017 15:18:12", DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy HH:mm:ss"))
+        customerId = "",
+        clock = Clock.fixed(Instant.parse("2017-10-31T15:18:12Z"), ZoneOffset.UTC)
       )
 
       SubmissionViewModel.apply(submission, metadata) mustBe SubmissionViewModel(

@@ -20,9 +20,12 @@ import org.apache.fop.apps.FopFactory
 import play.api.inject.{Binding, Module => PlayModule}
 import play.api.{Configuration, Environment}
 
+import java.time.Clock
+
 class Module extends PlayModule {
   override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] =
     Seq(
-      bind[FopFactory].toProvider[FopFactoryProvider].eagerly()
+      bind[FopFactory].toProvider[FopFactoryProvider].eagerly(),
+      bind[Clock].toInstance(Clock.systemDefaultZone())
     )
 }

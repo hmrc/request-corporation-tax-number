@@ -17,12 +17,12 @@
 package services
 
 import helper.TestFixture
-import model.{CompanyDetails, MongoSubmission, Submission}
+import model.{CompanyDetails, Submission}
 import model.templates.{CTUTRMetadata, SubmissionViewModel}
 import org.apache.fop.apps.FopFactory
 import play.api.Environment
 
-import java.time.LocalDateTime
+import java.time.{Clock, Instant, ZoneOffset}
 import java.time.format.DateTimeFormatter
 import scala.concurrent.duration._
 import scala.concurrent.Await
@@ -47,7 +47,7 @@ class PdfGeneratorServiceSpec extends TestFixture {
       pdfStripper.getText(document)
     }
 
-    val time = LocalDateTime.parse("Friday 04 October 2024 12:17:18", DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy HH:mm:ss"))
+    val fixedClock: Clock = Clock.fixed(Instant.parse("2024-10-04T12:17:18Z"), ZoneOffset.UTC)
 
     "pdfService render " must {
 
@@ -62,7 +62,7 @@ class PdfGeneratorServiceSpec extends TestFixture {
 
         val metadata: CTUTRMetadata = CTUTRMetadata(
           appConfig = appConfig,
-          metadataCreatedAt = time
+          clock = fixedClock
         )
 
         val submissionViewModel: SubmissionViewModel = SubmissionViewModel(submission, metadata)

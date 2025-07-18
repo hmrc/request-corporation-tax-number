@@ -16,7 +16,6 @@
 
 package model
 
-import config.MicroserviceAppConfig
 import model.templates.CTUTRMetadata
 import play.api.libs.json.{Format, Json}
 

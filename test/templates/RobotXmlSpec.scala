@@ -23,7 +23,7 @@ import org.jsoup.Jsoup
 import org.jsoup.parser.Parser
 import play.twirl.api.Xml
 
-class robotXmlSpec extends TestFixture {
+class RobotXmlSpec extends TestFixture {
 
   val pdfSubmission: CTUTRMetadata = CTUTRMetadata(appConfig)
 

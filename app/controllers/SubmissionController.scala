@@ -37,10 +37,13 @@ import model.domain.SubmissionResponse
 import model.templates.CTUTRMetadata
 import uk.gov.hmrc.play.audit.http.connector.AuditResult
 
+import java.time.Clock
+
 @Singleton
 class SubmissionController @Inject()(val mongoSubmissionService: MongoSubmissionService,
                                      val submissionService: SubmissionService,
                                      val submissionMongoRepository: SubmissionMongoRepository,
+                                     val metadataCreatedAtClock: Clock,
                                      auditService: AuditService,
                                      appConfig : MicroserviceAppConfig,
                                      cc: ControllerComponents
@@ -53,7 +56,13 @@ class SubmissionController @Inject()(val mongoSubmissionService: MongoSubmission
       implicit val hc: HeaderCarrier = getOrCreateCorrelationID(request)
 
       logger.info(s"[SubmissionController][submit] processing submission")
-      val metadata: CTUTRMetadata = CTUTRMetadata(appConfig, request.body.companyDetails.companyReferenceNumber)
+
+      val metadata: CTUTRMetadata = CTUTRMetadata(
+        appConfig,
+        request.body.companyDetails.companyReferenceNumber,
+        metadataCreatedAtClock
+      )
+
       auditSubmission(request.body.companyDetails)
       (for {
         _ <- if (appConfig.storeSubmissionEnabled) {
