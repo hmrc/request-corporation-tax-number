@@ -40,7 +40,7 @@ class SubmissionControllerSpec extends TestFixture {
     "return Ok with a envelopeId status" when {
 
       "valid payload is submitted and store-submission-enabled is enabled" in new SubmissionControllerTestSetup(storeSubmissionEnabled = true) {
-        stubStoreSubmission(Right("1234"))
+        stubSuccessfulStoreSubmission("1234")
         val result: Future[Result] = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         val test: Result = Await.result(result, Inf)
         status(result) mustBe Status.OK
@@ -51,7 +51,7 @@ class SubmissionControllerSpec extends TestFixture {
           eqTo(validSubmission),
           argThat { metadata: CTUTRMetadata =>
             metadata.customerId == expectedCTUTRMetadata.customerId &&
-              metadata.clock == expectedCTUTRMetadata.clock
+              metadata.metadataCreatedAt == expectedCTUTRMetadata.metadataCreatedAt
           }
         )
       }
@@ -74,20 +74,20 @@ class SubmissionControllerSpec extends TestFixture {
       }
 
       "the submission service returns an error" in new SubmissionControllerTestSetup(storeSubmissionEnabled = true) {
-        stubStoreSubmission(Right("1234"))
+        stubSuccessfulStoreSubmission("1234")
         when(mockSubmissionService.submit(any(), any())(any())).thenReturn(Future.failed(new InternalServerException("failed to process submission")))
         val result: Future[Result] = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         status(result) mustBe INTERNAL_SERVER_ERROR
       }
 
       "storing the submission in mongo db fails throwing a MongoException" in new SubmissionControllerTestSetup(storeSubmissionEnabled = true) {
-        stubStoreSubmission(Left(new MongoException("There was an error!!")))
+        stubFailedStoreSubmission(new MongoException("There was an error!!"))
         val result: Future[Result] = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         status(result) mustBe INTERNAL_SERVER_ERROR
       }
 
       "storing the submission in mongo db fails throwing a NullPointerException" in new SubmissionControllerTestSetup(storeSubmissionEnabled = true) {
-        stubStoreSubmission(Left(new NullPointerException("There was an error!!")))
+        stubFailedStoreSubmission(new NullPointerException("There was an error!!"))
         val result: Future[Result] = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         status(result) mustBe INTERNAL_SERVER_ERROR
       }

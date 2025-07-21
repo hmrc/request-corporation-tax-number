@@ -22,9 +22,11 @@ import utils.SubmissionReferenceHelper.createSubmissionRef
 import java.time.{Clock, LocalDateTime}
 import java.time.format.DateTimeFormatter
 
-case class CTUTRMetadata(appConfig: MicroserviceAppConfig, customerId: String = "", clock: Clock = Clock.systemDefaultZone()) {
-
-  val metadataCreatedAt: LocalDateTime = LocalDateTime.now(clock)
+case class CTUTRMetadata(
+                          appConfig: MicroserviceAppConfig,
+                          customerId: String = "",
+                          metadataCreatedAt: LocalDateTime = LocalDateTime.now(Clock.systemDefaultZone())
+                        ) {
 
   val xmlCreatedAt: String = now("dd/MM/yyyy HH:mm:ss", metadataCreatedAt)
   val hmrcReceivedAt: String = now("dd/MM/yyyy HH:mm:ss", metadataCreatedAt)

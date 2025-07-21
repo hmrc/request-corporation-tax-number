@@ -42,8 +42,8 @@ class SubmissionService @Inject()(
                                    implicit val ec: ExecutionContext
                                  ) extends Logging {
 
-  protected def fileName(envelopeId: String, fileType: String) =
-    s"$envelopeId-SubmissionCTUTR-${LocalDate.now().format(DateTimeFormatter.ofPattern("YYYYMMdd"))}-$fileType"
+  protected def fileName(envelopeId: String, fileType: String, submissionDate: LocalDate) =
+    s"$envelopeId-SubmissionCTUTR-${submissionDate.format(DateTimeFormatter.ofPattern("YYYYMMdd"))}-$fileType"
 
   def submit(submission: Submission, metadata: CTUTRMetadata)(implicit hc: HeaderCarrier): Future[SubmissionResponse] = {
 
@@ -59,21 +59,21 @@ class SubmissionService @Inject()(
           fileUploadService.uploadFile(
             pdf,
             envelopeId,
-            fileName(envelopeId, "iform.pdf"),
+            fileName(envelopeId, "iform.pdf", metadata.metadataCreatedAt.toLocalDate),
             MimeContentType.ApplicationPdf
           )
 
           fileUploadService.uploadFile(
             createMetadata(metadata),
             envelopeId,
-            fileName(envelopeId, "metadata.xml"),
+            fileName(envelopeId, "metadata.xml", metadata.metadataCreatedAt.toLocalDate),
             MimeContentType.ApplicationXml
           )
 
           fileUploadService.uploadFile(
             createRobotXml(submission, metadata),
             envelopeId,
-            fileName(envelopeId, "robotic.xml"),
+            fileName(envelopeId, "robotic.xml", metadata.metadataCreatedAt.toLocalDate),
             MimeContentType.ApplicationXml
           )
         case _ =>
@@ -81,7 +81,7 @@ class SubmissionService @Inject()(
           Future.failed(throw new RuntimeException())
       }
 
-      SubmissionResponse(envelopeId, fileName(envelopeId, "iform.pdf"))
+      SubmissionResponse(envelopeId, fileName(envelopeId, "iform.pdf", metadata.metadataCreatedAt.toLocalDate))
     }
 
     handleUpload.recoverWith {

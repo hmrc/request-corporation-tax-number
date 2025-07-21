@@ -34,12 +34,12 @@ import java.time.{Clock, Instant, LocalDateTime, ZoneOffset}
 import java.time.format.DateTimeFormatter
 import scala.concurrent.Future
 
-case class SubmissionControllerTestSetup(storeSubmissionEnabled: Boolean) extends TestFixture {
+class SubmissionControllerTestSetup(storeSubmissionEnabled: Boolean) extends TestFixture {
 
   val servicesConfig: ServicesConfig = mock[ServicesConfig]
   val appConfigWithMockedServiceConfig = new MicroserviceAppConfig(servicesConfig)
 
-  val fixedClock: Clock = Clock.fixed(Instant.parse("2020-01-01T00:00:00Z"), ZoneOffset.UTC)
+  val fixedClock: Clock = Clock.fixed(Instant.parse("2024-10-04T12:17:18Z"), ZoneOffset.UTC)
 
   val submissionController: SubmissionController =
     new SubmissionController(
@@ -54,7 +54,7 @@ case class SubmissionControllerTestSetup(storeSubmissionEnabled: Boolean) extend
 
   val createdAt: LocalDateTime = LocalDateTime.parse("Friday 04 October 2024 12:17:18", DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy HH:mm:ss"))
   val validSubmission: Submission = Submission(companyDetails = CompanyDetails("Big Company", "AB123123"))
-  val expectedCTUTRMetadata: CTUTRMetadata = CTUTRMetadata(appConfig, "AB123123", fixedClock)
+  val expectedCTUTRMetadata: CTUTRMetadata = CTUTRMetadata(appConfig, "AB123123", createdAt)
 
   when(servicesConfig.getBoolean(eqTo("mongodb.store-submission-enabled"))).thenReturn(storeSubmissionEnabled)
 
@@ -87,20 +87,21 @@ case class SubmissionControllerTestSetup(storeSubmissionEnabled: Boolean) extend
 
   val fakeRequestBadRequest: FakeRequest[AnyContentAsJson] = FakeRequest("POST", "/submit").withJsonBody(invalidDataset)
 
-  def stubStoreSubmission(eitherToReturnAsFuture: Either[Exception, String]): OngoingStubbing[Future[String]] = {
-
-    val storeSubmissionFuture: Future[String] = eitherToReturnAsFuture match {
-      case Left(exception) => Future.failed(exception)
-      case Right(objectId) => Future.successful(objectId)
-    }
-
+  def stubSuccessfulStoreSubmission(objectId: String): OngoingStubbing[Future[String]] =
     when(mockMongoSubmissionService.storeSubmission(
       eqTo(validSubmission),
       argThat { metadata: CTUTRMetadata =>
         metadata.customerId == expectedCTUTRMetadata.customerId &&
-          metadata.clock == expectedCTUTRMetadata.clock
+          metadata.metadataCreatedAt == expectedCTUTRMetadata.metadataCreatedAt
       }
-    )).thenReturn(storeSubmissionFuture)
-  }
+    )).thenReturn(Future.successful(objectId))
 
+  def stubFailedStoreSubmission(exception: Exception): OngoingStubbing[Future[String]] =
+    when(mockMongoSubmissionService.storeSubmission(
+      eqTo(validSubmission),
+      argThat { metadata: CTUTRMetadata =>
+        metadata.customerId == expectedCTUTRMetadata.customerId &&
+          metadata.metadataCreatedAt == expectedCTUTRMetadata.metadataCreatedAt
+      }
+    )).thenReturn(Future.failed(exception))
 }

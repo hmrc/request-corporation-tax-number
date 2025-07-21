@@ -37,7 +37,7 @@ import model.domain.SubmissionResponse
 import model.templates.CTUTRMetadata
 import uk.gov.hmrc.play.audit.http.connector.AuditResult
 
-import java.time.Clock
+import java.time.{Clock, LocalDateTime}
 
 @Singleton
 class SubmissionController @Inject()(val mongoSubmissionService: MongoSubmissionService,
@@ -60,7 +60,7 @@ class SubmissionController @Inject()(val mongoSubmissionService: MongoSubmission
       val metadata: CTUTRMetadata = CTUTRMetadata(
         appConfig,
         request.body.companyDetails.companyReferenceNumber,
-        metadataCreatedAtClock
+        LocalDateTime.now(metadataCreatedAtClock)
       )
 
       auditSubmission(request.body.companyDetails)

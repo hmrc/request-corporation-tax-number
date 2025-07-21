@@ -37,7 +37,7 @@ import services.{FileUploadService, MongoSubmissionService, PdfGeneratorService,
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
-import java.time.{Clock, LocalDateTime}
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag

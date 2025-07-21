@@ -29,7 +29,7 @@ import org.mongodb.scala.result.InsertOneResult
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import play.api.test.Helpers._
 
-import java.time.{Clock, Instant, LocalDateTime, ZoneOffset}
+import java.time.LocalDateTime
 import scala.concurrent.Future
 
 class MongoSubmissionServiceSpec extends TestFixture {
@@ -60,12 +60,10 @@ class MongoSubmissionServiceSpec extends TestFixture {
     )
   )
 
-  val fixedClock: Clock = Clock.fixed(Instant.parse("2025-06-10T10:10:00Z"), ZoneOffset.UTC)
-
   val metadata: CTUTRMetadata = CTUTRMetadata(
     appConfig = appConfig,
     customerId = "testCustomer",
-    clock = fixedClock
+    metadataCreatedAt = LocalDateTime.of(2025, 6, 10, 10, 10)
   )
 
   "MongoSubmissionService submit method" must {
