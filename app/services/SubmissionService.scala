@@ -59,21 +59,21 @@ class SubmissionService @Inject()(
           fileUploadService.uploadFile(
             pdf,
             envelopeId,
-            fileName(envelopeId, "iform.pdf", metadata.metadataCreatedAt.toLocalDate),
+            fileName(envelopeId, "iform.pdf", metadata.createdAt.toLocalDate),
             MimeContentType.ApplicationPdf
           )
 
           fileUploadService.uploadFile(
             createMetadata(metadata),
             envelopeId,
-            fileName(envelopeId, "metadata.xml", metadata.metadataCreatedAt.toLocalDate),
+            fileName(envelopeId, "metadata.xml", metadata.createdAt.toLocalDate),
             MimeContentType.ApplicationXml
           )
 
           fileUploadService.uploadFile(
             createRobotXml(submission, metadata),
             envelopeId,
-            fileName(envelopeId, "robotic.xml", metadata.metadataCreatedAt.toLocalDate),
+            fileName(envelopeId, "robotic.xml", metadata.createdAt.toLocalDate),
             MimeContentType.ApplicationXml
           )
         case _ =>
@@ -81,7 +81,7 @@ class SubmissionService @Inject()(
           Future.failed(throw new RuntimeException())
       }
 
-      SubmissionResponse(envelopeId, fileName(envelopeId, "iform.pdf", metadata.metadataCreatedAt.toLocalDate))
+      SubmissionResponse(envelopeId, fileName(envelopeId, "iform.pdf", metadata.createdAt.toLocalDate))
     }
 
     handleUpload.recoverWith {

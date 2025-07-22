@@ -36,7 +36,7 @@ object MongoSubmission {
             metadata: CTUTRMetadata): MongoSubmission = new MongoSubmission(
     submission.companyDetails.companyName,
     submission.companyDetails.companyReferenceNumber,
-    metadata.metadataCreatedAt,
+    metadata.createdAt,
     metadata.submissionReference,
     metadata.customerId
   )

@@ -62,7 +62,7 @@ class PdfGeneratorServiceSpec extends TestFixture {
 
         val metadata: CTUTRMetadata = CTUTRMetadata(
           appConfig = appConfig,
-          metadataCreatedAt = time
+          createdAt = time
         )
 
         val submissionViewModel: SubmissionViewModel = SubmissionViewModel(submission, metadata)

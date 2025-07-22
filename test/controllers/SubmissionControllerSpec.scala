@@ -51,7 +51,7 @@ class SubmissionControllerSpec extends TestFixture {
           eqTo(validSubmission),
           argThat { metadata: CTUTRMetadata =>
             metadata.customerId == expectedCTUTRMetadata.customerId &&
-              metadata.metadataCreatedAt == expectedCTUTRMetadata.metadataCreatedAt
+              metadata.createdAt == expectedCTUTRMetadata.createdAt
           }
         )
       }

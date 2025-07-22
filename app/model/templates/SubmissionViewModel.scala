@@ -26,8 +26,8 @@ object SubmissionViewModel {
 
   def apply(submission: Submission, metadata: CTUTRMetadata) : SubmissionViewModel = {
 
-    val timestamp = s"${metadata.metadataCreatedAt.format(DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy"))}" +
-      s" at ${metadata.metadataCreatedAt.format(DateTimeFormatter.ofPattern("HH:mm:ss"))}"
+    val timestamp = s"${metadata.createdAt.format(DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy"))}" +
+      s" at ${metadata.createdAt.format(DateTimeFormatter.ofPattern("HH:mm:ss"))}"
 
     SubmissionViewModel(
       company = submission.companyDetails,

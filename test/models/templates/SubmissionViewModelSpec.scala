@@ -39,7 +39,7 @@ class SubmissionViewModelSpec extends TestFixture {
       val metadata: CTUTRMetadata = CTUTRMetadata(
         appConfig = appConfig,
         customerId = "",
-        metadataCreatedAt = LocalDateTime.parse("Tuesday 31 October 2017 15:18:12", DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy HH:mm:ss"))
+        createdAt = LocalDateTime.parse("Tuesday 31 October 2017 15:18:12", DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy HH:mm:ss"))
       )
 
       SubmissionViewModel.apply(submission, metadata) mustBe SubmissionViewModel(

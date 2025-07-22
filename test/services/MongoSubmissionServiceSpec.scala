@@ -63,7 +63,7 @@ class MongoSubmissionServiceSpec extends TestFixture {
   val metadata: CTUTRMetadata = CTUTRMetadata(
     appConfig = appConfig,
     customerId = "testCustomer",
-    metadataCreatedAt = LocalDateTime.of(2025, 6, 10, 10, 10)
+    createdAt = LocalDateTime.of(2025, 6, 10, 10, 10)
   )
 
   "MongoSubmissionService submit method" must {

@@ -92,7 +92,7 @@ class SubmissionControllerTestSetup(storeSubmissionEnabled: Boolean) extends Tes
       eqTo(validSubmission),
       argThat { metadata: CTUTRMetadata =>
         metadata.customerId == expectedCTUTRMetadata.customerId &&
-          metadata.metadataCreatedAt == expectedCTUTRMetadata.metadataCreatedAt
+          metadata.createdAt == expectedCTUTRMetadata.createdAt
       }
     )).thenReturn(Future.successful(objectId))
 
@@ -101,7 +101,7 @@ class SubmissionControllerTestSetup(storeSubmissionEnabled: Boolean) extends Tes
       eqTo(validSubmission),
       argThat { metadata: CTUTRMetadata =>
         metadata.customerId == expectedCTUTRMetadata.customerId &&
-          metadata.metadataCreatedAt == expectedCTUTRMetadata.metadataCreatedAt
+          metadata.createdAt == expectedCTUTRMetadata.createdAt
       }
     )).thenReturn(Future.failed(exception))
 }

@@ -25,14 +25,14 @@ import java.time.format.DateTimeFormatter
 case class CTUTRMetadata(
                           appConfig: MicroserviceAppConfig,
                           customerId: String = "",
-                          metadataCreatedAt: LocalDateTime = LocalDateTime.now(Clock.systemDefaultZone())
+                          createdAt: LocalDateTime = LocalDateTime.now(Clock.systemDefaultZone())
                         ) {
 
-  val xmlCreatedAt: String = now("dd/MM/yyyy HH:mm:ss", metadataCreatedAt)
-  val hmrcReceivedAt: String = now("dd/MM/yyyy HH:mm:ss", metadataCreatedAt)
+  val xmlCreatedAt: String = now("dd/MM/yyyy HH:mm:ss", createdAt)
+  val hmrcReceivedAt: String = now("dd/MM/yyyy HH:mm:ss", createdAt)
   val submissionReference: String = createSubmissionRef()
 
-  val reconciliationId: String = s"$submissionReference-" + now("yyyyMMddHHmmss", metadataCreatedAt)
+  val reconciliationId: String = s"$submissionReference-" + now("yyyyMMddHHmmss", createdAt)
   val fileFormat: String = "pdf"
   val mimeType: String = "application/pdf"
 
