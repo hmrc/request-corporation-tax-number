@@ -39,7 +39,7 @@ class SubmissionControllerSpec extends TestFixture {
 
     "return Ok with a envelopeId status" when {
 
-      "valid payload is submitted and store-submission-enabled is enabled" in new SubmissionControllerTestSetup(storeSubmissionEnabled = true) {
+      "valid payload is submitted and submission.save-to-db is enabled" in new SubmissionControllerTestSetup(storeSubmissionEnabled = true) {
         stubSuccessfulStoreSubmission("1234")
         val result: Future[Result] = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         val test: Result = Await.result(result, Inf)
@@ -56,7 +56,7 @@ class SubmissionControllerSpec extends TestFixture {
         )
       }
 
-      "valid payload is submitted and store-submission-enabled is disabled" in new SubmissionControllerTestSetup(storeSubmissionEnabled = false) {
+      "valid payload is submitted and submission.save-to-db is disabled" in new SubmissionControllerTestSetup(storeSubmissionEnabled = false) {
         val result: Future[Result] = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         val test: Result = Await.result(result, Inf)
         status(result) mustBe Status.OK

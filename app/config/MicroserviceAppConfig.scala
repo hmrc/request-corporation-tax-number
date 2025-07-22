@@ -36,6 +36,6 @@ class MicroserviceAppConfig @Inject()(servicesConfig: ServicesConfig) {
   lazy val target : String = loadConfig(s"pdf.ctutr.metadata.target")
   lazy val save : Boolean = servicesConfig.getBoolean(s"pdf.ctutr.save")
 
-  lazy val storeSubmissionEnabled: Boolean = servicesConfig.getBoolean("mongodb.store-submission-enabled")
+  lazy val storeSubmissionEnabled: Boolean = servicesConfig.getBoolean("submission.save-to-db")
 
 }
