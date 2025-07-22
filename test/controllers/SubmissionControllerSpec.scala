@@ -39,7 +39,7 @@ class SubmissionControllerSpec extends TestFixture {
 
     "return Ok with a envelopeId status" when {
 
-      "valid payload is submitted and submission.save-to-db is enabled" in new SubmissionControllerTestSetup(storeSubmissionEnabled = true) {
+      "valid payload is submitted and submission.save-to-db is enabled" in new SubmissionControllerTestSetup(saveSubmissionToDb = true) {
         stubSuccessfulStoreSubmission("1234")
         val result: Future[Result] = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         val test: Result = Await.result(result, Inf)
@@ -56,7 +56,7 @@ class SubmissionControllerSpec extends TestFixture {
         )
       }
 
-      "valid payload is submitted and submission.save-to-db is disabled" in new SubmissionControllerTestSetup(storeSubmissionEnabled = false) {
+      "valid payload is submitted and submission.save-to-db is disabled" in new SubmissionControllerTestSetup(saveSubmissionToDb = false) {
         val result: Future[Result] = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         val test: Result = Await.result(result, Inf)
         status(result) mustBe Status.OK
@@ -68,25 +68,25 @@ class SubmissionControllerSpec extends TestFixture {
 
     "return a non success http response" when {
 
-      "submit fails to parse invalid payload" in new SubmissionControllerTestSetup(storeSubmissionEnabled = true) {
+      "submit fails to parse invalid payload" in new SubmissionControllerTestSetup(saveSubmissionToDb = true) {
         val result = Helpers.call(submissionController.submit(), fakeRequestBadRequest)
         status(result) mustBe BAD_REQUEST
       }
 
-      "the submission service returns an error" in new SubmissionControllerTestSetup(storeSubmissionEnabled = true) {
+      "the submission service returns an error" in new SubmissionControllerTestSetup(saveSubmissionToDb = true) {
         stubSuccessfulStoreSubmission("1234")
         when(mockSubmissionService.submit(any(), any())(any())).thenReturn(Future.failed(new InternalServerException("failed to process submission")))
         val result: Future[Result] = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         status(result) mustBe INTERNAL_SERVER_ERROR
       }
 
-      "storing the submission in mongo db fails throwing a MongoException" in new SubmissionControllerTestSetup(storeSubmissionEnabled = true) {
+      "storing the submission in mongo db fails throwing a MongoException" in new SubmissionControllerTestSetup(saveSubmissionToDb = true) {
         stubFailedStoreSubmission(new MongoException("There was an error!!"))
         val result: Future[Result] = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         status(result) mustBe INTERNAL_SERVER_ERROR
       }
 
-      "storing the submission in mongo db fails throwing a NullPointerException" in new SubmissionControllerTestSetup(storeSubmissionEnabled = true) {
+      "storing the submission in mongo db fails throwing a NullPointerException" in new SubmissionControllerTestSetup(saveSubmissionToDb = true) {
         stubFailedStoreSubmission(new NullPointerException("There was an error!!"))
         val result: Future[Result] = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         status(result) mustBe INTERNAL_SERVER_ERROR
@@ -98,7 +98,7 @@ class SubmissionControllerSpec extends TestFixture {
 
     "return a 200 response status" when {
 
-      "when available callback response" in new SubmissionControllerTestSetup(storeSubmissionEnabled = true) {
+      "when available callback response" in new SubmissionControllerTestSetup(saveSubmissionToDb = true) {
         val callback: JsValue = Json.toJson(CallbackRequest("env123", "file-id-1", "AVAILABLE"))
 
         val fakeRequest: FakeRequest[JsValue] = FakeRequest(method = "POST", uri = "",
@@ -111,7 +111,7 @@ class SubmissionControllerSpec extends TestFixture {
         status(result) mustBe OK
       }
 
-      "when closed callback response" in new SubmissionControllerTestSetup(storeSubmissionEnabled = true) {
+      "when closed callback response" in new SubmissionControllerTestSetup(saveSubmissionToDb = true) {
         val callback: JsValue = Json.toJson(CallbackRequest("env123", "file-id-1", "CLOSED"))
 
         val fakeRequest: FakeRequest[JsValue] = FakeRequest(method = "POST", uri = "",

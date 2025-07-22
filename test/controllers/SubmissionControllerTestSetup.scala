@@ -34,7 +34,7 @@ import java.time.{Clock, Instant, LocalDateTime, ZoneOffset}
 import java.time.format.DateTimeFormatter
 import scala.concurrent.Future
 
-class SubmissionControllerTestSetup(storeSubmissionEnabled: Boolean) extends TestFixture {
+class SubmissionControllerTestSetup(saveSubmissionToDb: Boolean) extends TestFixture {
 
   val servicesConfig: ServicesConfig = mock[ServicesConfig]
   val appConfigWithMockedServiceConfig = new MicroserviceAppConfig(servicesConfig)
@@ -56,7 +56,7 @@ class SubmissionControllerTestSetup(storeSubmissionEnabled: Boolean) extends Tes
   val validSubmission: Submission = Submission(companyDetails = CompanyDetails("Big Company", "AB123123"))
   val expectedCTUTRMetadata: CTUTRMetadata = CTUTRMetadata(appConfig, "AB123123", createdAt)
 
-  when(servicesConfig.getBoolean(eqTo("submission.save-to-db"))).thenReturn(storeSubmissionEnabled)
+  when(servicesConfig.getBoolean(eqTo("submission.save-to-db"))).thenReturn(saveSubmissionToDb)
 
   when(mockSubmissionService.submit(eqTo(validSubmission), any())(any()))
     .thenReturn(Future.successful(SubmissionResponse("12345", "12345-SubmissionCTUTR-20171023-iform.pdf")))

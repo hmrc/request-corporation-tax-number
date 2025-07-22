@@ -65,7 +65,7 @@ class SubmissionController @Inject()(val mongoSubmissionService: MongoSubmission
 
       auditSubmission(request.body.companyDetails)
       (for {
-        _ <- if (appConfig.storeSubmissionEnabled) {
+        _ <- if (appConfig.saveSubmissionToDb) {
           mongoSubmissionService.storeSubmission(request.body, metadata)
         }
         else {
