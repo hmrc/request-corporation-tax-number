@@ -32,7 +32,8 @@ import play.api.libs.ws.{WSClient, WSRequest}
 import play.api.mvc.ControllerComponents
 import play.api.test.Helpers.stubControllerComponents
 import play.api.test.StubPlayBodyParsersFactory
-import services.{FileUploadService, PdfGeneratorService, SubmissionService}
+import repositories.SubmissionMongoRepository
+import services.{FileUploadService, MongoSubmissionService, PdfGeneratorService, SubmissionService}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
@@ -62,8 +63,10 @@ trait TestFixture extends AnyWordSpec with Matchers with MockitoSugar with Guice
 
   val mockPdfService: PdfGeneratorService = mock[PdfGeneratorService]
   val mockSubmissionService: SubmissionService = mock[SubmissionService]
+  val mockMongoSubmissionService: MongoSubmissionService = mock[MongoSubmissionService]
   val mockAuditService: AuditService = mock[AuditService]
   val mockFileUploadService: FileUploadService = mock[FileUploadService]
+  val mockSubmissionMongoRepository: SubmissionMongoRepository = mock[SubmissionMongoRepository]
 
   /**
    * Wraps some text extracted from an XML element to provide extra assertion methods

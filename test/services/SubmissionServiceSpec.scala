@@ -31,7 +31,7 @@ import scala.concurrent.{Await, Future}
 
 class SubmissionServiceSpec extends TestFixture {
 
-  val submissionService: SubmissionService = new SubmissionService(mockFileUploadService, mockPdfService, appConfig, ec)
+  val submissionService: SubmissionService = new SubmissionService(mockFileUploadService, mockPdfService, ec)
 
   val pdfBytes: Array[Byte] = getClass
     .getResourceAsStream("/CTUTR_example_04102024.pdf")
@@ -43,6 +43,8 @@ class SubmissionServiceSpec extends TestFixture {
       companyReferenceNumber = "AB123123"
     )
   )
+
+  val metadata: CTUTRMetadata = CTUTRMetadata(appConfig)
 
   val today = LocalDate.now()
   val formatToday: String = today.format(DateTimeFormatter.ofPattern("yyyyMMdd"))
@@ -58,7 +60,7 @@ class SubmissionServiceSpec extends TestFixture {
 
         when(mockFileUploadService.envelopeSummary(any())(any())).thenReturn(Future.failed(new RuntimeException))
 
-        val results: Future[SubmissionResponse] = submissionService.submit(submission)
+        val results: Future[SubmissionResponse] = submissionService.submit(submission, metadata)
 
         whenReady(results.failed) {
           results =>
@@ -74,7 +76,7 @@ class SubmissionServiceSpec extends TestFixture {
 
         when(mockFileUploadService.envelopeSummary(any())(any())).thenReturn(Future.successful(Envelope("", Some(""), "OPEN", Some(Seq(File("", ""))))))
 
-        val results: Future[SubmissionResponse] = submissionService.submit(submission)
+        val results: Future[SubmissionResponse] = submissionService.submit(submission, metadata)
 
         whenReady(results.failed) {
           results =>
@@ -90,7 +92,7 @@ class SubmissionServiceSpec extends TestFixture {
 
         when(mockFileUploadService.envelopeSummary(any())(any())).thenReturn(Future.successful(Envelope("", Some(""), "OPEN", Some(Seq(File("", ""))))))
 
-        val results: Future[SubmissionResponse] = submissionService.submit(submission)
+        val results: Future[SubmissionResponse] = submissionService.submit(submission, metadata)
 
         whenReady(results.failed) {
           results =>
@@ -106,7 +108,7 @@ class SubmissionServiceSpec extends TestFixture {
 
         when(mockFileUploadService.envelopeSummary(any())(any())).thenReturn(Future.successful(Envelope("", Some(""), "CLOSED", Some(Seq(File("", ""))))))
 
-        val results: Future[SubmissionResponse] = submissionService.submit(submission)
+        val results: Future[SubmissionResponse] = submissionService.submit(submission, metadata)
 
         whenReady(results.failed) {
           results =>
@@ -128,7 +130,7 @@ class SubmissionServiceSpec extends TestFixture {
 
         when(mockFileUploadService.envelopeSummary(any())(any())).thenReturn(Future.successful(Envelope("", Some(""), "OPEN", Some(Seq(File("", ""))))))
 
-        whenReady(submissionService.submit(submission)) {
+        whenReady(submissionService.submit(submission, metadata)) {
           result =>
             verify(mockFileUploadService, atLeastOnce()).uploadFile(any(), any(), eqTo(s"1-SubmissionCTUTR-$formatToday-iform.pdf"), any())(any())
             verify(mockFileUploadService, atLeastOnce()).uploadFile(any(), any(), eqTo(s"1-SubmissionCTUTR-$formatToday-metadata.xml"), any())(any())

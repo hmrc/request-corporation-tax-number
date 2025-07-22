@@ -18,47 +18,81 @@ package controllers
 
 import audit.{AuditService, CTUTRSubmission}
 import com.google.inject.Singleton
+import com.mongodb.MongoException
+import config.MicroserviceAppConfig
 
 import javax.inject.Inject
-import model.{CallbackRequest, Submission}
+import model.{CallbackRequest, CompanyDetails, Submission}
 import play.api.Logging
 import play.api.libs.json.Json
-import play.api.mvc.{Action, ControllerComponents}
-import services.SubmissionService
+import play.api.mvc.{Action, ControllerComponents, Request}
+import repositories.SubmissionMongoRepository
+import services.{MongoSubmissionService, SubmissionService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.http.HeaderCarrier
 import utils.CorrelationIdHelper
+import model.domain.SubmissionResponse
+import model.templates.CTUTRMetadata
+import uk.gov.hmrc.play.audit.http.connector.AuditResult
+
+import java.time.{Clock, LocalDateTime}
 
 @Singleton
-class SubmissionController @Inject()( val submissionService: SubmissionService,
-                                      auditService: AuditService,
-                                      cc: ControllerComponents
+class SubmissionController @Inject()(val mongoSubmissionService: MongoSubmissionService,
+                                     val submissionService: SubmissionService,
+                                     val submissionMongoRepository: SubmissionMongoRepository,
+                                     val metadataCreatedAtClock: Clock,
+                                     auditService: AuditService,
+                                     appConfig : MicroserviceAppConfig,
+                                     cc: ControllerComponents
                                     ) extends BackendController(cc) with Logging with CorrelationIdHelper {
 
   implicit val ec: ExecutionContext = cc.executionContext
 
   def submit() : Action[Submission] = Action.async(parse.json[Submission]) {
-    implicit request =>
+    implicit request: Request[Submission] =>
       implicit val hc: HeaderCarrier = getOrCreateCorrelationID(request)
-      auditService.sendEvent(
-        CTUTRSubmission(
-          request.body.companyDetails.companyReferenceNumber,
-          request.body.companyDetails.companyName
-        )
-      )
+
       logger.info(s"[SubmissionController][submit] processing submission")
-      submissionService.submit(request.body) map {
-        response =>
-          logger.info(s"[SubmissionController][submit] processed submission $response")
-          Ok(Json.toJson(response))
-      } recoverWith {
-        case e : Exception =>
+
+      val metadata: CTUTRMetadata = CTUTRMetadata(
+        appConfig,
+        request.body.companyDetails.companyReferenceNumber,
+        LocalDateTime.now(metadataCreatedAtClock)
+      )
+
+      auditSubmission(request.body.companyDetails)
+      (for {
+        _ <- if (appConfig.saveSubmissionToDb) {
+          mongoSubmissionService.storeSubmission(request.body, metadata)
+        }
+        else {
+          Future.successful(())
+        }
+        submitResult: SubmissionResponse <- submissionService.submit(request.body, metadata)
+      } yield {
+        logger.info(s"[SubmissionController][submit] processed submission $submitResult")
+        Ok(Json.toJson(submitResult))
+      }).recoverWith {
+        case e: MongoException =>
+          logger.error(s"[MongoSubmissionService][storeSubmission] MongoException returned when saving submission to Mongo, Error: ${e.getMessage}")
+          Future.successful(InternalServerError)
+        case e: Exception =>
           logger.error(s"[SubmissionController][submit][exception returned when processing submission] ${e.getMessage}")
           Future.successful(InternalServerError)
       }
   }
+
+  def auditSubmission(companyDetails: CompanyDetails)
+                     (implicit request: Request[Submission]): Future[AuditResult] =
+    auditService.sendEvent(
+      CTUTRSubmission(
+        companyDetails.companyReferenceNumber,
+        companyDetails.companyName
+      )
+    )
 
   def fileUploadCallback(): Action[CallbackRequest] =
     Action.async(parse.json[CallbackRequest]) {

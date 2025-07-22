@@ -16,7 +16,6 @@
 
 package services
 
-import config.MicroserviceAppConfig
 import model.domain.{MimeContentType, SubmissionResponse}
 import model.templates.{CTUTRMetadata, SubmissionViewModel}
 import model.{Envelope, Submission}
@@ -40,19 +39,16 @@ case object Open extends EnvelopeStatus
 class SubmissionService @Inject()(
                                    val fileUploadService: FileUploadService,
                                    pdfService: PdfGeneratorService,
-                                   appConfig : MicroserviceAppConfig,
                                    implicit val ec: ExecutionContext
                                  ) extends Logging {
 
-  protected def fileName(envelopeId: String, fileType: String) =
-    s"$envelopeId-SubmissionCTUTR-${LocalDate.now().format(DateTimeFormatter.ofPattern("YYYYMMdd"))}-$fileType"
+  protected def fileName(envelopeId: String, fileType: String, submissionDate: LocalDate) =
+    s"$envelopeId-SubmissionCTUTR-${submissionDate.format(DateTimeFormatter.ofPattern("YYYYMMdd"))}-$fileType"
 
-  def submit(submission: Submission)(implicit hc: HeaderCarrier): Future[SubmissionResponse] = {
-
-    val metadata: CTUTRMetadata = CTUTRMetadata(appConfig, submission.companyDetails.companyReferenceNumber)
+  def submit(submission: Submission, metadata: CTUTRMetadata)(implicit hc: HeaderCarrier): Future[SubmissionResponse] = {
 
     val handleUpload: Future[SubmissionResponse] = for {
-      pdf: Array[Byte] <- createPdf(submission)
+      pdf: Array[Byte] <- createPdf(submission, metadata)
       envelopeId: String <- fileUploadService.createEnvelope()
       envelope: Envelope <- fileUploadService.envelopeSummary(envelopeId)
     } yield {
@@ -63,21 +59,21 @@ class SubmissionService @Inject()(
           fileUploadService.uploadFile(
             pdf,
             envelopeId,
-            fileName(envelopeId, "iform.pdf"),
+            fileName(envelopeId, "iform.pdf", metadata.createdAt.toLocalDate),
             MimeContentType.ApplicationPdf
           )
 
           fileUploadService.uploadFile(
             createMetadata(metadata),
             envelopeId,
-            fileName(envelopeId, "metadata.xml"),
+            fileName(envelopeId, "metadata.xml", metadata.createdAt.toLocalDate),
             MimeContentType.ApplicationXml
           )
 
           fileUploadService.uploadFile(
             createRobotXml(submission, metadata),
             envelopeId,
-            fileName(envelopeId, "robotic.xml"),
+            fileName(envelopeId, "robotic.xml", metadata.createdAt.toLocalDate),
             MimeContentType.ApplicationXml
           )
         case _ =>
@@ -85,7 +81,7 @@ class SubmissionService @Inject()(
           Future.failed(throw new RuntimeException())
       }
 
-      SubmissionResponse(envelopeId, fileName(envelopeId, "iform.pdf"))
+      SubmissionResponse(envelopeId, fileName(envelopeId, "iform.pdf", metadata.createdAt.toLocalDate))
     }
 
     handleUpload.recoverWith {
@@ -99,12 +95,12 @@ class SubmissionService @Inject()(
   }
 
   def createRobotXml(submission: Submission, metadata: CTUTRMetadata): Array[Byte] = {
-    val viewModel = SubmissionViewModel.apply(submission)
+    val viewModel = SubmissionViewModel(submission, metadata)
     robotXml(metadata, viewModel).toString().getBytes
   }
 
-  def createPdf(submission: Submission)(implicit hc: HeaderCarrier): Future[Array[Byte]] = {
-    val viewModel: SubmissionViewModel = SubmissionViewModel.apply(submission)
+  def createPdf(submission: Submission, metadata: CTUTRMetadata): Future[Array[Byte]] = {
+    val viewModel: SubmissionViewModel = SubmissionViewModel(submission, metadata)
     val pdfTemplate: HtmlFormat.Appendable = CTUTRScheme(viewModel)
     val xlsTransformer: String = Source.fromResource("CTUTRScheme.xml").mkString
     pdfService.render(pdfTemplate, xlsTransformer)

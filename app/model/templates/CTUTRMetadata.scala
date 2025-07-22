@@ -19,16 +19,20 @@ package model.templates
 import config.MicroserviceAppConfig
 import utils.SubmissionReferenceHelper.createSubmissionRef
 
-import java.time.LocalDateTime
+import java.time.{Clock, LocalDateTime}
 import java.time.format.DateTimeFormatter
 
-case class CTUTRMetadata(appConfig: MicroserviceAppConfig, customerId: String = "") {
+case class CTUTRMetadata(
+                          appConfig: MicroserviceAppConfig,
+                          customerId: String = "",
+                          createdAt: LocalDateTime = LocalDateTime.now(Clock.systemDefaultZone())
+                        ) {
 
-  val xmlCreatedAt: String = now("dd/MM/yyyy HH:mm:ss")
-  val hmrcReceivedAt: String = now("dd/MM/yyyy HH:mm:ss")
+  val xmlCreatedAt: String = now("dd/MM/yyyy HH:mm:ss", createdAt)
+  val hmrcReceivedAt: String = now("dd/MM/yyyy HH:mm:ss", createdAt)
   val submissionReference: String = createSubmissionRef()
 
-  val reconciliationId: String = s"$submissionReference-" + now("yyyyMMddHHmmss")
+  val reconciliationId: String = s"$submissionReference-" + now("yyyyMMddHHmmss", createdAt)
   val fileFormat: String = "pdf"
   val mimeType: String = "application/pdf"
 
@@ -44,6 +48,6 @@ case class CTUTRMetadata(appConfig: MicroserviceAppConfig, customerId: String = 
   lazy val target: String = appConfig.target
   lazy val store: Boolean = appConfig.save
 
-  private def now(dateTimePattern: String) = LocalDateTime.now().format(DateTimeFormatter.ofPattern(dateTimePattern))
+  private def now(dateTimePattern: String, metadataCreatedAt: LocalDateTime) = metadataCreatedAt.format(DateTimeFormatter.ofPattern(dateTimePattern))
 
 }

@@ -17,28 +17,32 @@
 package models.templates
 
 import helper.TestFixture
-import model.Submission
-import model.templates.SubmissionViewModel
-import org.mockito.Mockito.when
+import model.{CompanyDetails, Submission}
+import model.templates.{CTUTRMetadata, SubmissionViewModel}
 
-import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.time.LocalDateTime
 
 class SubmissionViewModelSpec extends TestFixture {
-
-  val time = LocalDateTime.parse("Tuesday 31 October 2017 15:18:12", DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy HH:mm:ss"))
 
   "SubmissionViewModel" must {
 
     "instantiate when provided an submission with valid data" in {
-      val submission = mock[Submission]
-      when(submission.companyDetails).thenReturn(model.CompanyDetails(
-        companyName = "Big Company",
-        companyReferenceNumber = "AB123123"
-      ))
-      when(submission.time).thenReturn(time)
 
-      SubmissionViewModel.apply(submission) mustBe SubmissionViewModel(
+      val submission: Submission = Submission(
+        companyDetails = CompanyDetails(
+          companyName = "Big Company",
+          companyReferenceNumber = "AB123123"
+        )
+      )
+
+      val metadata: CTUTRMetadata = CTUTRMetadata(
+        appConfig = appConfig,
+        customerId = "",
+        createdAt = LocalDateTime.parse("Tuesday 31 October 2017 15:18:12", DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy HH:mm:ss"))
+      )
+
+      SubmissionViewModel.apply(submission, metadata) mustBe SubmissionViewModel(
         company = model.CompanyDetails(
           companyName = "Big Company",
           companyReferenceNumber = "AB123123"

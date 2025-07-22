@@ -22,7 +22,7 @@ import org.jsoup.Jsoup
 import org.jsoup.parser.Parser
 import play.twirl.api.Xml
 
-class pdfSubmissionMetadataSpec extends TestFixture { // scalastyle:off magic.number
+class PdfSubmissionMetadataSpec extends TestFixture { // scalastyle:off magic.number
 
   val pdfSubmission = CTUTRMetadata(appConfig)
   val pdfSubmissionMetadata: Xml = templates.xml.pdfSubmissionMetadata(pdfSubmission)

@@ -24,10 +24,10 @@ case class SubmissionViewModel(company: CompanyDetails, timeStamp: String)
 
 object SubmissionViewModel {
 
-  def apply(submission: Submission) : SubmissionViewModel = {
+  def apply(submission: Submission, metadata: CTUTRMetadata) : SubmissionViewModel = {
 
-    val timestamp = s"${submission.time.format(DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy"))}" +
-      s" at ${submission.time.format(DateTimeFormatter.ofPattern("HH:mm:ss"))}"
+    val timestamp = s"${metadata.createdAt.format(DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy"))}" +
+      s" at ${metadata.createdAt.format(DateTimeFormatter.ofPattern("HH:mm:ss"))}"
 
     SubmissionViewModel(
       company = submission.companyDetails,

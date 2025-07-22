@@ -18,11 +18,7 @@ package model
 
 import play.api.libs.json._
 
-import java.time.LocalDateTime
-
-case class Submission(companyDetails: CompanyDetails) {
-  val time : LocalDateTime = LocalDateTime.now()
-}
+case class Submission(companyDetails: CompanyDetails)
 
 object Submission {
   implicit val formats: Format[Submission] = Json.format[Submission]

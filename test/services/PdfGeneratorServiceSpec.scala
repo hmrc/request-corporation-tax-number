@@ -17,11 +17,10 @@
 package services
 
 import helper.TestFixture
-import model.templates.SubmissionViewModel
-import model.Submission
+import model.{CompanyDetails, Submission}
+import model.templates.{CTUTRMetadata, SubmissionViewModel}
 import org.apache.fop.apps.FopFactory
 import play.api.Environment
-import templates.html.CTUTRScheme
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -31,7 +30,7 @@ import scala.io.Source
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.PDFTextStripper
 import org.apache.pdfbox.Loader
-import org.mockito.Mockito.when
+import templates.html.CTUTRScheme
 
 class PdfGeneratorServiceSpec extends TestFixture {
 
@@ -48,20 +47,25 @@ class PdfGeneratorServiceSpec extends TestFixture {
       pdfStripper.getText(document)
     }
 
-    val time = LocalDateTime.parse("Friday 04 October 2024 12:17:18", DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy HH:mm:ss"))
-
     "pdfService render " must {
 
       "generate the expected pdf" in {
 
-        val submission: Submission = mock[Submission]
-        when(submission.companyDetails).thenReturn(model.CompanyDetails(
-          companyName = "company",
-          companyReferenceNumber = "00000200"
-        ))
-        when(submission.time).thenReturn(time)
+        val submission: Submission = Submission(
+          companyDetails = CompanyDetails(
+            companyName = "company",
+            companyReferenceNumber = "00000200"
+          )
+        )
 
-        val submissionViewModel: SubmissionViewModel = SubmissionViewModel(submission)
+        val time = LocalDateTime.parse("Friday 04 October 2024 12:17:18", DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy HH:mm:ss"))
+
+        val metadata: CTUTRMetadata = CTUTRMetadata(
+          appConfig = appConfig,
+          createdAt = time
+        )
+
+        val submissionViewModel: SubmissionViewModel = SubmissionViewModel(submission, metadata)
 
         val response = pdfService.render(
           CTUTRScheme(submissionViewModel),
