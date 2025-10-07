@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import org.jsoup.Jsoup
 import org.jsoup.parser.Parser
 import play.twirl.api.Xml
 
-class PdfSubmissionMetadataSpec extends TestFixture { // scalastyle:off magic.number
+class PdfSubmissionMetadataSpec extends TestFixture {
 
   val pdfSubmission = CTUTRMetadata(appConfig)
   val pdfSubmissionMetadata: Xml = templates.xml.pdfSubmissionMetadata(pdfSubmission)

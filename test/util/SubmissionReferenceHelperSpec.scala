@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.must.Matchers
 import utils.SubmissionReferenceHelper.createSubmissionRef
 
-class SubmissionReferenceHelperSpec extends AnyWordSpec with Matchers with OptionValues { // scalastyle:off magic.number
+class SubmissionReferenceHelperSpec extends AnyWordSpec with Matchers with OptionValues {
 
   "createSubmissionRef" should {
     "create submission reference of default length" in {

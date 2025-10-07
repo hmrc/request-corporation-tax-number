@@ -64,7 +64,7 @@ To run integration tests (requires a local version of mongo to be running):
 sbt it/test
 ```
 
-Run this script before raising a PR to ensure your code changes pass the Jenkins pipeline. This runs all the unit tests and integration tests with scalastyle and checks for dependency updates (requires mongo to be running locally):
+Run this script before raising a PR to ensure your code changes pass the Jenkins pipeline. This runs all the unit tests and integration tests with checks for dependency updates (requires mongo to be running locally):
 
 ```
 ./run_all_tests.sh
