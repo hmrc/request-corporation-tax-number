@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,14 +33,13 @@ import util.WireMockHelper
 import java.util.UUID
 
 class FileUploadConnectorSpec extends PlaySpec with WireMockHelper with ScalaFutures with ScalaCheckPropertyChecks with IntegrationPatience {
-  // scalastyle:off magic.number
   def injector: Injector = app.injector
 
   def appConfig : MicroserviceAppConfig = injector.instanceOf[MicroserviceAppConfig]
 
   implicit def dontShrink[A]: Shrink[A] = Shrink.shrinkAny
 
-  private lazy val randomCorrelationId: String = UUID.randomUUID().toString()
+  private lazy val randomCorrelationId: String = UUID.randomUUID().toString
   implicit val hc:HeaderCarrier = HeaderCarrier(
     authorization = Some(Authorization("")),
     forwarded = Some(ForwardedFor("")),
@@ -358,8 +357,7 @@ class FileUploadConnectorSpec extends PlaySpec with WireMockHelper with ScalaFut
       }
 
       "return exception on 5th attempt" in {
-        forAll(uuid) {
-          (envId) =>
+        forAll(uuid) { envId =>
             WireMock.stubFor(
               get(urlEqualTo(s"/file-upload/envelopes/$envId"))
                 .willReturn(

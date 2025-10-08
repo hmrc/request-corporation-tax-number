@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import uk.gov.hmrc.http.HttpResponse
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 
-class FileUploadServiceSpec extends TestFixture { // scalastyle:off magic.number
+class FileUploadServiceSpec extends TestFixture {
 
   private val fileName = "CTUTR.pdf"
   private val fileId = "CTUTR"

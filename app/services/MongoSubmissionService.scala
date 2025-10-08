@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ class MongoSubmissionService @Inject()(
     } yield {
       if (insertResult.wasAcknowledged()) {
         val mongoSubmissionId: String = insertResult.getInsertedId.asObjectId().getValue.toString
-        logger.info(s"[MongoSubmissionService][storeSubmission] Successfully stored submission. SubmissionId: ${mongoSubmissionId}")
+        logger.info(s"[MongoSubmissionService][storeSubmission] Successfully stored submission. SubmissionId: $mongoSubmissionId")
         mongoSubmissionId
       }
       else {

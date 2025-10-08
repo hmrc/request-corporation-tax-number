@@ -41,7 +41,7 @@ class SubmissionMongoRepositorySpec extends TestFixture with MongoSupport with B
     "12345"
   )
   val submission: Submission = new Submission(companyDetails)
-  val metadata: CTUTRMetadata = new CTUTRMetadata(appConfig)
+  val metadata: CTUTRMetadata = CTUTRMetadata(appConfig)
   val mongoSubmission: MongoSubmission = MongoSubmission(submission, metadata)
 
   "SubmissionMongoRepository" must {
@@ -50,9 +50,9 @@ class SubmissionMongoRepositorySpec extends TestFixture with MongoSupport with B
       val storedSubmissions: Future[Seq[MongoSubmission]] = for {
         insertOneResult: InsertOneResult <- submissionMongoRepository.storeSubmission(mongoSubmission)
         storedSubs <- submissionMongoRepository.getOneSubmission(insertOneResult.getInsertedId.asObjectId().getValue.toString)
-      } yield (storedSubs)
+      } yield storedSubs
       Await.result(storedSubmissions, 30.seconds) must contain(mongoSubmission)
-      Await.result(mongoDatabase.getCollection("submissions").countDocuments().toFuture(), 30.seconds) mustBe(1)
+      Await.result(mongoDatabase.getCollection("submissions").countDocuments().toFuture(), 30.seconds) mustBe 1
     }
 
     "read and write multiple valid Submission" in {
@@ -77,10 +77,10 @@ class SubmissionMongoRepositorySpec extends TestFixture with MongoSupport with B
         secondRetrievedSub: Seq[MongoSubmission] <- submissionMongoRepository.getOneSubmission(secondInsertOneResult.getInsertedId.asObjectId().getValue.toString)
         thirdRetrievedSub: Seq[MongoSubmission] <- submissionMongoRepository.getOneSubmission(thirdInsertOneResult.getInsertedId.asObjectId().getValue.toString)
         fourthRetrievedSub: Seq[MongoSubmission] <- submissionMongoRepository.getOneSubmission(fourthInsertOneResult.getInsertedId.asObjectId().getValue.toString)
-      } yield (Seq(firstRetrievedSub, secondRetrievedSub, thirdRetrievedSub, fourthRetrievedSub).flatten)
+      } yield Seq(firstRetrievedSub, secondRetrievedSub, thirdRetrievedSub, fourthRetrievedSub).flatten
 
-      Await.result(storedSubmission, 30.seconds) must contain theSameElementsAs(expectedFlatSubmissions)
-      Await.result(mongoDatabase.getCollection("submissions").countDocuments().toFuture(), 30.seconds) mustBe(4)
+      Await.result(storedSubmission, 30.seconds) must contain theSameElementsAs expectedFlatSubmissions
+      Await.result(mongoDatabase.getCollection("submissions").countDocuments().toFuture(), 30.seconds) mustBe 4
     }
   }
 }

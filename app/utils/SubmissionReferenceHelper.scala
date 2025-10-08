@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package utils
 
-object SubmissionReferenceHelper { // scalastyle:off magic.number
+object SubmissionReferenceHelper {
   def createSubmissionRef(length: Integer = 10): String = {
     val len: Integer = {
       if (length < 10) 10 else if (length % 2 == 1) length + 1  else length
@@ -30,7 +30,7 @@ object SubmissionReferenceHelper { // scalastyle:off magic.number
       sb.append(chars.toList(randomNum))
     }
     sb.toString.substring(0,first) + "-" +
-      sb.toString.substring(first,(first + 4)) + "-" +
-      sb.toString.substring((first + 4),length)
+      sb.toString.substring(first, first + 4) + "-" +
+      sb.toString.substring(first + 4,length)
   }
 }
