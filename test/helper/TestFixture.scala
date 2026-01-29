@@ -42,30 +42,36 @@ import java.time.format.DateTimeFormatter
 import scala.concurrent.ExecutionContext
 import scala.reflect.ClassTag
 
-trait TestFixture extends AnyWordSpec with Matchers with MockitoSugar with GuiceOneAppPerSuite with ScalaFutures with StubPlayBodyParsersFactory {
+trait TestFixture
+    extends AnyWordSpec
+    with Matchers
+    with MockitoSugar
+    with GuiceOneAppPerSuite
+    with ScalaFutures
+    with StubPlayBodyParsersFactory {
 
-  val injector: Injector = app.injector
-  val appConfig : MicroserviceAppConfig = real[MicroserviceAppConfig]
+  val injector: Injector               = app.injector
+  val appConfig: MicroserviceAppConfig = real[MicroserviceAppConfig]
 
   def real[T: ClassTag]: T = injector.instanceOf[T]
 
   implicit val materializer: Materializer = app.materializer
-  implicit val as: ActorSystem = ActorSystem()
-  implicit val hc: HeaderCarrier = HeaderCarrier()
-  lazy implicit val ec: ExecutionContext = real[ExecutionContext]
-  val stubCC: ControllerComponents = stubControllerComponents(playBodyParsers = stubPlayBodyParsers(materializer))
-  
-  val mockWsClient: WSClient = mock[WSClient]
+  implicit val as: ActorSystem            = ActorSystem()
+  implicit val hc: HeaderCarrier          = HeaderCarrier()
+  implicit lazy val ec: ExecutionContext  = real[ExecutionContext]
+  val stubCC: ControllerComponents        = stubControllerComponents(playBodyParsers = stubPlayBodyParsers(materializer))
+
+  val mockWsClient: WSClient   = mock[WSClient]
   val mockWsRequest: WSRequest = mock[WSRequest]
 
-  val mockAuditConnector: AuditConnector = mock[AuditConnector]
+  val mockAuditConnector: AuditConnector           = mock[AuditConnector]
   val mockFileUploadConnector: FileUploadConnector = mock[FileUploadConnector]
 
-  val mockPdfService: PdfGeneratorService = mock[PdfGeneratorService]
-  val mockSubmissionService: SubmissionService = mock[SubmissionService]
-  val mockMongoSubmissionService: MongoSubmissionService = mock[MongoSubmissionService]
-  val mockAuditService: AuditService = mock[AuditService]
-  val mockFileUploadService: FileUploadService = mock[FileUploadService]
+  val mockPdfService: PdfGeneratorService                      = mock[PdfGeneratorService]
+  val mockSubmissionService: SubmissionService                 = mock[SubmissionService]
+  val mockMongoSubmissionService: MongoSubmissionService       = mock[MongoSubmissionService]
+  val mockAuditService: AuditService                           = mock[AuditService]
+  val mockFileUploadService: FileUploadService                 = mock[FileUploadService]
   val mockSubmissionMongoRepository: SubmissionMongoRepository = mock[SubmissionMongoRepository]
 
   /**
@@ -73,11 +79,13 @@ trait TestFixture extends AnyWordSpec with Matchers with MockitoSugar with Guice
    *
    * @param text The text to implicitly wrap
    */
-  implicit class XmlTextWrapper(val text:String) {
+  implicit class XmlTextWrapper(val text: String) {
+
     def mustMatchDateTimeFormat(pattern: String): Assertion = {
       LocalDateTime.parse(this.text, DateTimeFormatter.ofPattern(pattern))
       Succeeded
     }
+
   }
 
 }

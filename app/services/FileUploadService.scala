@@ -27,16 +27,18 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import scala.concurrent.Future
 
 @Singleton
-class FileUploadService @Inject()(
-                                 val fileUploadConnector: FileUploadConnector
-                                 ) extends Logging {
+class FileUploadService @Inject() (
+  val fileUploadConnector: FileUploadConnector
+) extends Logging {
 
   def createEnvelope()(implicit hc: HeaderCarrier): Future[String] = {
     logger.info(s"[FileUploadService][createEnvelope][creating envelope")
     fileUploadConnector.createEnvelope
   }
 
-  def uploadFile(data: Array[Byte], envelopeId: String, fileName: String, contentType: MimeContentType)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+  def uploadFile(data: Array[Byte], envelopeId: String, fileName: String, contentType: MimeContentType)(implicit
+    hc: HeaderCarrier
+  ): Future[HttpResponse] = {
     logger.info(s"[FileUploadService][uploadFile][uploading file $envelopeId $fileName ${contentType.description}")
     fileUploadConnector.uploadFile(data, fileName, contentType, envelopeId, removeExtension(fileName))
   }
@@ -46,9 +48,8 @@ class FileUploadService @Inject()(
     fileUploadConnector.closeEnvelope(envelopeId)
   }
 
-  def envelopeSummary(envelopeId: String)(implicit hc: HeaderCarrier): Future[Envelope] = {
+  def envelopeSummary(envelopeId: String)(implicit hc: HeaderCarrier): Future[Envelope] =
     fileUploadConnector.envelopeSummary(envelopeId)
-  }
 
   private def removeExtension(fileName: String): String = fileName.split("\\.").head
 }

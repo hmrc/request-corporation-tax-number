@@ -30,10 +30,9 @@ import scala.concurrent.Future
 
 class AuditServiceSpec extends TestFixture {
 
-  private implicit val request: FakeRequest[AnyContentAsJson] = FakeRequest()
+  implicit private val request: FakeRequest[AnyContentAsJson] = FakeRequest()
     .withHeaders("a" -> "B")
-    .withJsonBody(Json.parse(
-      """
+    .withJsonBody(Json.parse("""
         |{
         |   "companyDetails": {
         |     "companyName": "Big Company",
@@ -53,28 +52,27 @@ class AuditServiceSpec extends TestFixture {
 
       val eventCaptor = ArgumentCaptor.forClass(classOf[ExtendedDataEvent])
 
-      whenReady(auditService.sendEvent(CTUTRSubmission("foo", "bar"))) {
-        result =>
-
-          verify(mockAuditConnector, times(1)).sendExtendedEvent(eventCaptor.capture())(any(), any())
-          eventCaptor.getValue.auditSource mustBe "request-corporation-tax-number"
-          eventCaptor.getValue.auditType mustBe "CTUTRSubmission"
-          eventCaptor.getValue.detail mustBe Json.obj(
-            "data" -> CTUTRSubmission(
-              "foo", "bar"
-            ),
-            "path" -> "/",
-            "X-Session-ID" -> "-",
-            "X-Request-ID" -> "-",
-            "clientIP" -> "-",
-            "clientPort" -> "-",
-            "Akamai-Reputation" -> "-",
-            "deviceID" -> "-"
-          )
-          eventCaptor.getValue.tags must contain(
-            "transactionName" -> "CTUTRSubmission"
-          )
-          result mustEqual AuditResult.Success
+      whenReady(auditService.sendEvent(CTUTRSubmission("foo", "bar"))) { result =>
+        verify(mockAuditConnector, times(1)).sendExtendedEvent(eventCaptor.capture())(any(), any())
+        eventCaptor.getValue.auditSource mustBe "request-corporation-tax-number"
+        eventCaptor.getValue.auditType   mustBe "CTUTRSubmission"
+        eventCaptor.getValue.detail      mustBe Json.obj(
+          "data"              -> CTUTRSubmission(
+            "foo",
+            "bar"
+          ),
+          "path"              -> "/",
+          "X-Session-ID"      -> "-",
+          "X-Request-ID"      -> "-",
+          "clientIP"          -> "-",
+          "clientPort"        -> "-",
+          "Akamai-Reputation" -> "-",
+          "deviceID"          -> "-"
+        )
+        eventCaptor.getValue.tags          must contain(
+          "transactionName" -> "CTUTRSubmission"
+        )
+        result mustEqual AuditResult.Success
       }
     }
 
@@ -84,10 +82,11 @@ class AuditServiceSpec extends TestFixture {
 
       val result = auditService.sendEvent(CTUTRSubmission("foo", "bar"))
 
-      result.map {
-        x => x mustBe AuditResult.Failure
+      result.map { x =>
+        x mustBe AuditResult.Failure
       }
 
     }
   }
+
 }

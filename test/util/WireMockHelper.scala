@@ -31,10 +31,10 @@ trait WireMockHelper extends BeforeAndAfterAll with BeforeAndAfterEach with Guic
 
   val testPort: Int = 11111
 
-  override implicit lazy val app: Application =
+  implicit override lazy val app: Application =
     new GuiceApplicationBuilder()
       .configure(
-        "microservice.services.file-upload.port" -> testPort,
+        "microservice.services.file-upload.port"          -> testPort,
         "microservice.services.file-upload-frontend.port" -> testPort
       )
       .build()
@@ -56,4 +56,5 @@ trait WireMockHelper extends BeforeAndAfterAll with BeforeAndAfterEach with Guic
     super.afterAll()
     server.stop()
   }
+
 }

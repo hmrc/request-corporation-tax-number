@@ -30,14 +30,14 @@ import org.mongodb.scala.bson.BsonDocument
 import org.mongodb.scala.result.InsertOneResult
 
 @Singleton
-class SubmissionMongoRepository @Inject()(appConfig: MicroserviceAppConfig, mc: MongoComponent)
-                                         (implicit ec: ExecutionContext)
-  extends PlayMongoRepository[MongoSubmission](
-    mongoComponent = mc,
-    collectionName = "submissions",
-    domainFormat = MongoSubmission.formats,
-    indexes = Seq.empty[IndexModel]
-  ) {
+class SubmissionMongoRepository @Inject() (appConfig: MicroserviceAppConfig, mc: MongoComponent)(implicit
+  ec: ExecutionContext
+) extends PlayMongoRepository[MongoSubmission](
+      mongoComponent = mc,
+      collectionName = "submissions",
+      domainFormat = MongoSubmission.formats,
+      indexes = Seq.empty[IndexModel]
+    ) {
 
   def storeSubmission(doc: MongoSubmission): Future[InsertOneResult] =
     collection
@@ -52,4 +52,5 @@ class SubmissionMongoRepository @Inject()(appConfig: MicroserviceAppConfig, mc: 
         )
       )
       .toFuture()
+
 }

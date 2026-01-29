@@ -36,7 +36,7 @@ import scala.concurrent.Future
 
 class SubmissionControllerTestSetup(saveSubmissionToDb: Boolean) extends TestFixture {
 
-  val servicesConfig: ServicesConfig = mock[ServicesConfig]
+  val servicesConfig: ServicesConfig   = mock[ServicesConfig]
   val appConfigWithMockedServiceConfig = new MicroserviceAppConfig(servicesConfig)
 
   val fixedClock: Clock = Clock.fixed(Instant.parse("2024-10-04T12:17:18Z"), ZoneOffset.UTC)
@@ -52,18 +52,20 @@ class SubmissionControllerTestSetup(saveSubmissionToDb: Boolean) extends TestFix
       stubCC
     )
 
-  val createdAt: LocalDateTime = LocalDateTime.parse("Friday 04 October 2024 12:17:18", DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy HH:mm:ss"))
-  val validSubmission: Submission = Submission(companyDetails = CompanyDetails("Big Company", "AB123123"))
+  val createdAt: LocalDateTime             =
+    LocalDateTime.parse("Friday 04 October 2024 12:17:18", DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy HH:mm:ss"))
+
+  val validSubmission: Submission          = Submission(companyDetails = CompanyDetails("Big Company", "AB123123"))
   val expectedCTUTRMetadata: CTUTRMetadata = CTUTRMetadata(appConfig, "AB123123", createdAt)
 
   when(servicesConfig.getBoolean(eqTo("submission.save-to-db"))).thenReturn(saveSubmissionToDb)
 
   when(mockSubmissionService.submit(eqTo(validSubmission), any())(any()))
     .thenReturn(Future.successful(SubmissionResponse("12345", "12345-SubmissionCTUTR-20171023-iform.pdf")))
+
   when(mockAuditService.sendEvent(any())(any(), any(), any())).thenReturn(Future.successful(AuditResult.Success))
 
-  val validDataset: JsValue = Json.parse(
-    """
+  val validDataset: JsValue = Json.parse("""
       |{
       |   "companyDetails": {
       |     "companyName": "Big Company",
@@ -72,9 +74,7 @@ class SubmissionControllerTestSetup(saveSubmissionToDb: Boolean) extends TestFix
       |}
       |""".stripMargin)
 
-
-  val invalidDataset: JsValue = Json.parse(
-    """
+  val invalidDataset: JsValue = Json.parse("""
       |{
       |   "companyDetails": {
       |     "company": "Bad Company",
@@ -88,20 +88,25 @@ class SubmissionControllerTestSetup(saveSubmissionToDb: Boolean) extends TestFix
   val fakeRequestBadRequest: FakeRequest[AnyContentAsJson] = FakeRequest("POST", "/submit").withJsonBody(invalidDataset)
 
   def stubSuccessfulStoreSubmission(objectId: String): OngoingStubbing[Future[String]] =
-    when(mockMongoSubmissionService.storeSubmission(
-      eqTo(validSubmission),
-      argThat { metadata: CTUTRMetadata =>
-        metadata.customerId == expectedCTUTRMetadata.customerId &&
+    when(
+      mockMongoSubmissionService.storeSubmission(
+        eqTo(validSubmission),
+        argThat { metadata: CTUTRMetadata =>
+          metadata.customerId == expectedCTUTRMetadata.customerId &&
           metadata.createdAt == expectedCTUTRMetadata.createdAt
-      }
-    )).thenReturn(Future.successful(objectId))
+        }
+      )
+    ).thenReturn(Future.successful(objectId))
 
   def stubFailedStoreSubmission(exception: Exception): OngoingStubbing[Future[String]] =
-    when(mockMongoSubmissionService.storeSubmission(
-      eqTo(validSubmission),
-      argThat { metadata: CTUTRMetadata =>
-        metadata.customerId == expectedCTUTRMetadata.customerId &&
+    when(
+      mockMongoSubmissionService.storeSubmission(
+        eqTo(validSubmission),
+        argThat { metadata: CTUTRMetadata =>
+          metadata.customerId == expectedCTUTRMetadata.customerId &&
           metadata.createdAt == expectedCTUTRMetadata.createdAt
-      }
-    )).thenReturn(Future.failed(exception))
+        }
+      )
+    ).thenReturn(Future.failed(exception))
+
 }

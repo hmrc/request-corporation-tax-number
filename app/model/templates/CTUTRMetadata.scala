@@ -23,31 +23,32 @@ import java.time.{Clock, LocalDateTime}
 import java.time.format.DateTimeFormatter
 
 case class CTUTRMetadata(
-                          appConfig: MicroserviceAppConfig,
-                          customerId: String = "",
-                          createdAt: LocalDateTime = LocalDateTime.now(Clock.systemDefaultZone())
-                        ) {
+  appConfig: MicroserviceAppConfig,
+  customerId: String = "",
+  createdAt: LocalDateTime = LocalDateTime.now(Clock.systemDefaultZone())
+) {
 
-  val xmlCreatedAt: String = now("dd/MM/yyyy HH:mm:ss", createdAt)
-  val hmrcReceivedAt: String = now("dd/MM/yyyy HH:mm:ss", createdAt)
+  val xmlCreatedAt: String        = now("dd/MM/yyyy HH:mm:ss", createdAt)
+  val hmrcReceivedAt: String      = now("dd/MM/yyyy HH:mm:ss", createdAt)
   val submissionReference: String = createSubmissionRef()
 
   val reconciliationId: String = s"$submissionReference-" + now("yyyyMMddHHmmss", createdAt)
-  val fileFormat: String = "pdf"
-  val mimeType: String = "application/pdf"
+  val fileFormat: String       = "pdf"
+  val mimeType: String         = "application/pdf"
 
-  val casKey: String = ""
+  val casKey: String         = ""
   val submissionMark: String = ""
-  val attachmentCount: Int = 0
-  val numberOfPages: Int = 2
+  val attachmentCount: Int   = 0
+  val numberOfPages: Int     = 2
 
-  lazy val formId: String = appConfig.formId
-  lazy val businessArea: String = appConfig.businessArea
+  lazy val formId: String             = appConfig.formId
+  lazy val businessArea: String       = appConfig.businessArea
   lazy val classificationType: String = appConfig.queue
-  lazy val source: String = appConfig.source
-  lazy val target: String = appConfig.target
-  lazy val store: Boolean = appConfig.save
+  lazy val source: String             = appConfig.source
+  lazy val target: String             = appConfig.target
+  lazy val store: Boolean             = appConfig.save
 
-  private def now(dateTimePattern: String, metadataCreatedAt: LocalDateTime) = metadataCreatedAt.format(DateTimeFormatter.ofPattern(dateTimePattern))
+  private def now(dateTimePattern: String, metadataCreatedAt: LocalDateTime) =
+    metadataCreatedAt.format(DateTimeFormatter.ofPattern(dateTimePattern))
 
 }

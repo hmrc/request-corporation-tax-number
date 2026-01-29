@@ -22,22 +22,22 @@ import play.api.libs.json.{Format, Json}
 import java.time.LocalDateTime
 
 case class MongoSubmission(
-                            companyName: String,
-                            companyReferenceNumber: String,
-                            time: LocalDateTime,
-                            submissionReference: String,
-                            customerId: String = ""
-                          )
+  companyName: String,
+  companyReferenceNumber: String,
+  time: LocalDateTime,
+  submissionReference: String,
+  customerId: String = ""
+)
 
 object MongoSubmission {
   implicit val formats: Format[MongoSubmission] = Json.format[MongoSubmission]
 
-  def apply(submission: Submission,
-            metadata: CTUTRMetadata): MongoSubmission = new MongoSubmission(
+  def apply(submission: Submission, metadata: CTUTRMetadata): MongoSubmission = new MongoSubmission(
     submission.companyDetails.companyName,
     submission.companyDetails.companyReferenceNumber,
     metadata.createdAt,
     metadata.submissionReference,
     metadata.customerId
   )
+
 }

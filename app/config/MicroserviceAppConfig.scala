@@ -20,21 +20,21 @@ import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 @Singleton
-class MicroserviceAppConfig @Inject()(servicesConfig: ServicesConfig) {
+class MicroserviceAppConfig @Inject() (servicesConfig: ServicesConfig) {
 
   private def loadConfig(key: String) = servicesConfig.getString(key)
 
-  lazy val appName: String = servicesConfig.getString("appName")
-  lazy val fileUploadUrl: String = servicesConfig.baseUrl("file-upload")
+  lazy val appName: String               = servicesConfig.getString("appName")
+  lazy val fileUploadUrl: String         = servicesConfig.baseUrl("file-upload")
   lazy val fileUploadFrontendUrl: String = servicesConfig.baseUrl("file-upload-frontend")
   lazy val fileUploadCallbackUrl: String = loadConfig(s"microservice.services.file-upload.callbackUrl")
 
-  lazy val businessArea : String = loadConfig(s"pdf.ctutr.metadata.businessArea")
-  lazy val queue : String = loadConfig(s"pdf.ctutr.metadata.queue")
-  lazy val formId : String = loadConfig(s"pdf.ctutr.metadata.formId")
-  lazy val source : String = loadConfig(s"pdf.ctutr.metadata.source")
-  lazy val target : String = loadConfig(s"pdf.ctutr.metadata.target")
-  lazy val save : Boolean = servicesConfig.getBoolean(s"pdf.ctutr.save")
+  lazy val businessArea: String = loadConfig(s"pdf.ctutr.metadata.businessArea")
+  lazy val queue: String        = loadConfig(s"pdf.ctutr.metadata.queue")
+  lazy val formId: String       = loadConfig(s"pdf.ctutr.metadata.formId")
+  lazy val source: String       = loadConfig(s"pdf.ctutr.metadata.source")
+  lazy val target: String       = loadConfig(s"pdf.ctutr.metadata.target")
+  lazy val save: Boolean        = servicesConfig.getBoolean(s"pdf.ctutr.save")
 
   lazy val saveSubmissionToDb: Boolean = servicesConfig.getBoolean("submission.save-to-db")
 
