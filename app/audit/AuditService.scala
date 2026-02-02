@@ -32,53 +32,52 @@ import scala.language.implicitConversions
 @ImplementedBy(classOf[AuditServiceImpl])
 trait AuditService {
 
-  def sendEvent[T <: AuditEvent](event: T)(implicit
-                                           rh: RequestHeader,
-                                           write: Writes[T],
-                                           ec: ExecutionContext): Future[AuditResult]
+  def sendEvent[T <: AuditEvent](
+    event: T
+  )(implicit rh: RequestHeader, write: Writes[T], ec: ExecutionContext): Future[AuditResult]
 
 }
 
 @Singleton
-class AuditServiceImpl @Inject()(
-                                 auditConnector: AuditConnector
-                                ) extends AuditService with Logging {
+class AuditServiceImpl @Inject() (
+  auditConnector: AuditConnector
+) extends AuditService with Logging {
 
-  private implicit def toHc(request: RequestHeader): AuditHeaderCarrier =
+  implicit private def toHc(request: RequestHeader): AuditHeaderCarrier =
     auditHeaderCarrier(HeaderCarrierConverter.fromRequestAndSession(request, request.session))
 
-  def sendEvent[T <: AuditEvent](event: T)(implicit
-                                           rh: RequestHeader,
-                                           write: Writes[T],
-                                           ec: ExecutionContext): Future[AuditResult] = {
+  def sendEvent[T <: AuditEvent](
+    event: T
+  )(implicit rh: RequestHeader, write: Writes[T], ec: ExecutionContext): Future[AuditResult] = {
 
     val eventJson = Json.obj(
       "data" -> event
     )
 
-    val details = rh.toAuditTags().foldLeft(eventJson) {
-      case (m, (k, v)) =>
-        m + (k -> JsString(v))
+    val details = rh.toAuditTags().foldLeft(eventJson) { case (m, (k, v)) =>
+      m + (k -> JsString(v))
     }
 
     logger.debug(s"[AuditService][sendEvent] sending ${event.auditType}")
 
-    val result: Future[AuditResult] = auditConnector.sendExtendedEvent(ExtendedDataEvent(
-      auditSource = "request-corporation-tax-number",
-      auditType = event.auditType,
-      tags = rh.toAuditTags(
-        transactionName = event.auditType,
-        path = rh.path
-      ),
-      detail = details
-    ))
+    val result: Future[AuditResult] = auditConnector.sendExtendedEvent(
+      ExtendedDataEvent(
+        auditSource = "request-corporation-tax-number",
+        auditType = event.auditType,
+        tags = rh.toAuditTags(
+          transactionName = event.auditType,
+          path = rh.path
+        ),
+        detail = details
+      )
+    )
 
     result.foreach { _ =>
-        logger.debug(s"[AuditService][sendEvent] successfully sent ${event.auditType}")
+      logger.debug(s"[AuditService][sendEvent] successfully sent ${event.auditType}")
     }
 
     result.failed.foreach { e =>
-        logger.error(s"[AuditService][sendEvent] failed to send event ${event.auditType}", e)
+      logger.error(s"[AuditService][sendEvent] failed to send event ${event.auditType}", e)
     }
 
     result

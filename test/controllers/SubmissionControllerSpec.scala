@@ -39,28 +39,32 @@ class SubmissionControllerSpec extends TestFixture {
 
     "return Ok with a envelopeId status" when {
 
-      "valid payload is submitted and submission.save-to-db is enabled" in new SubmissionControllerTestSetup(saveSubmissionToDb = true) {
+      "valid payload is submitted and submission.save-to-db is enabled" in new SubmissionControllerTestSetup(
+        saveSubmissionToDb = true
+      ) {
         stubSuccessfulStoreSubmission("1234")
         val result: Future[Result] = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
-        val test: Result = Await.result(result, Inf)
-        status(result) mustBe Status.OK
-        contentAsJson(result).as[SubmissionResponse].id mustBe "12345"
+        val test: Result           = Await.result(result, Inf)
+        status(result)                                        mustBe Status.OK
+        contentAsJson(result).as[SubmissionResponse].id       mustBe "12345"
         contentAsJson(result).as[SubmissionResponse].filename mustBe "12345-SubmissionCTUTR-20171023-iform.pdf"
 
         verify(mockMongoSubmissionService, times(1)).storeSubmission(
           eqTo(validSubmission),
           argThat { metadata: CTUTRMetadata =>
             metadata.customerId == expectedCTUTRMetadata.customerId &&
-              metadata.createdAt == expectedCTUTRMetadata.createdAt
+            metadata.createdAt == expectedCTUTRMetadata.createdAt
           }
         )
       }
 
-      "valid payload is submitted and submission.save-to-db is disabled" in new SubmissionControllerTestSetup(saveSubmissionToDb = false) {
+      "valid payload is submitted and submission.save-to-db is disabled" in new SubmissionControllerTestSetup(
+        saveSubmissionToDb = false
+      ) {
         val result: Future[Result] = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
-        val test: Result = Await.result(result, Inf)
-        status(result) mustBe Status.OK
-        contentAsJson(result).as[SubmissionResponse].id mustBe "12345"
+        val test: Result           = Await.result(result, Inf)
+        status(result)                                        mustBe Status.OK
+        contentAsJson(result).as[SubmissionResponse].id       mustBe "12345"
         contentAsJson(result).as[SubmissionResponse].filename mustBe "12345-SubmissionCTUTR-20171023-iform.pdf"
         verify(mockMongoSubmissionService, times(0)).storeSubmission(any(), any())
       }
@@ -75,18 +79,23 @@ class SubmissionControllerSpec extends TestFixture {
 
       "the submission service returns an error" in new SubmissionControllerTestSetup(saveSubmissionToDb = true) {
         stubSuccessfulStoreSubmission("1234")
-        when(mockSubmissionService.submit(any(), any())(any())).thenReturn(Future.failed(new InternalServerException("failed to process submission")))
+        when(mockSubmissionService.submit(any(), any())(any()))
+          .thenReturn(Future.failed(new InternalServerException("failed to process submission")))
         val result: Future[Result] = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         status(result) mustBe INTERNAL_SERVER_ERROR
       }
 
-      "storing the submission in mongo db fails throwing a MongoException" in new SubmissionControllerTestSetup(saveSubmissionToDb = true) {
+      "storing the submission in mongo db fails throwing a MongoException" in new SubmissionControllerTestSetup(
+        saveSubmissionToDb = true
+      ) {
         stubFailedStoreSubmission(new MongoException("There was an error!!"))
         val result: Future[Result] = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         status(result) mustBe INTERNAL_SERVER_ERROR
       }
 
-      "storing the submission in mongo db fails throwing a NullPointerException" in new SubmissionControllerTestSetup(saveSubmissionToDb = true) {
+      "storing the submission in mongo db fails throwing a NullPointerException" in new SubmissionControllerTestSetup(
+        saveSubmissionToDb = true
+      ) {
         stubFailedStoreSubmission(new NullPointerException("There was an error!!"))
         val result: Future[Result] = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
         status(result) mustBe INTERNAL_SERVER_ERROR
@@ -101,12 +110,17 @@ class SubmissionControllerSpec extends TestFixture {
       "when available callback response" in new SubmissionControllerTestSetup(saveSubmissionToDb = true) {
         val callback: JsValue = Json.toJson(CallbackRequest("env123", "file-id-1", "AVAILABLE"))
 
-        val fakeRequest: FakeRequest[JsValue] = FakeRequest(method = "POST", uri = "",
-          headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = callback)
+        val fakeRequest: FakeRequest[JsValue] = FakeRequest(
+          method = "POST",
+          uri = "",
+          headers = FakeHeaders(Seq("Content-type" -> "application/json")),
+          body = callback
+        )
 
-        when(submissionController.submissionService.callback(eqTo("env123"))(any())).thenReturn(Future.successful("env123"))
+        when(submissionController.submissionService.callback(eqTo("env123"))(any()))
+          .thenReturn(Future.successful("env123"))
 
-        val result: Future[Result] = Helpers.call(submissionController.fileUploadCallback(),fakeRequest)
+        val result: Future[Result] = Helpers.call(submissionController.fileUploadCallback(), fakeRequest)
 
         status(result) mustBe OK
       }
@@ -114,14 +128,19 @@ class SubmissionControllerSpec extends TestFixture {
       "when closed callback response" in new SubmissionControllerTestSetup(saveSubmissionToDb = true) {
         val callback: JsValue = Json.toJson(CallbackRequest("env123", "file-id-1", "CLOSED"))
 
-        val fakeRequest: FakeRequest[JsValue] = FakeRequest(method = "POST", uri = "",
-          headers = FakeHeaders(Seq("Content-type" -> "application/json")), body = callback)
+        val fakeRequest: FakeRequest[JsValue] = FakeRequest(
+          method = "POST",
+          uri = "",
+          headers = FakeHeaders(Seq("Content-type" -> "application/json")),
+          body = callback
+        )
 
-        val result: Future[Result] = Helpers.call(submissionController.fileUploadCallback(),fakeRequest)
+        val result: Future[Result] = Helpers.call(submissionController.fileUploadCallback(), fakeRequest)
 
         status(result) mustBe OK
         verify(submissionController.submissionService, times(0)).callback("env123")
       }
     }
   }
+
 }

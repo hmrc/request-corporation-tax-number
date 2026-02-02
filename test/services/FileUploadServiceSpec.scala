@@ -28,8 +28,8 @@ import scala.concurrent.{Await, Future}
 
 class FileUploadServiceSpec extends TestFixture {
 
-  private val fileName = "CTUTR.pdf"
-  private val fileId = "CTUTR"
+  private val fileName    = "CTUTR.pdf"
+  private val fileId      = "CTUTR"
   private val contentType = MimeContentType.ApplicationPdf
 
   val fileUploadService: FileUploadService = new FileUploadService(mockFileUploadConnector)
@@ -44,12 +44,16 @@ class FileUploadServiceSpec extends TestFixture {
       envelopeId mustBe "123"
     }
 
-
     "able to upload the file" in {
-      when(fileUploadService.fileUploadConnector.uploadFile(any(), eqTo(fileName), eqTo(contentType), any(), eqTo(fileId))(any()))
+      when(
+        fileUploadService.fileUploadConnector.uploadFile(any(), eqTo(fileName), eqTo(contentType), any(), eqTo(fileId))(
+          any()
+        )
+      )
         .thenReturn(Future.successful(HttpResponse(200, "")))
 
-      val result = Await.result(fileUploadService.uploadFile(new Array[Byte](1), "123", fileName, contentType), 5.seconds)
+      val result =
+        Await.result(fileUploadService.uploadFile(new Array[Byte](1), "123", fileName, contentType), 5.seconds)
 
       result.status mustBe 200
     }
@@ -64,14 +68,12 @@ class FileUploadServiceSpec extends TestFixture {
 
     "able to get the envelope" in {
       when(fileUploadService.fileUploadConnector.envelopeSummary("123"))
-        .thenReturn(Future.successful(Envelope("123",Some("callback"),"OPEN",Some(Seq(File("pdf","open"))))))
+        .thenReturn(Future.successful(Envelope("123", Some("callback"), "OPEN", Some(Seq(File("pdf", "open"))))))
 
       val result = Await.result(fileUploadService.envelopeSummary("123"), 5.seconds)
 
-      result mustBe Envelope("123",Some("callback"),"OPEN",Some(Seq(File("pdf","open"))))
+      result mustBe Envelope("123", Some("callback"), "OPEN", Some(Seq(File("pdf", "open"))))
     }
   }
-
-
 
 }

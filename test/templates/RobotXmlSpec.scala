@@ -41,7 +41,7 @@ class RobotXmlSpec extends TestFixture {
 
     "not have a line feed character at the top of the file" when {
 
-      "the xml is generated" in  {
+      "the xml is generated" in {
         val generatedXml = robotXml.toString()
 
         generatedXml(0) mustNot be('\n')
@@ -54,11 +54,12 @@ class RobotXmlSpec extends TestFixture {
         val doc = Jsoup.parse(robotXml.toString(), "", Parser.xmlParser)
 
         doc.select("ctutr > submissionReference").text() mustBe pdfSubmission.submissionReference
-        doc.select("ctutr > dateCreated").text() mustBe pdfSubmission.xmlCreatedAt
+        doc.select("ctutr > dateCreated").text()         mustBe pdfSubmission.xmlCreatedAt
         doc.select("ctutr > dateCreated").text() mustMatchDateTimeFormat "dd/MM/yyyy HH:mm:ss"
-        doc.select("ctutr > companyName").text() mustBe submitValidViewModel.company.companyName
-        doc.select("ctutr > companyReference").text() mustBe submitValidViewModel.company.companyReferenceNumber
+        doc.select("ctutr > companyName").text()         mustBe submitValidViewModel.company.companyName
+        doc.select("ctutr > companyReference").text()    mustBe submitValidViewModel.company.companyReferenceNumber
       }
     }
   }
+
 }

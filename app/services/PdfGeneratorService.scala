@@ -32,9 +32,8 @@ import scala.concurrent.ExecutionContext
 import scala.util.Using
 
 @Singleton
-class PdfGeneratorService @Inject()(fopFactory: FopFactory, environment: Environment)(implicit ec: ExecutionContext)
-  extends Logging
-    with URIResolver {
+class PdfGeneratorService @Inject() (fopFactory: FopFactory, environment: Environment)(implicit ec: ExecutionContext)
+    extends Logging with URIResolver {
 
   override def resolve(href: String, base: String): Source = {
     val pathForEnv = href.replace("*/", "")
@@ -66,7 +65,7 @@ class PdfGeneratorService @Inject()(fopFactory: FopFactory, environment: Environ
 
         val transformerFactory = TransformerFactory.newInstance().asInstanceOf[SAXTransformerFactory]
         transformerFactory.setURIResolver(this)
-        val transformer = transformerFactory.newTransformer(xslt)
+        val transformer        = transformerFactory.newTransformer(xslt)
         transformer.transform(source, result)
 
       } catch {
@@ -77,4 +76,5 @@ class PdfGeneratorService @Inject()(fopFactory: FopFactory, environment: Environ
       out.toByteArray
     }
   }
+
 }

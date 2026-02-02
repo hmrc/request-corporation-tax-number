@@ -42,7 +42,7 @@ class PdfGeneratorServiceSpec extends TestFixture {
   "PdfGeneratorService" should {
 
     def extractTextFromBytes(pdfBytes: Array[Byte]): String = {
-      val document: PDDocument = Loader.loadPDF(pdfBytes)
+      val document: PDDocument         = Loader.loadPDF(pdfBytes)
       val pdfStripper: PDFTextStripper = new PDFTextStripper()
       pdfStripper.getText(document)
     }
@@ -58,7 +58,10 @@ class PdfGeneratorServiceSpec extends TestFixture {
           )
         )
 
-        val time = LocalDateTime.parse("Friday 04 October 2024 12:17:18", DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy HH:mm:ss"))
+        val time = LocalDateTime.parse(
+          "Friday 04 October 2024 12:17:18",
+          DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy HH:mm:ss")
+        )
 
         val metadata: CTUTRMetadata = CTUTRMetadata(
           appConfig = appConfig,
@@ -82,4 +85,5 @@ class PdfGeneratorServiceSpec extends TestFixture {
       }
     }
   }
+
 }

@@ -32,15 +32,17 @@ import uk.gov.hmrc.http.{AkamaiReputation, Authorization, ForwardedFor, HeaderCa
 import util.WireMockHelper
 import java.util.UUID
 
-class FileUploadConnectorSpec extends PlaySpec with WireMockHelper with ScalaFutures with ScalaCheckPropertyChecks with IntegrationPatience {
+class FileUploadConnectorSpec
+    extends PlaySpec with WireMockHelper with ScalaFutures with ScalaCheckPropertyChecks with IntegrationPatience {
   def injector: Injector = app.injector
 
-  def appConfig : MicroserviceAppConfig = injector.instanceOf[MicroserviceAppConfig]
+  def appConfig: MicroserviceAppConfig = injector.instanceOf[MicroserviceAppConfig]
 
   implicit def dontShrink[A]: Shrink[A] = Shrink.shrinkAny
 
   private lazy val randomCorrelationId: String = UUID.randomUUID().toString
-  implicit val hc:HeaderCarrier = HeaderCarrier(
+
+  implicit val hc: HeaderCarrier = HeaderCarrier(
     authorization = Some(Authorization("")),
     forwarded = Some(ForwardedFor("")),
     sessionId = Some(SessionId("")),
@@ -59,7 +61,7 @@ class FileUploadConnectorSpec extends PlaySpec with WireMockHelper with ScalaFut
 
   private val statuses: Gen[Int] =
     Gen.chooseNum(
-      200, 599,400, 499, 500
+      200, 599, 400, 499, 500
     )
 
   private val uuid: Gen[String] = Gen.uuid.map(_.toString)
@@ -67,34 +69,30 @@ class FileUploadConnectorSpec extends PlaySpec with WireMockHelper with ScalaFut
   private val envelopeStatuses: Gen[String] = Gen.oneOf("OPEN", "CLOSED", "SEALED", "DELETED")
 
   private val fileStatuses: Gen[String] = Gen.oneOf("AVAILABLE", "QUARANTINED", "CLEANED", "INFECTED")
+
   private val file = for {
-    name <- uuid
+    name   <- uuid
     status <- fileStatuses
-  } yield {
-    File(name, status)
-  }
+  } yield File(name, status)
+
   private val files: Gen[Seq[File]] = Gen.listOf(file)
 
-
   "createEnvelope" must {
-    "return an envelope id" in {
-      forAll(uuid) {
-        envId =>
-          WireMock.stubFor(
-            post(urlEqualTo("/file-upload/envelopes"))
-              .willReturn(
-                aResponse()
-                  .withHeader("Location", s"file-upload/envelope/$envId")
-                  .withStatus(Status.CREATED)
-              )
-          )
+    "return an envelope id" in
+      forAll(uuid) { envId =>
+        WireMock.stubFor(
+          post(urlEqualTo("/file-upload/envelopes"))
+            .willReturn(
+              aResponse()
+                .withHeader("Location", s"file-upload/envelope/$envId")
+                .withStatus(Status.CREATED)
+            )
+        )
 
-          whenReady(connector.createEnvelope) {
-            result =>
-              result mustBe envId
-          }
+        whenReady(connector.createEnvelope) { result =>
+          result mustBe envId
+        }
       }
-    }
 
     "return exceptions" when {
       "no location header provided" in {
@@ -106,325 +104,285 @@ class FileUploadConnectorSpec extends PlaySpec with WireMockHelper with ScalaFut
             )
         )
 
-        whenReady(connector.createEnvelope.failed) {
-          exception =>
-            exception.getMessage mustBe "No envelope id returned by file upload service"
+        whenReady(connector.createEnvelope.failed) { exception =>
+          exception.getMessage mustBe "No envelope id returned by file upload service"
         }
       }
 
-      "status not created(201)" in {
-        forAll(statuses) {
-          returnStatus =>
-            WireMock.stubFor(
-              post(urlEqualTo("/file-upload/envelopes"))
-                .willReturn(
-                  status(returnStatus)
-                )
-            )
+      "status not created(201)" in
+        forAll(statuses) { returnStatus =>
+          WireMock.stubFor(
+            post(urlEqualTo("/file-upload/envelopes"))
+              .willReturn(
+                status(returnStatus)
+              )
+          )
 
-            whenever(returnStatus != 201) {
-              whenReady(connector.createEnvelope.failed) {
-                exception =>
-                  exception mustBe a[RuntimeException]
-              }
+          whenever(returnStatus != 201) {
+            whenReady(connector.createEnvelope.failed) { exception =>
+              exception mustBe a[RuntimeException]
             }
+          }
         }
-      }
     }
   }
 
   "uploadFile" must {
     "return Success" when {
-      "File upload service successfully uploads the file" in {
-        forAll(uuid, uuid) {
-          (envId, fileId) =>
-            WireMock.stubFor(
-              post(urlEqualTo(s"/file-upload/upload/envelopes/$envId/files/$fileId"))
-                .willReturn(
-                  status(Status.OK)
-                )
-            )
+      "File upload service successfully uploads the file" in
+        forAll(uuid, uuid) { (envId, fileId) =>
+          WireMock.stubFor(
+            post(urlEqualTo(s"/file-upload/upload/envelopes/$envId/files/$fileId"))
+              .willReturn(
+                status(Status.OK)
+              )
+          )
 
-            whenReady(connector.uploadFile(new Array[Byte](1), "fileName.pdf", MimeContentType.ApplicationPdf, envId, fileId)) {
-              result =>
-                result.status mustBe Status.OK
-            }
+          whenReady(
+            connector.uploadFile(new Array[Byte](1), "fileName.pdf", MimeContentType.ApplicationPdf, envId, fileId)
+          ) { result =>
+            result.status mustBe Status.OK
+          }
         }
-      }
     }
 
     "return Exception" when {
-      "File upload status not OK(200)" in {
-        forAll(statuses, uuid, uuid) {
-          (returnStatus, envId, fileId) =>
-            WireMock.stubFor(
-              post(urlEqualTo(s"/file-upload/upload/envelopes/$envId/files/$fileId"))
-                .willReturn(
-                  status(returnStatus)
-                )
-            )
+      "File upload status not OK(200)" in
+        forAll(statuses, uuid, uuid) { (returnStatus, envId, fileId) =>
+          WireMock.stubFor(
+            post(urlEqualTo(s"/file-upload/upload/envelopes/$envId/files/$fileId"))
+              .willReturn(
+                status(returnStatus)
+              )
+          )
 
-            whenever(returnStatus != 200) {
-              whenReady(connector.uploadFile(new Array[Byte](1), "fileName.pdf", MimeContentType.ApplicationPdf, envId, fileId).failed) {
-                exception =>
-                  exception mustBe a[RuntimeException]
-              }
+          whenever(returnStatus != 200) {
+            whenReady(
+              connector
+                .uploadFile(new Array[Byte](1), "fileName.pdf", MimeContentType.ApplicationPdf, envId, fileId)
+                .failed
+            ) { exception =>
+              exception mustBe a[RuntimeException]
             }
+          }
         }
-      }
     }
   }
 
-
   "closeEnvelope" must {
-    "return a routed Id" in {
-      forAll(uuid, uuid) {
-        (envId, routingId) =>
+    "return a routed Id" in
+      forAll(uuid, uuid) { (envId, routingId) =>
+        WireMock.stubFor(
+          post(urlEqualTo("/file-routing/requests"))
+            .willReturn(
+              aResponse()
+                .withHeader("Location", s"/file-routing/requests/$routingId")
+                .withStatus(Status.CREATED)
+            )
+        )
+
+        whenReady(connector.closeEnvelope(envId)) { result =>
+          result mustBe routingId
+        }
+      }
+
+    "return already closed message if routing request already received" in
+      forAll(uuid) { envId =>
+        WireMock.stubFor(
+          post(urlEqualTo("/file-routing/requests"))
+            .willReturn(
+              aResponse()
+                .withStatus(Status.BAD_REQUEST)
+                .withBody(
+                  """{"error":{"msg":"Routing request already received for envelope: 9cd81d3c-75bf-4069-9f0c-ec2b3c3fe1cf"}}"""
+                )
+            )
+        )
+
+        whenReady(connector.closeEnvelope(envId)) { result =>
+          result mustBe "Already Closed"
+        }
+      }
+
+    "return exceptions" when {
+      "no location header provided" in
+        forAll(uuid, uuid) { (envId, routingId) =>
           WireMock.stubFor(
             post(urlEqualTo("/file-routing/requests"))
               .willReturn(
                 aResponse()
-                  .withHeader("Location", s"/file-routing/requests/$routingId")
                   .withStatus(Status.CREATED)
               )
           )
 
-          whenReady(connector.closeEnvelope(envId)) {
-            result =>
-              result mustBe routingId
+          whenReady(connector.closeEnvelope(envId).failed) { exception =>
+            exception.getMessage mustBe "No routing id returned"
           }
-      }
-    }
+        }
 
-    "return already closed message if routing request already received" in {
-      forAll(uuid) {
-        envId =>
+      "File upload status not CREATED(201) OR BAD_REQUEST(400)" in
+        forAll(statuses, uuid) { (returnStatus, envId) =>
           WireMock.stubFor(
             post(urlEqualTo("/file-routing/requests"))
               .willReturn(
-                aResponse()
-                  .withStatus(Status.BAD_REQUEST)
-                  .withBody("""{"error":{"msg":"Routing request already received for envelope: 9cd81d3c-75bf-4069-9f0c-ec2b3c3fe1cf"}}""")
+                status(returnStatus)
               )
           )
 
-          whenReady(connector.closeEnvelope(envId)) {
-            result =>
-              result mustBe "Already Closed"
+          whenever(returnStatus != 201 && returnStatus != 400) {
+            whenReady(connector.closeEnvelope(envId).failed) { exception =>
+              exception mustBe a[RuntimeException]
+            }
           }
-      }
-    }
-
-    "return exceptions" when {
-      "no location header provided" in {
-        forAll(uuid, uuid) {
-          (envId, routingId) =>
-            WireMock.stubFor(
-              post(urlEqualTo("/file-routing/requests"))
-                .willReturn(
-                  aResponse()
-                    .withStatus(Status.CREATED)
-                )
-            )
-
-            whenReady(connector.closeEnvelope(envId).failed) {
-              exception =>
-                exception.getMessage mustBe "No routing id returned"
-            }
         }
-      }
 
-      "File upload status not CREATED(201) OR BAD_REQUEST(400)" in {
-        forAll(statuses, uuid) {
-          (returnStatus, envId) =>
-            WireMock.stubFor(
-              post(urlEqualTo("/file-routing/requests"))
-                .willReturn(
-                  status(returnStatus)
-                )
-            )
+      "File upload status BAD_REQUEST(400) and not already received routing request" in
+        forAll(uuid) { envId =>
+          WireMock.stubFor(
+            post(urlEqualTo("/file-routing/requests"))
+              .willReturn(
+                status(Status.BAD_REQUEST)
+              )
+          )
 
-            whenever(returnStatus != 201 && returnStatus != 400) {
-              whenReady(connector.closeEnvelope(envId).failed) {
-                exception =>
-                  exception mustBe a[RuntimeException]
-              }
-            }
-        }
-      }
-
-      "File upload status BAD_REQUEST(400) and not already received routing request" in {
-        forAll(uuid) {
-          envId =>
-            WireMock.stubFor(
-              post(urlEqualTo("/file-routing/requests"))
-                .willReturn(
-                  status(Status.BAD_REQUEST)
-                )
-            )
-
-            whenReady(connector.closeEnvelope(envId).failed) {
-              exception =>
-                exception.getMessage mustBe "failed with status 400 bad request"
-            }
+          whenReady(connector.closeEnvelope(envId).failed) { exception =>
+            exception.getMessage mustBe "failed with status 400 bad request"
+          }
 
         }
-      }
     }
   }
 
-
   "envelopeSummary and retry" when {
     "OK Response" must {
-      "return an envelope with no files" in {
-        forAll(uuid, envelopeStatuses) {
-          (envId, envelopeStatus) =>
-            WireMock.stubFor(
-              get(urlEqualTo(s"/file-upload/envelopes/$envId"))
-                .willReturn(
-                  aResponse()
-                    .withStatus(Status.OK)
-                    .withBody(
-                      s"""{"id": "$envId", "status": "$envelopeStatus"}"""
-                    )
-                )
-            )
+      "return an envelope with no files" in
+        forAll(uuid, envelopeStatuses) { (envId, envelopeStatus) =>
+          WireMock.stubFor(
+            get(urlEqualTo(s"/file-upload/envelopes/$envId"))
+              .willReturn(
+                aResponse()
+                  .withStatus(Status.OK)
+                  .withBody(
+                    s"""{"id": "$envId", "status": "$envelopeStatus"}"""
+                  )
+              )
+          )
 
-            whenReady(connector.envelopeSummary(envId)(hc)) {
-              result =>
-                result mustBe Envelope(envId, None, envelopeStatus, None)
-            }
+          whenReady(connector.envelopeSummary(envId)(hc)) { result =>
+            result mustBe Envelope(envId, None, envelopeStatus, None)
+          }
         }
-      }
 
-      "return an envelope with some files" in {
-        forAll(uuid, envelopeStatuses, files) {
-          (envId, envelopeStatus, files) =>
-            WireMock.stubFor(
-              get(urlEqualTo(s"/file-upload/envelopes/$envId"))
-                .willReturn(
-                  aResponse()
-                    .withStatus(Status.OK)
-                    .withBody(
-                      Json.obj(
-                        "id" -> envId,
+      "return an envelope with some files" in
+        forAll(uuid, envelopeStatuses, files) { (envId, envelopeStatus, files) =>
+          WireMock.stubFor(
+            get(urlEqualTo(s"/file-upload/envelopes/$envId"))
+              .willReturn(
+                aResponse()
+                  .withStatus(Status.OK)
+                  .withBody(
+                    Json
+                      .obj(
+                        "id"     -> envId,
                         "status" -> envelopeStatus,
-                        "files" -> JsArray(
-                          files.map(file =>
-                            Json.obj(
-                              "name" -> file.name,
-                              "status" -> file.status)
-                          )
+                        "files"  -> JsArray(
+                          files.map(file => Json.obj("name" -> file.name, "status" -> file.status))
                         )
-                      ).toString()
-                    )
-                )
-            )
+                      )
+                      .toString()
+                  )
+              )
+          )
 
-            whenever(files.nonEmpty) {
-              whenReady(connector.envelopeSummary(envId)(hc)) {
-                result =>
-                  result mustBe Envelope(envId, None, envelopeStatus, Some(files))
-              }
+          whenever(files.nonEmpty) {
+            whenReady(connector.envelopeSummary(envId)(hc)) { result =>
+              result mustBe Envelope(envId, None, envelopeStatus, Some(files))
             }
+          }
         }
-      }
     }
 
     "NOT_FOUND(404) response" must {
-      "return envelope on retry" in {
-        forAll(uuid, envelopeStatuses) {
-          (envId, envelopeStatus) =>
-            WireMock.stubFor(
-              get(urlEqualTo(s"/file-upload/envelopes/$envId"))
-                .willReturn(
-                  aResponse()
-                    .withStatus(Status.OK)
-                    .withBody(
-                      Json.obj(
-                        "id" -> envId,
+      "return envelope on retry" in
+        forAll(uuid, envelopeStatuses) { (envId, envelopeStatus) =>
+          WireMock.stubFor(
+            get(urlEqualTo(s"/file-upload/envelopes/$envId"))
+              .willReturn(
+                aResponse()
+                  .withStatus(Status.OK)
+                  .withBody(
+                    Json
+                      .obj(
+                        "id"     -> envId,
                         "status" -> envelopeStatus
-                      ).toString()
-                    )
-                )
-            )
+                      )
+                      .toString()
+                  )
+              )
+          )
 
-            whenReady(connector.retry(envId, 10, 2)) {
-              result =>
-                result mustBe Envelope(envId, None, envelopeStatus, None)
-            }
+          whenReady(connector.retry(envId, 10, 2)) { result =>
+            result mustBe Envelope(envId, None, envelopeStatus, None)
+          }
         }
-      }
 
-      "return exception on 5th attempt" in {
+      "return exception on 5th attempt" in
         forAll(uuid) { envId =>
-            WireMock.stubFor(
-              get(urlEqualTo(s"/file-upload/envelopes/$envId"))
-                .willReturn(
-                  aResponse()
-                    .withStatus(Status.NOT_FOUND)
-                )
-            )
+          WireMock.stubFor(
+            get(urlEqualTo(s"/file-upload/envelopes/$envId"))
+              .willReturn(
+                aResponse()
+                  .withStatus(Status.NOT_FOUND)
+              )
+          )
 
-            whenReady(connector.retry(envId, 10, 1).failed) {
-              exception =>
-                exception.getMessage mustBe s"[FileUploadConnector][retry] envelope[$envId] summary failed at attempt: 5"
-            }
+          whenReady(connector.retry(envId, 10, 1).failed) { exception =>
+            exception.getMessage mustBe s"[FileUploadConnector][retry] envelope[$envId] summary failed at attempt: 5"
+          }
         }
-      }
     }
 
-
     "File upload status not OK(200) or NOT_FOUND(404)" must {
-      "Return Exception" in {
-        forAll(statuses, uuid) {
-          (returnStatus, envId) =>
-            WireMock.stubFor(
-              get(urlEqualTo(s"/file-upload/envelopes/$envId"))
-                .willReturn(
-                  status(returnStatus)
-                )
-            )
+      "Return Exception" in
+        forAll(statuses, uuid) { (returnStatus, envId) =>
+          WireMock.stubFor(
+            get(urlEqualTo(s"/file-upload/envelopes/$envId"))
+              .willReturn(
+                status(returnStatus)
+              )
+          )
 
-            whenever(returnStatus != Status.OK && returnStatus != Status.NOT_FOUND) {
-              whenReady(connector.envelopeSummary(envId)(hc).failed) {
-                exception =>
-                  exception mustBe a[RuntimeException]
-              }
+          whenever(returnStatus != Status.OK && returnStatus != Status.NOT_FOUND) {
+            whenReady(connector.envelopeSummary(envId)(hc).failed) { exception =>
+              exception mustBe a[RuntimeException]
             }
+          }
         }
-      }
     }
   }
 
   "parseEnvelope" must {
-    "return an envelope on success" in {
-      forAll(uuid, envelopeStatuses, files) {
-        (envId, envelopeStatus, files) =>
-          val body = Json.obj(
-            "id" -> envId,
+    "return an envelope on success" in
+      forAll(uuid, envelopeStatuses, files) { (envId, envelopeStatus, files) =>
+        val body = Json
+          .obj(
+            "id"     -> envId,
             "status" -> envelopeStatus,
-            "files" -> JsArray(
-              files.map(file =>
-                Json.obj(
-                  "name" -> file.name,
-                  "status" -> file.status)
-              )
+            "files"  -> JsArray(
+              files.map(file => Json.obj("name" -> file.name, "status" -> file.status))
             )
-          ).toString()
+          )
+          .toString()
 
-          whenReady(connector.parseEnvelope(body)) {
-            result =>
-              result mustBe Envelope(envId, None, envelopeStatus, Some(files))
-          }
+        whenReady(connector.parseEnvelope(body)) { result =>
+          result mustBe Envelope(envId, None, envelopeStatus, Some(files))
+        }
       }
-    }
 
     "throw exception on failure to parse" in {
       val invalidBody = """{"invalid":"json"}"""
-      whenReady(connector.parseEnvelope(invalidBody).failed) {
-        exception =>
-          exception.getMessage mustBe s"Failed to parse envelope"
+      whenReady(connector.parseEnvelope(invalidBody).failed) { exception =>
+        exception.getMessage mustBe s"Failed to parse envelope"
       }
     }
   }

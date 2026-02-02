@@ -16,9 +16,9 @@
 
 package model.domain
 
-import play.api.libs.json.{OFormat, Json}
+import play.api.libs.json.{Json, OFormat}
 
-case class SubmissionResponse(id: String, filename : String)
+case class SubmissionResponse(id: String, filename: String)
 
 object SubmissionResponse {
   implicit val format: OFormat[SubmissionResponse] = Json.format[SubmissionResponse]

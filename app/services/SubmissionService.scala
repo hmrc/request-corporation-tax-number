@@ -36,19 +36,22 @@ case object Closed extends EnvelopeStatus
 case object Open extends EnvelopeStatus
 
 @Singleton
-class SubmissionService @Inject()(
-                                   val fileUploadService: FileUploadService,
-                                   pdfService: PdfGeneratorService,
-                                   implicit val ec: ExecutionContext
-                                 ) extends Logging {
+class SubmissionService @Inject() (
+  val fileUploadService: FileUploadService,
+  pdfService: PdfGeneratorService,
+  implicit val ec: ExecutionContext
+) extends Logging {
 
   protected def fileName(envelopeId: String, fileType: String, submissionDate: LocalDate) =
     s"$envelopeId-SubmissionCTUTR-${submissionDate.format(DateTimeFormatter.ofPattern("YYYYMMdd"))}-$fileType"
 
-  def submit(submission: Submission, metadata: CTUTRMetadata)(implicit hc: HeaderCarrier): Future[SubmissionResponse] = {
+  def submit(
+    submission: Submission,
+    metadata: CTUTRMetadata
+  )(implicit hc: HeaderCarrier): Future[SubmissionResponse] = {
 
     val handleUpload: Future[SubmissionResponse] = for {
-      pdf: Array[Byte] <- createPdf(submission, metadata)
+      pdf: Array[Byte]   <- createPdf(submission, metadata)
       envelopeId: String <- fileUploadService.createEnvelope()
       envelope: Envelope <- fileUploadService.envelopeSummary(envelopeId)
     } yield {
@@ -76,7 +79,7 @@ class SubmissionService @Inject()(
             fileName(envelopeId, "robotic.xml", metadata.createdAt.toLocalDate),
             MimeContentType.ApplicationXml
           )
-        case _ =>
+        case _      =>
           logger.error(s"[SubmissionService][submit] Envelope status not OPEN for envelopeId: $envelopeId")
           Future.failed(throw new RuntimeException())
       }
@@ -84,15 +87,13 @@ class SubmissionService @Inject()(
       SubmissionResponse(envelopeId, fileName(envelopeId, "iform.pdf", metadata.createdAt.toLocalDate))
     }
 
-    handleUpload.recoverWith {
-      case exception =>
-        Future.failed(new RuntimeException("Submit Failed", exception))
+    handleUpload.recoverWith { case exception =>
+      Future.failed(new RuntimeException("Submit Failed", exception))
     }
   }
 
-  def createMetadata(metadata: CTUTRMetadata): Array[Byte] = {
+  def createMetadata(metadata: CTUTRMetadata): Array[Byte] =
     pdfSubmissionMetadata(metadata).toString().getBytes
-  }
 
   def createRobotXml(submission: Submission, metadata: CTUTRMetadata): Array[Byte] = {
     val viewModel = SubmissionViewModel(submission, metadata)
@@ -100,29 +101,29 @@ class SubmissionService @Inject()(
   }
 
   def createPdf(submission: Submission, metadata: CTUTRMetadata): Future[Array[Byte]] = {
-    val viewModel: SubmissionViewModel = SubmissionViewModel(submission, metadata)
+    val viewModel: SubmissionViewModel     = SubmissionViewModel(submission, metadata)
     val pdfTemplate: HtmlFormat.Appendable = CTUTRScheme(viewModel)
-    val xlsTransformer: String = Source.fromResource("CTUTRScheme.xml").mkString
+    val xlsTransformer: String             = Source.fromResource("CTUTRScheme.xml").mkString
     pdfService.render(pdfTemplate, xlsTransformer)
   }
 
-  def callback(envelopeId: String)(implicit hc: HeaderCarrier): Future[String] = {
-    fileUploadService.envelopeSummary(envelopeId).flatMap {
-      envelope =>
-        envelope.status match {
-          case "OPEN" =>
-            envelope.files match {
-              case Some(files) if files.count(file => file.status == "AVAILABLE") == 3 =>
-                fileUploadService.closeEnvelope(envelopeId)
-              case _=>
-                logger.info("[SubmissionService][callback] incomplete wait for files")
-                Future.successful(envelopeId)
-            }
-          case _ =>
-            logger.error(s"[SubmissionService][callback] envelope: $envelopeId not open instead status: ${envelope.status}")
-            Future.successful(envelopeId)
-        }
+  def callback(envelopeId: String)(implicit hc: HeaderCarrier): Future[String] =
+    fileUploadService.envelopeSummary(envelopeId).flatMap { envelope =>
+      envelope.status match {
+        case "OPEN" =>
+          envelope.files match {
+            case Some(files) if files.count(file => file.status == "AVAILABLE") == 3 =>
+              fileUploadService.closeEnvelope(envelopeId)
+            case _                                                                   =>
+              logger.info("[SubmissionService][callback] incomplete wait for files")
+              Future.successful(envelopeId)
+          }
+        case _      =>
+          logger.error(
+            s"[SubmissionService][callback] envelope: $envelopeId not open instead status: ${envelope.status}"
+          )
+          Future.successful(envelopeId)
+      }
     }
-  }
 
 }

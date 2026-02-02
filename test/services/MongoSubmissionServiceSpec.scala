@@ -40,17 +40,17 @@ class MongoSubmissionServiceSpec extends TestFixture {
 
   val successfulInsertOneResult: InsertOneResult = new InsertOneResult() {
     override def wasAcknowledged(): Boolean = true
-    override def getInsertedId: BsonValue = new BsonObjectId(new ObjectId(successfulInsertId))
+    override def getInsertedId: BsonValue   = new BsonObjectId(new ObjectId(successfulInsertId))
   }
 
   val unsuccessfulInsertOneResult: InsertOneResult = new InsertOneResult() {
     override def wasAcknowledged(): Boolean = true
-    override def getInsertedId: BsonValue = null // if _id is not available this will return null
+    override def getInsertedId: BsonValue   = null // if _id is not available this will return null
   }
 
   val notAcknowledgedInsertOneResult: InsertOneResult = new InsertOneResult() {
     override def wasAcknowledged(): Boolean = false
-    override def getInsertedId: BsonValue = new BsonObjectId(new ObjectId(successfulInsertId))
+    override def getInsertedId: BsonValue   = new BsonObjectId(new ObjectId(successfulInsertId))
   }
 
   val submission: Submission = Submission(
@@ -71,7 +71,8 @@ class MongoSubmissionServiceSpec extends TestFixture {
     "return Ok with an objectId" when {
 
       "a valid submission is parsed to storeSubmission" in {
-        when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(Future.successful(successfulInsertOneResult))
+        when(mockSubmissionMongoRepository.storeSubmission(any()))
+          .thenReturn(Future.successful(successfulInsertOneResult))
         val result: String = await(mongoSubmissionService.storeSubmission(submission, metadata))
         assert(ObjectId.isValid(result))
         result mustBe successfulInsertId
@@ -83,30 +84,36 @@ class MongoSubmissionServiceSpec extends TestFixture {
 
       "the storesubmission method returns a DuplicateKeyException" in {
         when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(
-          Future.failed(new DuplicateKeyException(BsonDocument(), new ServerAddress(), WriteConcernResult.acknowledged(1, true, BsonString("Got a duplicate key!"))))
+          Future.failed(
+            new DuplicateKeyException(
+              BsonDocument(),
+              new ServerAddress(),
+              WriteConcernResult.acknowledged(1, true, BsonString("Got a duplicate key!"))
+            )
+          )
         )
-        mongoSubmissionService.storeSubmission(submission, metadata).failed.futureValue shouldBe a [MongoException]
+        mongoSubmissionService.storeSubmission(submission, metadata).failed.futureValue shouldBe a[MongoException]
       }
 
       "the storeSubmission method returns a MongoException" in {
         when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(
           Future.failed(new MongoException("Error writing to Mongo!!"))
         )
-        mongoSubmissionService.storeSubmission(submission, metadata).failed.futureValue shouldBe a [MongoException]
+        mongoSubmissionService.storeSubmission(submission, metadata).failed.futureValue shouldBe a[MongoException]
       }
 
       "extracting the objectId returns null" in {
         when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(
           Future.successful(unsuccessfulInsertOneResult)
         )
-        mongoSubmissionService.storeSubmission(submission, metadata).failed.futureValue shouldBe a [MongoException]
+        mongoSubmissionService.storeSubmission(submission, metadata).failed.futureValue shouldBe a[MongoException]
       }
 
       "the storesubmission result was not acknowledged returns a MongoException" in {
         when(mockSubmissionMongoRepository.storeSubmission(any())).thenReturn(
           Future.successful(notAcknowledgedInsertOneResult)
         )
-        mongoSubmissionService.storeSubmission(submission, metadata).failed.futureValue shouldBe a [MongoException]
+        mongoSubmissionService.storeSubmission(submission, metadata).failed.futureValue shouldBe a[MongoException]
       }
     }
   }

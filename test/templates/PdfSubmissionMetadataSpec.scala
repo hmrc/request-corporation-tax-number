@@ -24,14 +24,14 @@ import play.twirl.api.Xml
 
 class PdfSubmissionMetadataSpec extends TestFixture {
 
-  val pdfSubmission = CTUTRMetadata(appConfig)
+  val pdfSubmission              = CTUTRMetadata(appConfig)
   val pdfSubmissionMetadata: Xml = templates.xml.pdfSubmissionMetadata(pdfSubmission)
 
   "pdfSubmissionMetadata" should {
 
     "not have a line feed character at the top of the file" when {
 
-      "the xml is generated" in  {
+      "the xml is generated" in {
         val generatedXml = pdfSubmissionMetadata.toString()
 
         generatedXml(0) mustNot be('\n')
@@ -43,17 +43,20 @@ class PdfSubmissionMetadataSpec extends TestFixture {
       val doc = Jsoup.parse(pdfSubmissionMetadata.toString(), "", Parser.xmlParser)
 
       "the pdf submission xml is generated" in {
-        doc.select("header > title").text() mustBe pdfSubmission.submissionReference
-        doc.select("header > format").text() mustBe pdfSubmission.fileFormat
-        doc.select("header > mime_type").text() mustBe pdfSubmission.mimeType
-        doc.select("header > store").text() mustBe pdfSubmission.store.toString
-        doc.select("header > source").text() mustBe pdfSubmission.source
-        doc.select("header > target").text() mustBe pdfSubmission.target
+        doc.select("header > title").text()             mustBe pdfSubmission.submissionReference
+        doc.select("header > format").text()            mustBe pdfSubmission.fileFormat
+        doc.select("header > mime_type").text()         mustBe pdfSubmission.mimeType
+        doc.select("header > store").text()             mustBe pdfSubmission.store.toString
+        doc.select("header > source").text()            mustBe pdfSubmission.source
+        doc.select("header > target").text()            mustBe pdfSubmission.target
         doc.select("header > reconciliation_id").text() mustBe pdfSubmission.reconciliationId
       }
 
       "the reconciliation_id must be in the correct format" in {
-        doc.select("header > reconciliation_id").text().matches("(^[A-Z0-9]{3}-[A-Z0-9]{4}-[A-Z0-9]{3}-[0-9]{14}$)") mustBe true
+        doc
+          .select("header > reconciliation_id")
+          .text()
+          .matches("(^[A-Z0-9]{3}-[A-Z0-9]{4}-[A-Z0-9]{3}-[0-9]{14}$)") mustBe true
       }
 
     }
@@ -66,8 +69,8 @@ class PdfSubmissionMetadataSpec extends TestFixture {
 
         val section = doc.select("metadata > attribute").get(0)
 
-        section.select("attribute_name").text() mustBe "hmrc_time_of_receipt"
-        section.select("attribute_type").text() mustBe "time"
+        section.select("attribute_name").text()  mustBe "hmrc_time_of_receipt"
+        section.select("attribute_type").text()  mustBe "time"
         section.select("attribute_value").text() mustBe pdfSubmission.hmrcReceivedAt
         section.select("attribute_value").text() mustMatchDateTimeFormat "dd/MM/yyyy HH:mm:ss"
       }
@@ -80,8 +83,8 @@ class PdfSubmissionMetadataSpec extends TestFixture {
 
         val section = doc.select("metadata > attribute").get(1)
 
-        section.select("attribute_name").text() mustBe "time_xml_created"
-        section.select("attribute_type").text() mustBe "time"
+        section.select("attribute_name").text()  mustBe "time_xml_created"
+        section.select("attribute_type").text()  mustBe "time"
         section.select("attribute_value").text() mustBe pdfSubmission.xmlCreatedAt
         section.select("attribute_value").text() mustMatchDateTimeFormat "dd/MM/yyyy HH:mm:ss"
       }
@@ -94,9 +97,9 @@ class PdfSubmissionMetadataSpec extends TestFixture {
 
         val section = doc.select("metadata > attribute").get(2)
 
-        section.select("attribute_name").text()  mustBe "submission_reference"
-        section.select("attribute_type").text()  mustBe "string"
-        section.select("attribute_value").text.matches("([A-Z0-9]{3}-[A-Z0-9]{4}-[A-Z0-9]{3})")  mustBe true
+        section.select("attribute_name").text()                                                 mustBe "submission_reference"
+        section.select("attribute_type").text()                                                 mustBe "string"
+        section.select("attribute_value").text.matches("([A-Z0-9]{3}-[A-Z0-9]{4}-[A-Z0-9]{3})") mustBe true
       }
     }
 
@@ -109,7 +112,7 @@ class PdfSubmissionMetadataSpec extends TestFixture {
 
         section.select("attribute_name").text()  mustBe "form_id"
         section.select("attribute_type").text()  mustBe "string"
-        section.select("attribute_value").text()  mustBe pdfSubmission.formId
+        section.select("attribute_value").text() mustBe pdfSubmission.formId
       }
     }
 
@@ -122,7 +125,7 @@ class PdfSubmissionMetadataSpec extends TestFixture {
 
         section.select("attribute_name").text()  mustBe "number_pages"
         section.select("attribute_type").text()  mustBe "integer"
-        section.select("attribute_value").text()  mustBe pdfSubmission.numberOfPages.toString
+        section.select("attribute_value").text() mustBe pdfSubmission.numberOfPages.toString
       }
     }
 
@@ -135,7 +138,7 @@ class PdfSubmissionMetadataSpec extends TestFixture {
 
         section.select("attribute_name").text()  mustBe "source"
         section.select("attribute_type").text()  mustBe "string"
-        section.select("attribute_value").text()  mustBe pdfSubmission.source
+        section.select("attribute_value").text() mustBe pdfSubmission.source
       }
     }
 
@@ -148,7 +151,7 @@ class PdfSubmissionMetadataSpec extends TestFixture {
 
         section.select("attribute_name").text()  mustBe "customer_id"
         section.select("attribute_type").text()  mustBe "string"
-        section.select("attribute_value").text()  mustBe pdfSubmission.customerId
+        section.select("attribute_value").text() mustBe pdfSubmission.customerId
       }
     }
 
@@ -161,7 +164,7 @@ class PdfSubmissionMetadataSpec extends TestFixture {
 
         section.select("attribute_name").text()  mustBe "submission_mark"
         section.select("attribute_type").text()  mustBe "string"
-        section.select("attribute_value").text()  mustBe pdfSubmission.submissionMark
+        section.select("attribute_value").text() mustBe pdfSubmission.submissionMark
       }
     }
 
@@ -174,7 +177,7 @@ class PdfSubmissionMetadataSpec extends TestFixture {
 
         section.select("attribute_name").text()  mustBe "cas_key"
         section.select("attribute_type").text()  mustBe "string"
-        section.select("attribute_value").text()  mustBe pdfSubmission.casKey
+        section.select("attribute_value").text() mustBe pdfSubmission.casKey
       }
     }
 
@@ -187,7 +190,7 @@ class PdfSubmissionMetadataSpec extends TestFixture {
 
         section.select("attribute_name").text()  mustBe "classification_type"
         section.select("attribute_type").text()  mustBe "string"
-        section.select("attribute_value").text()  mustBe pdfSubmission.classificationType
+        section.select("attribute_value").text() mustBe pdfSubmission.classificationType
       }
     }
 
@@ -200,7 +203,7 @@ class PdfSubmissionMetadataSpec extends TestFixture {
 
         section.select("attribute_name").text()  mustBe "business_area"
         section.select("attribute_type").text()  mustBe "string"
-        section.select("attribute_value").text()  mustBe pdfSubmission.businessArea
+        section.select("attribute_value").text() mustBe pdfSubmission.businessArea
       }
     }
 
@@ -213,10 +216,9 @@ class PdfSubmissionMetadataSpec extends TestFixture {
 
         section.select("attribute_name").text()  mustBe "attachment_count"
         section.select("attribute_type").text()  mustBe "int"
-        section.select("attribute_value").text()  mustBe pdfSubmission.attachmentCount.toString
+        section.select("attribute_value").text() mustBe pdfSubmission.attachmentCount.toString
       }
     }
   }
-
 
 }

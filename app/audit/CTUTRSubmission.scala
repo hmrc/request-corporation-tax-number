@@ -18,9 +18,7 @@ package audit
 
 import play.api.libs.json.{Format, Json}
 
-case class CTUTRSubmission( companyRegistrationNumber: String,
-                            companyName: String
-                          ) extends AuditEvent {
+case class CTUTRSubmission(companyRegistrationNumber: String, companyName: String) extends AuditEvent {
   override def auditType: String = "CTUTRSubmission"
 }
 

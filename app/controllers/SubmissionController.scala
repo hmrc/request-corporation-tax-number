@@ -40,53 +40,53 @@ import uk.gov.hmrc.play.audit.http.connector.AuditResult
 import java.time.{Clock, LocalDateTime}
 
 @Singleton
-class SubmissionController @Inject()(val mongoSubmissionService: MongoSubmissionService,
-                                     val submissionService: SubmissionService,
-                                     val submissionMongoRepository: SubmissionMongoRepository,
-                                     val metadataCreatedAtClock: Clock,
-                                     auditService: AuditService,
-                                     appConfig : MicroserviceAppConfig,
-                                     cc: ControllerComponents
-                                    ) extends BackendController(cc) with Logging with CorrelationIdHelper {
+class SubmissionController @Inject() (
+  val mongoSubmissionService: MongoSubmissionService,
+  val submissionService: SubmissionService,
+  val submissionMongoRepository: SubmissionMongoRepository,
+  val metadataCreatedAtClock: Clock,
+  auditService: AuditService,
+  appConfig: MicroserviceAppConfig,
+  cc: ControllerComponents
+) extends BackendController(cc) with Logging with CorrelationIdHelper {
 
   implicit val ec: ExecutionContext = cc.executionContext
 
-  def submit() : Action[Submission] = Action.async(parse.json[Submission]) {
-    implicit request: Request[Submission] =>
-      implicit val hc: HeaderCarrier = getOrCreateCorrelationID(request)
+  def submit(): Action[Submission] = Action.async(parse.json[Submission]) { implicit request: Request[Submission] =>
+    implicit val hc: HeaderCarrier = getOrCreateCorrelationID(request)
 
-      logger.info(s"[SubmissionController][submit] processing submission")
+    logger.info(s"[SubmissionController][submit] processing submission")
 
-      val metadata: CTUTRMetadata = CTUTRMetadata(
-        appConfig,
-        request.body.companyDetails.companyReferenceNumber,
-        LocalDateTime.now(metadataCreatedAtClock)
-      )
+    val metadata: CTUTRMetadata = CTUTRMetadata(
+      appConfig,
+      request.body.companyDetails.companyReferenceNumber,
+      LocalDateTime.now(metadataCreatedAtClock)
+    )
 
-      auditSubmission(request.body.companyDetails)
-      (for {
-        _ <- if (appConfig.saveSubmissionToDb) {
-          mongoSubmissionService.storeSubmission(request.body, metadata)
-        }
-        else {
-          Future.successful(())
-        }
-        submitResult: SubmissionResponse <- submissionService.submit(request.body, metadata)
-      } yield {
-        logger.info(s"[SubmissionController][submit] processed submission $submitResult")
-        Ok(Json.toJson(submitResult))
-      }).recoverWith {
-        case e: MongoException =>
-          logger.error(s"[MongoSubmissionService][storeSubmission] MongoException returned when saving submission to Mongo, Error: ${e.getMessage}")
-          Future.successful(InternalServerError)
-        case e: Exception =>
-          logger.error(s"[SubmissionController][submit][exception returned when processing submission] ${e.getMessage}")
-          Future.successful(InternalServerError)
-      }
+    auditSubmission(request.body.companyDetails)
+    (for {
+      _                                <- if (appConfig.saveSubmissionToDb) {
+                                            mongoSubmissionService.storeSubmission(request.body, metadata)
+                                          } else {
+                                            Future.successful(())
+                                          }
+      submitResult: SubmissionResponse <- submissionService.submit(request.body, metadata)
+    } yield {
+      logger.info(s"[SubmissionController][submit] processed submission $submitResult")
+      Ok(Json.toJson(submitResult))
+    }).recoverWith {
+      case e: MongoException =>
+        logger.error(
+          s"[MongoSubmissionService][storeSubmission] MongoException returned when saving submission to Mongo, Error: ${e.getMessage}"
+        )
+        Future.successful(InternalServerError)
+      case e: Exception      =>
+        logger.error(s"[SubmissionController][submit][exception returned when processing submission] ${e.getMessage}")
+        Future.successful(InternalServerError)
+    }
   }
 
-  def auditSubmission(companyDetails: CompanyDetails)
-                     (implicit request: Request[Submission]): Future[AuditResult] =
+  def auditSubmission(companyDetails: CompanyDetails)(implicit request: Request[Submission]): Future[AuditResult] =
     auditService.sendEvent(
       CTUTRSubmission(
         companyDetails.companyReferenceNumber,
@@ -95,17 +95,18 @@ class SubmissionController @Inject()(val mongoSubmissionService: MongoSubmission
     )
 
   def fileUploadCallback(): Action[CallbackRequest] =
-    Action.async(parse.json[CallbackRequest]) {
-      implicit request =>
-        logger.info(s"[SubmissionController][fileUploadCallback] processing callback ${request.body}")
-        if (request.body.status == "AVAILABLE") {
-          submissionService.callback(request.body.envelopeId).map {
-            _ =>
-              Ok
-          }
-        } else {
-          logger.info(s"[SubmissionController][fileUploadCallback] callback for ${request.body.fileId} had status: ${request.body.status}")
-          Future.successful(Ok)
+    Action.async(parse.json[CallbackRequest]) { implicit request =>
+      logger.info(s"[SubmissionController][fileUploadCallback] processing callback ${request.body}")
+      if (request.body.status == "AVAILABLE") {
+        submissionService.callback(request.body.envelopeId).map { _ =>
+          Ok
         }
+      } else {
+        logger.info(
+          s"[SubmissionController][fileUploadCallback] callback for ${request.body.fileId} had status: ${request.body.status}"
+        )
+        Future.successful(Ok)
+      }
     }
+
 }

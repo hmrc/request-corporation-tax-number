@@ -28,32 +28,38 @@ import config.MicroserviceAppConfig
 import model.templates.CTUTRMetadata
 import org.mongodb.scala.DuplicateKeyException
 
-class MongoSubmissionService @Inject()(
-                                       val submissionMongoRepository: SubmissionMongoRepository,
-                                       appConfig : MicroserviceAppConfig
-                                      )(implicit ec: ExecutionContext) extends Logging {
+class MongoSubmissionService @Inject() (
+  val submissionMongoRepository: SubmissionMongoRepository,
+  appConfig: MicroserviceAppConfig
+)(implicit ec: ExecutionContext)
+    extends Logging {
 
   def storeSubmission(submission: Submission, metadata: CTUTRMetadata): Future[String] = {
     logger.info(s"[MongoSubmissionService][storeSubmission] Initialising storing of submission...")
     val mongoSubmission: MongoSubmission = MongoSubmission(submission, metadata)
     (for {
       insertResult: InsertOneResult <- submissionMongoRepository.storeSubmission(mongoSubmission)
-    } yield {
+    } yield
       if (insertResult.wasAcknowledged()) {
         val mongoSubmissionId: String = insertResult.getInsertedId.asObjectId().getValue.toString
-        logger.info(s"[MongoSubmissionService][storeSubmission] Successfully stored submission. SubmissionId: $mongoSubmissionId")
+        logger.info(
+          s"[MongoSubmissionService][storeSubmission] Successfully stored submission. SubmissionId: $mongoSubmissionId"
+        )
         mongoSubmissionId
-      }
-      else {
+      } else {
         throw new MongoException("Insert was unsuccessful, insertOneResult was not acknowledged.")
-      }
-    }).recoverWith {
-      case e: NullPointerException =>
-        logger.error(s"[MongoSubmissionService][storeSubmission] NullPointerException returned when saving submission to Mongo, Error: ${e.getMessage}")
+      }).recoverWith {
+      case e: NullPointerException  =>
+        logger.error(
+          s"[MongoSubmissionService][storeSubmission] NullPointerException returned when saving submission to Mongo, Error: ${e.getMessage}"
+        )
         throw new MongoException("Insert was unsuccessful, received null pointer.")
       case e: DuplicateKeyException =>
-        logger.error(s"[MongoSubmissionService][storeSubmission] DuplicateKeyException returned when saving submission to Mongo, Error: ${e.getMessage}")
+        logger.error(
+          s"[MongoSubmissionService][storeSubmission] DuplicateKeyException returned when saving submission to Mongo, Error: ${e.getMessage}"
+        )
         throw new MongoException("Insert was unsuccessful, received duplicate key exception.")
     }
   }
+
 }

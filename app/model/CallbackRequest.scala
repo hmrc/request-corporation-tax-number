@@ -23,5 +23,3 @@ case class CallbackRequest(envelopeId: String, fileId: String, status: String, r
 object CallbackRequest {
   implicit val formatFileUpload: Format[CallbackRequest] = Json.format[CallbackRequest]
 }
-
-
