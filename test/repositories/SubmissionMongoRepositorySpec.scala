@@ -36,7 +36,7 @@ class SubmissionMongoRepositorySpec extends TestFixture with MongoSupport with B
 
   val submissionMongoRepository = new SubmissionMongoRepository(appConfig, mongoComponent)
 
-  val companyDetails: CompanyDetails   = CompanyDetails(
+  val companyDetails: CompanyDetails = CompanyDetails(
     "initialSub",
     "12345"
   )

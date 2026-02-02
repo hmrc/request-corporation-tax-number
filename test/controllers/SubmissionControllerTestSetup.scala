@@ -52,7 +52,7 @@ class SubmissionControllerTestSetup(saveSubmissionToDb: Boolean) extends TestFix
       stubCC
     )
 
-  val createdAt: LocalDateTime             =
+  val createdAt: LocalDateTime =
     LocalDateTime.parse("Friday 04 October 2024 12:17:18", DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy HH:mm:ss"))
 
   val validSubmission: Submission          = Submission(companyDetails = CompanyDetails("Big Company", "AB123123"))

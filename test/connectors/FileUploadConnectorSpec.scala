@@ -42,7 +42,7 @@ class FileUploadConnectorSpec
 
   private lazy val randomCorrelationId: String = UUID.randomUUID().toString
 
-  implicit val hc: HeaderCarrier               = HeaderCarrier(
+  implicit val hc: HeaderCarrier = HeaderCarrier(
     authorization = Some(Authorization("")),
     forwarded = Some(ForwardedFor("")),
     sessionId = Some(SessionId("")),
@@ -70,12 +70,12 @@ class FileUploadConnectorSpec
 
   private val fileStatuses: Gen[String] = Gen.oneOf("AVAILABLE", "QUARANTINED", "CLEANED", "INFECTED")
 
-  private val file                      = for {
+  private val file = for {
     name   <- uuid
     status <- fileStatuses
   } yield File(name, status)
 
-  private val files: Gen[Seq[File]]     = Gen.listOf(file)
+  private val files: Gen[Seq[File]] = Gen.listOf(file)
 
   "createEnvelope" must {
     "return an envelope id" in
