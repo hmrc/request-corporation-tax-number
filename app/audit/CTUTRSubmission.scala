@@ -23,5 +23,5 @@ case class CTUTRSubmission(companyRegistrationNumber: String, companyName: Strin
 }
 
 object CTUTRSubmission {
-  implicit val formatsSubmission: Format[CTUTRSubmission] = Json.format[CTUTRSubmission]
+  given formatsSubmission: Format[CTUTRSubmission] = Json.format[CTUTRSubmission]
 }

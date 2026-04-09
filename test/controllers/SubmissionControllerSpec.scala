@@ -44,25 +44,35 @@ class SubmissionControllerSpec extends TestFixture {
       ) {
         stubSuccessfulStoreSubmission("1234")
         val result: Future[Result] = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
-        val test: Result           = Await.result(result, Inf)
+        Await.result(result, Inf)
         status(result)                                        mustBe Status.OK
         contentAsJson(result).as[SubmissionResponse].id       mustBe "12345"
         contentAsJson(result).as[SubmissionResponse].filename mustBe "12345-SubmissionCTUTR-20171023-iform.pdf"
 
         verify(mockMongoSubmissionService, times(1)).storeSubmission(
           eqTo(validSubmission),
-          argThat { metadata: CTUTRMetadata =>
+          argThat((metadata: CTUTRMetadata) =>
             metadata.customerId == expectedCTUTRMetadata.customerId &&
-            metadata.createdAt == expectedCTUTRMetadata.createdAt
-          }
+              metadata.createdAt == expectedCTUTRMetadata.createdAt
+          )
         )
+      }
+
+      "valid payload is submitted with an existing correlation ID" in new SubmissionControllerTestSetup(
+        saveSubmissionToDb = false
+      ) {
+        val result: Future[Result] = Helpers.call(
+          submissionController.submit(),
+          fakeRequestValidDataset.withHeaders("X-Correlation-Id" -> "existing-id")
+        )
+        status(result) mustBe Status.OK
       }
 
       "valid payload is submitted and submission.save-to-db is disabled" in new SubmissionControllerTestSetup(
         saveSubmissionToDb = false
       ) {
         val result: Future[Result] = Helpers.call(submissionController.submit(), fakeRequestValidDataset)
-        val test: Result           = Await.result(result, Inf)
+        Await.result(result, Inf)
         status(result)                                        mustBe Status.OK
         contentAsJson(result).as[SubmissionResponse].id       mustBe "12345"
         contentAsJson(result).as[SubmissionResponse].filename mustBe "12345-SubmissionCTUTR-20171023-iform.pdf"

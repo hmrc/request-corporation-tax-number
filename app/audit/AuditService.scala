@@ -27,7 +27,6 @@ import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.language.implicitConversions
 
 @ImplementedBy(classOf[AuditServiceImpl])
 trait AuditService {
@@ -43,18 +42,18 @@ class AuditServiceImpl @Inject() (
   auditConnector: AuditConnector
 ) extends AuditService with Logging {
 
-  implicit private def toHc(request: RequestHeader): AuditHeaderCarrier =
-    auditHeaderCarrier(HeaderCarrierConverter.fromRequestAndSession(request, request.session))
-
   def sendEvent[T <: AuditEvent](
     event: T
   )(implicit rh: RequestHeader, write: Writes[T], ec: ExecutionContext): Future[AuditResult] = {
+
+    val auditHc: AuditHeaderCarrier =
+      auditHeaderCarrier(HeaderCarrierConverter.fromRequestAndSession(rh, rh.session))
 
     val eventJson = Json.obj(
       "data" -> event
     )
 
-    val details = rh.toAuditTags().foldLeft(eventJson) { case (m, (k, v)) =>
+    val details = auditHc.toAuditTags().foldLeft(eventJson) { case (m, (k, v)) =>
       m + (k -> JsString(v))
     }
 
@@ -64,7 +63,7 @@ class AuditServiceImpl @Inject() (
       ExtendedDataEvent(
         auditSource = "request-corporation-tax-number",
         auditType = event.auditType,
-        tags = rh.toAuditTags(
+        tags = auditHc.toAuditTags(
           transactionName = event.auditType,
           path = rh.path
         ),

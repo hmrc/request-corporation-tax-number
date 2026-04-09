@@ -60,6 +60,21 @@ class RobotXmlSpec extends TestFixture {
         doc.select("ctutr > companyReference").text()    mustBe submitValidViewModel.company.companyReferenceNumber
       }
     }
+
+    "expose render, f and ref companion methods" when {
+
+      "render is called" in {
+        templates.xml.robotXml.render(pdfSubmission, submitValidViewModel) mustBe robotXml
+      }
+
+      "f is called" in {
+        templates.xml.robotXml.f(pdfSubmission, submitValidViewModel) mustBe robotXml
+      }
+
+      "ref is accessed" in {
+        templates.xml.robotXml.ref mustBe templates.xml.robotXml
+      }
+    }
   }
 
 }

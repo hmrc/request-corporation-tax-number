@@ -24,6 +24,8 @@ import org.scalatest.BeforeAndAfterEach
 import repositories.SubmissionMongoRepository
 import uk.gov.hmrc.mongo.test.MongoSupport
 
+import org.mongodb.scala.SingleObservableFuture
+
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.DurationInt
 
@@ -34,7 +36,7 @@ class SubmissionMongoRepositorySpec extends TestFixture with MongoSupport with B
     prepareDatabase()
   }
 
-  val submissionMongoRepository = new SubmissionMongoRepository(appConfig, mongoComponent)
+  val submissionMongoRepository = new SubmissionMongoRepository(mongoComponent)
 
   val companyDetails: CompanyDetails = CompanyDetails(
     "initialSub",

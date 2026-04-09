@@ -55,11 +55,11 @@ trait TestFixture
 
   def real[T: ClassTag]: T = injector.instanceOf[T]
 
-  implicit val materializer: Materializer = app.materializer
-  implicit val as: ActorSystem            = ActorSystem()
-  implicit val hc: HeaderCarrier          = HeaderCarrier()
-  implicit lazy val ec: ExecutionContext  = real[ExecutionContext]
-  val stubCC: ControllerComponents        = stubControllerComponents(playBodyParsers = stubPlayBodyParsers(materializer))
+  given materializer: Materializer = app.materializer
+  given as: ActorSystem            = ActorSystem()
+  given hc: HeaderCarrier          = HeaderCarrier()
+  given ec: ExecutionContext       = real[ExecutionContext]
+  val stubCC: ControllerComponents = stubControllerComponents(playBodyParsers = stubPlayBodyParsers(materializer))
 
   val mockWsClient: WSClient   = mock[WSClient]
   val mockWsRequest: WSRequest = mock[WSRequest]
@@ -74,15 +74,10 @@ trait TestFixture
   val mockFileUploadService: FileUploadService                 = mock[FileUploadService]
   val mockSubmissionMongoRepository: SubmissionMongoRepository = mock[SubmissionMongoRepository]
 
-  /**
-   * Wraps some text extracted from an XML element to provide extra assertion methods
-   *
-   * @param text The text to implicitly wrap
-   */
-  implicit class XmlTextWrapper(val text: String) {
+  extension (text: String) {
 
     def mustMatchDateTimeFormat(pattern: String): Assertion = {
-      LocalDateTime.parse(this.text, DateTimeFormatter.ofPattern(pattern))
+      LocalDateTime.parse(text, DateTimeFormatter.ofPattern(pattern))
       Succeeded
     }
 

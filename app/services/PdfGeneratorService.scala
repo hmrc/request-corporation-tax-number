@@ -32,7 +32,7 @@ import scala.concurrent.ExecutionContext
 import scala.util.Using
 
 @Singleton
-class PdfGeneratorService @Inject() (fopFactory: FopFactory, environment: Environment)(implicit ec: ExecutionContext)
+class PdfGeneratorService @Inject() (fopFactory: FopFactory, environment: Environment)(using ec: ExecutionContext)
     extends Logging with URIResolver {
 
   override def resolve(href: String, base: String): Source = {

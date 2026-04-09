@@ -29,6 +29,7 @@ import play.api.http.Status._
 import play.api.libs.json._
 import play.api.libs.ws.WSClient
 import play.api.mvc.MultipartFormData.{DataPart, FilePart}
+import play.api.libs.ws.writeableOf_JsValue
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HeaderNames, HttpReads, HttpResponse, StringContextOps}
 
@@ -40,9 +41,8 @@ import scala.concurrent.{ExecutionContext, Future}
 class FileUploadConnector @Inject() (
   appConfig: MicroserviceAppConfig,
   val httpClientV2: HttpClientV2,
-  val wsClient: WSClient,
-  implicit val ec: ExecutionContext
-)(implicit as: ActorSystem)
+  val wsClient: WSClient
+)(using ec: ExecutionContext, as: ActorSystem)
     extends Logging {
 
   private val callbackUrl: String           = appConfig.fileUploadCallbackUrl
@@ -52,7 +52,7 @@ class FileUploadConnector @Inject() (
   private val firstRetryMilliseconds: Int = 20
   private val maxAttemptNumber: Int       = 5
 
-  implicit val httpReads: HttpReads[HttpResponse] = (_: String, _: String, response: HttpResponse) => response
+  given httpReads: HttpReads[HttpResponse] = (_: String, _: String, response: HttpResponse) => response
 
   private def routingRequest(envelopeId: String): JsValue = Json.obj(
     "envelopeId"  -> envelopeId,
@@ -118,7 +118,7 @@ class FileUploadConnector @Inject() (
 
     val result: Future[HttpResponse] = wsClient
       .url(s"$fileUploadFrontEndUrl/file-upload/upload/envelopes/$envelopeId/files/$fileId")
-      .withHttpHeaders(headers: _*)
+      .withHttpHeaders(headers*)
       .post(multipartFormData)
       .flatMap { response =>
         response.status match {
@@ -170,8 +170,8 @@ class FileUploadConnector @Inject() (
   def parseEnvelope(body: String): Future[Envelope] = {
     val envelope: JsResult[Envelope] = Json.parse(body).validate[Envelope]
     envelope match {
-      case s: JsSuccess[Envelope] => Future.successful(s.get)
-      case _                      => Future.failed(new RuntimeException("Failed to parse envelope"))
+      case JsSuccess(value, _) => Future.successful(value)
+      case _                   => Future.failed(new RuntimeException("Failed to parse envelope"))
     }
   }
 

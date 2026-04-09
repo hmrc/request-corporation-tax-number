@@ -21,5 +21,5 @@ import play.api.libs.json._
 case class Submission(companyDetails: CompanyDetails)
 
 object Submission {
-  implicit val formats: Format[Submission] = Json.format[Submission]
+  given formats: Format[Submission] = Json.format[Submission]
 }

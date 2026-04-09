@@ -18,7 +18,6 @@ package repositories
 
 import com.google.inject.Singleton
 import com.mongodb.client.model.IndexModel
-import config.MicroserviceAppConfig
 import org.bson.types.ObjectId
 import model.MongoSubmission
 import uk.gov.hmrc.mongo.MongoComponent
@@ -30,9 +29,8 @@ import org.mongodb.scala.bson.BsonDocument
 import org.mongodb.scala.result.InsertOneResult
 
 @Singleton
-class SubmissionMongoRepository @Inject() (appConfig: MicroserviceAppConfig, mc: MongoComponent)(implicit
-  ec: ExecutionContext
-) extends PlayMongoRepository[MongoSubmission](
+class SubmissionMongoRepository @Inject() (mc: MongoComponent)(using ec: ExecutionContext)
+    extends PlayMongoRepository[MongoSubmission](
       mongoComponent = mc,
       collectionName = "submissions",
       domainFormat = MongoSubmission.formats,
