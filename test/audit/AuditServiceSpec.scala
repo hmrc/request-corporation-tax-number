@@ -30,7 +30,7 @@ import scala.concurrent.Future
 
 class AuditServiceSpec extends TestFixture {
 
-  implicit private val request: FakeRequest[AnyContentAsJson] = FakeRequest()
+  private given request: FakeRequest[AnyContentAsJson] = FakeRequest()
     .withHeaders("a" -> "B")
     .withJsonBody(Json.parse("""
         |{
@@ -86,6 +86,18 @@ class AuditServiceSpec extends TestFixture {
         x mustBe AuditResult.Failure
       }
 
+    }
+
+    "log an error when the audit connector returns a failed future" in {
+      val exception = new RuntimeException("connector error")
+      when(mockAuditConnector.sendExtendedEvent(any[ExtendedDataEvent])(any(), any()))
+        .thenReturn(Future.failed(exception))
+
+      val result = auditService.sendEvent(CTUTRSubmission("foo", "bar"))
+
+      whenReady(result.failed) { e =>
+        e mustBe exception
+      }
     }
   }
 

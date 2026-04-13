@@ -21,5 +21,5 @@ import play.api.libs.json.{Format, Json}
 case class CompanyDetails(companyName: String, companyReferenceNumber: String)
 
 object CompanyDetails {
-  implicit val format: Format[CompanyDetails] = Json.format[CompanyDetails]
+  given format: Format[CompanyDetails] = Json.format[CompanyDetails]
 }

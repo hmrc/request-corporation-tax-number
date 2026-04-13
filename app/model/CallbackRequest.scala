@@ -21,5 +21,5 @@ import play.api.libs.json.{Format, Json}
 case class CallbackRequest(envelopeId: String, fileId: String, status: String, reason: Option[String] = None)
 
 object CallbackRequest {
-  implicit val formatFileUpload: Format[CallbackRequest] = Json.format[CallbackRequest]
+  given formatFileUpload: Format[CallbackRequest] = Json.format[CallbackRequest]
 }

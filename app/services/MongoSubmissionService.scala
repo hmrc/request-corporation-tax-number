@@ -24,14 +24,12 @@ import repositories.SubmissionMongoRepository
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 import com.mongodb.MongoException
-import config.MicroserviceAppConfig
 import model.templates.CTUTRMetadata
 import org.mongodb.scala.DuplicateKeyException
 
 class MongoSubmissionService @Inject() (
-  val submissionMongoRepository: SubmissionMongoRepository,
-  appConfig: MicroserviceAppConfig
-)(implicit ec: ExecutionContext)
+  val submissionMongoRepository: SubmissionMongoRepository
+)(using ec: ExecutionContext)
     extends Logging {
 
   def storeSubmission(submission: Submission, metadata: CTUTRMetadata): Future[String] = {

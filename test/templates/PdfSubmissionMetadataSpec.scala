@@ -219,6 +219,21 @@ class PdfSubmissionMetadataSpec extends TestFixture {
         section.select("attribute_value").text() mustBe pdfSubmission.attachmentCount.toString
       }
     }
+
+    "expose render, f and ref companion methods" when {
+
+      "render is called" in {
+        templates.xml.pdfSubmissionMetadata.render(pdfSubmission) mustBe pdfSubmissionMetadata
+      }
+
+      "f is called" in {
+        templates.xml.pdfSubmissionMetadata.f(pdfSubmission) mustBe pdfSubmissionMetadata
+      }
+
+      "ref is accessed" in {
+        templates.xml.pdfSubmissionMetadata.ref mustBe templates.xml.pdfSubmissionMetadata
+      }
+    }
   }
 
 }

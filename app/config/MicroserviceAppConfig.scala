@@ -24,7 +24,6 @@ class MicroserviceAppConfig @Inject() (servicesConfig: ServicesConfig) {
 
   private def loadConfig(key: String) = servicesConfig.getString(key)
 
-  lazy val appName: String               = servicesConfig.getString("appName")
   lazy val fileUploadUrl: String         = servicesConfig.baseUrl("file-upload")
   lazy val fileUploadFrontendUrl: String = servicesConfig.baseUrl("file-upload-frontend")
   lazy val fileUploadCallbackUrl: String = loadConfig(s"microservice.services.file-upload.callbackUrl")

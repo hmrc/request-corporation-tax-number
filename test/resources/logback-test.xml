@@ -7,7 +7,12 @@
         </encoder>
     </appender>
 
-    <root level="INFO">
+    <logger name="org.apache" level="INFO"/>
+    <logger name="play.shaded" level="INFO"/>
+    <logger name="org.eclipse" level="INFO"/>
+    <logger name="org.mongodb" level="INFO"/>
+
+    <root level="DEBUG">
         <appender-ref ref="STDOUT"/>
     </root>
 </configuration>

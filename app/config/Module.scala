@@ -24,7 +24,7 @@ import java.time.Clock
 
 class Module extends PlayModule {
 
-  override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[_]] =
+  override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[?]] =
     Seq(
       bind[FopFactory].toProvider[FopFactoryProvider].eagerly(),
       bind[Clock].toInstance(Clock.systemDefaultZone())

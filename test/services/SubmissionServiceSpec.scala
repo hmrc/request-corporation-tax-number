@@ -31,7 +31,7 @@ import scala.concurrent.{Await, Future}
 
 class SubmissionServiceSpec extends TestFixture {
 
-  val submissionService: SubmissionService = new SubmissionService(mockFileUploadService, mockPdfService, ec)
+  val submissionService: SubmissionService = new SubmissionService(mockFileUploadService, mockPdfService)
 
   val pdfBytes: Array[Byte] = getClass
     .getResourceAsStream("/CTUTR_example_04102024.pdf")

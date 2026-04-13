@@ -50,10 +50,10 @@ class SubmissionController @Inject() (
   cc: ControllerComponents
 ) extends BackendController(cc) with Logging with CorrelationIdHelper {
 
-  implicit val ec: ExecutionContext = cc.executionContext
+  given ec: ExecutionContext = cc.executionContext
 
   def submit(): Action[Submission] = Action.async(parse.json[Submission]) { implicit request: Request[Submission] =>
-    implicit val hc: HeaderCarrier = getOrCreateCorrelationID(request)
+    given hc: HeaderCarrier = getOrCreateCorrelationID(request)
 
     logger.info(s"[SubmissionController][submit] processing submission")
 

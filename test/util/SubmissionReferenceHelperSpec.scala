@@ -41,6 +41,16 @@ class SubmissionReferenceHelperSpec extends AnyWordSpec with Matchers with Optio
       submissionRef.length        mustBe 14
       submissionRef.contains("-") mustBe true
     }
+
+    "create submission reference when length is less than 10" in {
+      val submissionRef = createSubmissionRef(8)
+      submissionRef.contains("-") mustBe true
+    }
+
+    "create submission reference when length is odd" in {
+      val submissionRef = createSubmissionRef(11)
+      submissionRef.contains("-") mustBe true
+    }
   }
 
 }

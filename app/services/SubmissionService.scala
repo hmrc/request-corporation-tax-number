@@ -38,9 +38,9 @@ case object Open extends EnvelopeStatus
 @Singleton
 class SubmissionService @Inject() (
   val fileUploadService: FileUploadService,
-  pdfService: PdfGeneratorService,
-  implicit val ec: ExecutionContext
-) extends Logging {
+  pdfService: PdfGeneratorService
+)(using ec: ExecutionContext)
+    extends Logging {
 
   protected def fileName(envelopeId: String, fileType: String, submissionDate: LocalDate) =
     s"$envelopeId-SubmissionCTUTR-${submissionDate.format(DateTimeFormatter.ofPattern("YYYYMMdd"))}-$fileType"
@@ -81,7 +81,7 @@ class SubmissionService @Inject() (
           )
         case _      =>
           logger.error(s"[SubmissionService][submit] Envelope status not OPEN for envelopeId: $envelopeId")
-          Future.failed(throw new RuntimeException())
+          throw new RuntimeException()
       }
 
       SubmissionResponse(envelopeId, fileName(envelopeId, "iform.pdf", metadata.createdAt.toLocalDate))

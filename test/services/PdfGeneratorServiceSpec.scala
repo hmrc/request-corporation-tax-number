@@ -31,6 +31,7 @@ import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.PDFTextStripper
 import org.apache.pdfbox.Loader
 import templates.html.CTUTRScheme
+import javax.xml.transform.stream.StreamSource
 
 class PdfGeneratorServiceSpec extends TestFixture {
 
@@ -38,6 +39,23 @@ class PdfGeneratorServiceSpec extends TestFixture {
   val fopFactory: FopFactory = injector.instanceOf[FopFactory]
 
   private val pdfService: PdfGeneratorService = new PdfGeneratorService(fopFactory, env)
+
+  private val submission: Submission = Submission(
+    companyDetails = CompanyDetails(
+      companyName = "company",
+      companyReferenceNumber = "00000200"
+    )
+  )
+
+  private val time: LocalDateTime = LocalDateTime.parse(
+    "Friday 04 October 2024 12:17:18",
+    DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy HH:mm:ss")
+  )
+
+  private val metadata: CTUTRMetadata = CTUTRMetadata(
+    appConfig = appConfig,
+    createdAt = time
+  )
 
   "PdfGeneratorService" should {
 
@@ -47,27 +65,17 @@ class PdfGeneratorServiceSpec extends TestFixture {
       pdfStripper.getText(document)
     }
 
+    "pdfService resolve" must {
+
+      "return a StreamSource for a non-prefixed href" in {
+        val source = pdfService.resolve("some/path/file.xml", "")
+        source mustBe a[StreamSource]
+      }
+    }
+
     "pdfService render " must {
 
       "generate the expected pdf" in {
-
-        val submission: Submission = Submission(
-          companyDetails = CompanyDetails(
-            companyName = "company",
-            companyReferenceNumber = "00000200"
-          )
-        )
-
-        val time = LocalDateTime.parse(
-          "Friday 04 October 2024 12:17:18",
-          DateTimeFormatter.ofPattern("EEEE dd MMMM yyyy HH:mm:ss")
-        )
-
-        val metadata: CTUTRMetadata = CTUTRMetadata(
-          appConfig = appConfig,
-          createdAt = time
-        )
-
         val submissionViewModel: SubmissionViewModel = SubmissionViewModel(submission, metadata)
 
         val response = pdfService.render(
@@ -82,6 +90,17 @@ class PdfGeneratorServiceSpec extends TestFixture {
           .readAllBytes()
 
         extractTextFromBytes(result) mustBe extractTextFromBytes(staticPdf)
+      }
+
+      "throw an exception when the xsl transformer is invalid" in {
+        val submissionViewModel: SubmissionViewModel = SubmissionViewModel(submission, metadata)
+
+        val result = pdfService.render(CTUTRScheme(submissionViewModel), "invalid xsl content")
+
+        whenReady(result.failed) { exception =>
+          exception          mustBe a[Exception]
+          exception.getMessage must startWith("[PdfGeneratorService][render] Error rendering PDF:")
+        }
       }
     }
   }

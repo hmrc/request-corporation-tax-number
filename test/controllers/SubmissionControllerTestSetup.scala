@@ -91,10 +91,10 @@ class SubmissionControllerTestSetup(saveSubmissionToDb: Boolean) extends TestFix
     when(
       mockMongoSubmissionService.storeSubmission(
         eqTo(validSubmission),
-        argThat { metadata: CTUTRMetadata =>
+        argThat((metadata: CTUTRMetadata) =>
           metadata.customerId == expectedCTUTRMetadata.customerId &&
-          metadata.createdAt == expectedCTUTRMetadata.createdAt
-        }
+            metadata.createdAt == expectedCTUTRMetadata.createdAt
+        )
       )
     ).thenReturn(Future.successful(objectId))
 
@@ -102,10 +102,10 @@ class SubmissionControllerTestSetup(saveSubmissionToDb: Boolean) extends TestFix
     when(
       mockMongoSubmissionService.storeSubmission(
         eqTo(validSubmission),
-        argThat { metadata: CTUTRMetadata =>
+        argThat((metadata: CTUTRMetadata) =>
           metadata.customerId == expectedCTUTRMetadata.customerId &&
-          metadata.createdAt == expectedCTUTRMetadata.createdAt
-        }
+            metadata.createdAt == expectedCTUTRMetadata.createdAt
+        )
       )
     ).thenReturn(Future.failed(exception))
 

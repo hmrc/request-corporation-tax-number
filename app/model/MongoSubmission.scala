@@ -26,11 +26,11 @@ case class MongoSubmission(
   companyReferenceNumber: String,
   time: LocalDateTime,
   submissionReference: String,
-  customerId: String = ""
+  customerId: String
 )
 
 object MongoSubmission {
-  implicit val formats: Format[MongoSubmission] = Json.format[MongoSubmission]
+  given formats: Format[MongoSubmission] = Json.format[MongoSubmission]
 
   def apply(submission: Submission, metadata: CTUTRMetadata): MongoSubmission = new MongoSubmission(
     submission.companyDetails.companyName,

@@ -1,5 +1,5 @@
 ThisBuild / majorVersion := 1
-ThisBuild / scalaVersion := "2.13.18"
+ThisBuild / scalaVersion := "3.3.7"
 
 lazy val microservice = Project("request-corporation-tax-number", file("."))
   .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
@@ -10,9 +10,10 @@ lazy val microservice = Project("request-corporation-tax-number", file("."))
     PlayKeys.playDefaultPort := 9201,
     scalacOptions -= "-Xmax-classfile-name",
     scalacOptions ++= Seq(
-      "-Wconf:cat=unused-imports&src=routes/.*:s",
-      "-Wconf:cat=unused-imports&src=html/.*:s",
-      "-Wconf:cat=unused-imports&src=xml/.*:s"
+      "-Wconf:msg=unused import&src=conf/.*:s",
+      "-Wconf:msg=unused import&src=routes/.*:s",
+      "-Wconf:msg=unused import&src=html/.*:s",
+      "-Wconf:msg=unused import&src=xml/.*:s"
     ),
     Compile / unmanagedResourceDirectories += baseDirectory.value / "app" / "templates" / "fop",
     Test / unmanagedResourceDirectories += baseDirectory.value / "app" / "templates" / "fop"

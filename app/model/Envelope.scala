@@ -22,5 +22,5 @@ case class Envelope(id: String, callbackUrl: Option[String], status: String, fil
 
 object Envelope {
 
-  implicit val format: Format[Envelope] = Json.format[Envelope]
+  given format: Format[Envelope] = Json.format[Envelope]
 }

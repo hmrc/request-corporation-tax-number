@@ -38,11 +38,11 @@ class FileUploadConnectorSpec
 
   def appConfig: MicroserviceAppConfig = injector.instanceOf[MicroserviceAppConfig]
 
-  implicit def dontShrink[A]: Shrink[A] = Shrink.shrinkAny
+  given dontShrink[A]: Shrink[A] = Shrink.shrinkAny
 
   private lazy val randomCorrelationId: String = UUID.randomUUID().toString
 
-  implicit val hc: HeaderCarrier = HeaderCarrier(
+  given hc: HeaderCarrier = HeaderCarrier(
     authorization = Some(Authorization("")),
     forwarded = Some(ForwardedFor("")),
     sessionId = Some(SessionId("")),
@@ -206,7 +206,7 @@ class FileUploadConnectorSpec
 
     "return exceptions" when {
       "no location header provided" in
-        forAll(uuid, uuid) { (envId, routingId) =>
+        forAll(uuid, uuid) { (envId, _) =>
           WireMock.stubFor(
             post(urlEqualTo("/file-routing/requests"))
               .willReturn(
