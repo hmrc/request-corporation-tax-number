@@ -3,13 +3,13 @@ import sbt.*
 
 object AppDependencies {
 
-  private val bootstrapPlayVersion: String = "10.7.0"
-  private val mongoVersion: String         = "2.12.0"
+  private val bootstrapPlayVersion: String = "10.8.0"
+  private val mongoVersion: String         = "2.14.0"
 
   private val compile = Seq(
     ws,
     "uk.gov.hmrc"           %% "bootstrap-backend-play-30" % bootstrapPlayVersion,
-    "uk.gov.hmrc"           %% "domain-play-30"            % "11.0.0",
+    "uk.gov.hmrc"           %% "domain-play-30"            % "13.0.0",
     "org.apache.xmlgraphics" % "fop"                       % "2.11",
     "net.sf.saxon"           % "Saxon-HE"                  % "12.7",
     "commons-io"             % "commons-io"                % "2.20.0",
@@ -18,7 +18,7 @@ object AppDependencies {
 
   private val test: Seq[ModuleID] = Seq(
     "uk.gov.hmrc"       %% "bootstrap-test-play-30"  % bootstrapPlayVersion,
-    "org.scalatestplus" %% "scalacheck-1-19"         % "3.2.19.0",
+    "org.scalatestplus" %% "scalacheck-1-20"         % "3.2.20.0",
     "org.apache.pdfbox"  % "pdfbox"                  % "3.0.7",
     "uk.gov.hmrc.mongo" %% "hmrc-mongo-test-play-30" % mongoVersion
   ).map(_ % Test)
